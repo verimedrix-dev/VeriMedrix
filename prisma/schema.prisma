@@ -1,0 +1,1227 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Alert {
+  id                String       @id
+  practiceId        String
+  alertType         AlertType
+  relatedDocumentId String?
+  relatedTaskId     String?
+  recipientId       String
+  channel           AlertChannel @default(EMAIL)
+  message           String
+  scheduledFor      DateTime
+  sentAt            DateTime?
+  status            AlertStatus  @default(PENDING)
+  errorMessage      String?
+  externalId        String?
+  createdAt         DateTime     @default(now())
+  Practice          Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User              User         @relation(fields: [recipientId], references: [id])
+  Document          Document?    @relation(fields: [relatedDocumentId], references: [id], onDelete: Cascade)
+  Task              Task?        @relation(fields: [relatedTaskId], references: [id], onDelete: Cascade)
+
+  @@index([alertType])
+  @@index([practiceId])
+  @@index([recipientId])
+  @@index([scheduledFor])
+  @@index([status])
+}
+
+model AuditLog {
+  id         String      @id
+  practiceId String
+  userId     String
+  action     AuditAction
+  entityType String
+  entityId   String?
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+  Practice   Practice    @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User       User        @relation(fields: [userId], references: [id])
+
+  @@index([action])
+  @@index([createdAt])
+  @@index([entityType])
+  @@index([practiceId])
+  @@index([userId])
+}
+
+model Document {
+  id                               String            @id
+  practiceId                       String
+  documentTypeId                   String
+  title                            String
+  fileUrl                          String
+  fileName                         String
+  fileSize                         Int
+  mimeType                         String?
+  uploadedById                     String
+  approvedById                     String?
+  approvedAt                       DateTime?
+  effectiveDate                    DateTime?
+  expiryDate                       DateTime?
+  reviewDate                       DateTime?
+  status                           DocumentStatus    @default(PENDING_APPROVAL)
+  version                          Int               @default(1)
+  notes                            String?
+  createdAt                        DateTime          @default(now())
+  updatedAt                        DateTime
+  Alert                            Alert[]
+  User_Document_approvedByIdToUser User?             @relation("Document_approvedByIdToUser", fields: [approvedById], references: [id])
+  DocumentType                     DocumentType      @relation(fields: [documentTypeId], references: [id])
+  Practice                         Practice          @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User_Document_uploadedByIdToUser User              @relation("Document_uploadedByIdToUser", fields: [uploadedById], references: [id])
+  DocumentVersion                  DocumentVersion[]
+
+  @@index([documentTypeId])
+  @@index([expiryDate])
+  @@index([practiceId])
+  @@index([status])
+  @@index([uploadedById])
+  @@index([practiceId, status]) // Composite for filtered queries
+}
+
+model DocumentCategory {
+  id           String         @id
+  name         String         @unique
+  description  String?
+  displayOrder Int            @default(0)
+  icon         String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  DocumentType DocumentType[]
+
+  @@index([displayOrder])
+}
+
+model DocumentType {
+  id                  String           @id
+  categoryId          String
+  name                String
+  description         String?
+  isRequired          Boolean          @default(true)
+  defaultReviewMonths Int?
+  requiresExpiry      Boolean          @default(false)
+  ohscMeasureNumber   String?
+  guidanceNotes       String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime
+  Document            Document[]
+  DocumentCategory    DocumentCategory @relation(fields: [categoryId], references: [id])
+
+  @@unique([categoryId, name])
+  @@index([isRequired])
+}
+
+model DocumentVersion {
+  id            String   @id
+  documentId    String
+  versionNumber Int
+  fileUrl       String
+  fileName      String
+  fileSize      Int
+  uploadedById  String
+  changeNotes   String?
+  createdAt     DateTime @default(now())
+  Document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionNumber])
+  @@index([documentId])
+}
+
+model Employee {
+  id                       String                     @id
+  practiceId               String
+  userId                   String?                    @unique
+  fullName                 String
+  idNumber                 String?
+  position                 String
+  department               String?
+  hireDate                 DateTime?
+  hpcsaNumber              String?
+  hpcsaExpiry              DateTime?
+  sancNumber               String?
+  sancExpiry               DateTime?
+  blsExpiry                DateTime?
+  isActive                 Boolean                    @default(true)
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime
+  address                  String?
+  annualLeaveBalance       Float                      @default(15)
+  dateOfBirth              DateTime?
+  email                    String?
+  employeeNumber           String?
+  employmentType           EmploymentType             @default(PERMANENT)
+  familyLeaveBalance       Float                      @default(3)
+  jobDescriptionSigned     Boolean                    @default(false)
+  jobDescriptionSignedAt   DateTime?
+  phone                    String?
+  sapcExpiry               DateTime?
+  sapcNumber               String?
+  sickLeaveBalance         Float                      @default(30)
+  terminationDate          DateTime?
+  // Compensation fields
+  grossSalary              Float?
+  payFrequency             PayFrequency?
+  payDay                   Int?                       // Day of month (1-31) or day of week (1-7) depending on frequency
+  bankName                 String?
+  bankAccountNumber        String?
+  bankBranchCode           String?
+  uifExempt                Boolean                    @default(false)
+  uifExemptReason          UifExemptReason?
+  // Locum-specific fields
+  isLocum                  Boolean                    @default(false)
+  locumType                LocumType?
+  locumAgency              String?                    // Agency they work through
+  locumDailyRate           Float?                     // Daily rate for locums
+  locumHourlyRate          Float?                     // Hourly rate for locums
+  indemnityInsuranceNumber String?                    // Professional indemnity insurance
+  indemnityInsuranceExpiry DateTime?
+  locumContractUrl         String?                    // Stored contract document
+  locumNotes               String?                    // Additional notes about the locum
+  Practice                 Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  EmployeeDocument         EmployeeDocument[]
+  EmployeeTraining         EmployeeTraining[]
+  KpiReview                KpiReview[]
+  LeaveRequest             LeaveRequest[]
+  ProfessionalRegistration ProfessionalRegistration[]
+  Warning                  Warning[]
+  EmployeeDeduction        EmployeeDeduction[]
+  PayrollEntry             PayrollEntry[]
+  TeamInvitation           TeamInvitation?
+
+  @@index([employeeNumber])
+  @@index([isActive])
+  @@index([practiceId])
+}
+
+model KpiReview {
+  id          String          @id @default(cuid())
+  employeeId  String
+  quarter     Int             // 1, 2, 3, or 4
+  year        Int
+  status      KpiReviewStatus @default(DRAFT)
+  reviewDate  DateTime?       // When the review was completed
+  reviewedById String?        // Who conducted the review
+  notes       String?         // Overall notes for the quarter
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  Employee    Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  goals       KpiGoal[]
+
+  @@unique([employeeId, quarter, year])
+  @@index([employeeId])
+  @@index([quarter, year])
+  @@index([status])
+}
+
+model KpiGoal {
+  id          String    @id @default(cuid())
+  reviewId    String
+  title       String
+  description String?
+  isMet       Boolean?  // null = pending, true = met, false = not met
+  notes       String?   // Notes about whether goal was met
+  markedAt    DateTime? // When the goal was marked as met/not met
+  markedById  String?   // Who marked it
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  review      KpiReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+}
+
+model EmployeeDocument {
+  id           String    @id
+  employeeId   String
+  documentType String
+  title        String
+  fileUrl      String
+  expiryDate   DateTime?
+  uploadedById String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime
+  fileName     String?
+  fileSize     Int?
+  isSigned     Boolean   @default(false)
+  notes        String?
+  signedAt     DateTime?
+  Employee     Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([documentType])
+  @@index([employeeId])
+  @@index([expiryDate])
+}
+
+// Practice-defined training module (CPD requirement)
+model TrainingModule {
+  id              String                       @id @default(cuid())
+  practiceId      String
+  name            String                       // e.g., "BLS Certification", "POPIA Compliance"
+  description     String?
+  provider        String?                      // e.g., "Heart Foundation", "Internal"
+  cpdPoints       Int?                         // CPD points for this training
+  validityMonths  Int?                         // How long certification is valid (null = no expiry)
+  isRequired      Boolean                      @default(true) // Required vs optional training
+  isActive        Boolean                      @default(true)
+  createdAt       DateTime                     @default(now())
+  updatedAt       DateTime                     @updatedAt
+  Practice        Practice                     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  PositionRequirements PositionTrainingRequirement[]
+  EmployeeTrainings    EmployeeTraining[]
+
+  @@unique([practiceId, name])
+  @@index([practiceId])
+  @@index([isActive])
+}
+
+// Which positions require which training modules
+model PositionTrainingRequirement {
+  id                String         @id @default(cuid())
+  practiceId        String
+  position          String         // e.g., "Doctor", "Nurse", "Receptionist"
+  trainingModuleId  String
+  isRequired        Boolean        @default(true) // Required for this position specifically
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  TrainingModule    TrainingModule @relation(fields: [trainingModuleId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, position, trainingModuleId])
+  @@index([practiceId, position])
+  @@index([trainingModuleId])
+}
+
+// Employee training record - enhanced with pass/fail and module link
+model EmployeeTraining {
+  id                String          @id @default(cuid())
+  employeeId        String
+  trainingModuleId  String?         // Link to practice-defined module (null for ad-hoc trainings)
+  trainingName      String          // Name of the training (copied from module or manual entry)
+  provider          String?
+  completedDate     DateTime
+  expiryDate        DateTime?
+  status            TrainingStatus  @default(COMPLETED) // Pass/Fail tracking
+  score             Float?          // Optional score/percentage
+  cpdPoints         Int?            // CPD points earned
+  certificateUrl    String?
+  certificateNumber String?
+  notes             String?
+  year              Int             // Year for CPD tracking (derived from completedDate)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  Employee          Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  TrainingModule    TrainingModule? @relation(fields: [trainingModuleId], references: [id])
+
+  @@index([employeeId])
+  @@index([expiryDate])
+  @@index([trainingName])
+  @@index([trainingModuleId])
+  @@index([employeeId, year]) // For yearly CPD summary
+  @@index([status])
+}
+
+model LeaveRequest {
+  id               String      @id
+  employeeId       String
+  leaveType        LeaveType
+  startDate        DateTime
+  endDate          DateTime
+  totalDays        Float
+  reason           String?
+  status           LeaveStatus @default(PENDING)
+  sickNoteUrl      String?
+  sickNoteUploaded Boolean     @default(false)
+  approvedById     String?
+  approvedAt       DateTime?
+  declineReason    String?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime
+  Employee         Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([leaveType])
+  @@index([startDate])
+  @@index([status])
+  @@index([approvedById])
+}
+
+model Practice {
+  id                   String             @id
+  name                 String
+  practiceNumber       String?            // Practice registration/license number
+  address              String?
+  phone                String?
+  email                String
+  subscriptionTier     SubscriptionTier   @default(ESSENTIALS)
+  subscriptionStatus   SubscriptionStatus @default(TRIAL)
+  trialEndsAt          DateTime?
+  onboardingCompleted  Boolean            @default(false)
+  practiceSize         String?            // "solo", "small", "medium", "large"
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime
+  Alert                Alert[]
+  AuditLog             AuditLog[]
+  Document             Document[]
+  Employee             Employee[]
+  Locum                Locum[]
+  Task                 Task[]
+  TaskTemplate         TaskTemplate[]
+  User                 User[]
+  PayrollRun           PayrollRun[]
+  PracticeDocument     PracticeDocument[]
+  TeamInvitation       TeamInvitation[]
+  TrainingModule       TrainingModule[]
+
+  @@index([email])
+  @@index([subscriptionStatus])
+}
+
+model PracticeDocument {
+  id          String   @id @default(cuid())
+  practiceId  String
+  name        String   // User-provided name/description
+  fileName    String   // Original file name
+  fileType    String   // MIME type
+  fileSize    Int      // Size in bytes
+  fileUrl     String   // Storage URL or path
+  uploadedBy  String   // User ID who uploaded
+  uploadedAt  DateTime @default(now())
+  Practice    Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User        User     @relation(fields: [uploadedBy], references: [id])
+
+  @@index([practiceId])
+}
+
+model ProfessionalRegistration {
+  id                 String           @id
+  employeeId         String
+  professionalBody   ProfessionalBody
+  registrationNumber String
+  expiryDate         DateTime?
+  verifiedAt         DateTime?
+  certificateUrl     String?
+  isActive           Boolean          @default(true)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime
+  Employee           Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([expiryDate])
+  @@index([professionalBody])
+}
+
+model Task {
+  id                            String        @id
+  practiceId                    String
+  templateId                    String?
+  title                         String
+  description                   String?
+  assignedToId                  String?
+  dueDate                       DateTime
+  dueTime                       String?
+  completedAt                   DateTime?
+  completedById                 String?
+  evidenceUrl                   String?
+  evidenceNotes                 String?
+  verifiedById                  String?
+  verifiedAt                    DateTime?
+  status                        TaskStatus    @default(PENDING)
+  escalatedAt                   DateTime?
+  escalatedToId                 String?
+  createdAt                     DateTime      @default(now())
+  updatedAt                     DateTime
+  Alert                         Alert[]
+  User_Task_assignedToIdToUser  User?         @relation("Task_assignedToIdToUser", fields: [assignedToId], references: [id])
+  User_Task_completedByIdToUser User?         @relation("Task_completedByIdToUser", fields: [completedById], references: [id])
+  User_Task_escalatedToIdToUser User?         @relation("Task_escalatedToIdToUser", fields: [escalatedToId], references: [id])
+  Practice                      Practice      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  TaskTemplate                  TaskTemplate? @relation(fields: [templateId], references: [id])
+  User_Task_verifiedByIdToUser  User?         @relation("Task_verifiedByIdToUser", fields: [verifiedById], references: [id])
+
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@index([practiceId])
+  @@index([status])
+  @@index([templateId])
+  @@index([practiceId, status, dueDate]) // Composite for dashboard queries
+}
+
+model TaskTemplate {
+  id                       String        @id
+  practiceId               String
+  name                     String
+  description              String?
+  frequency                TaskFrequency @default(DAILY)
+  frequencyConfig          Json?
+  requiresEvidence         Boolean       @default(false)
+  escalationThresholdHours Int?
+  assignedRole             UserRole?
+  category                 String?
+  isActive                 Boolean       @default(true)
+  createdById              String
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime
+  Task                     Task[]
+  User                     User          @relation(fields: [createdById], references: [id])
+  Practice                 Practice      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@index([frequency])
+  @@index([isActive])
+  @@index([practiceId])
+}
+
+model User {
+  id                                   String         @id
+  clerkId                              String?        @unique
+  practiceId                           String?
+  email                                String         @unique
+  name                                 String
+  phone                                String?
+  role                                 UserRole       @default(STAFF)
+  isActive                             Boolean        @default(true)
+  twoFactorEnabled                     Boolean        @default(false)
+  twoFactorSecret                      String?
+  twoFactorBackupCodes                 String?        // JSON array of backup codes
+  // Notification preferences (stored as JSON for flexibility)
+  notifyExpiry90Days                   Boolean        @default(true)
+  notifyExpiry60Days                   Boolean        @default(true)
+  notifyExpiry30Days                   Boolean        @default(true)
+  notifyExpiryCritical                 Boolean        @default(true)  // 14, 7, 0 days
+  notifyTaskAssignment                 Boolean        @default(true)
+  notifyTaskOverdue                    Boolean        @default(true)
+  notifyWeeklyDigest                   Boolean        @default(false)
+  createdAt                            DateTime       @default(now())
+  updatedAt                            DateTime
+  Alert                                Alert[]
+  AuditLog                             AuditLog[]
+  Document_Document_approvedByIdToUser Document[]     @relation("Document_approvedByIdToUser")
+  Document_Document_uploadedByIdToUser Document[]     @relation("Document_uploadedByIdToUser")
+  Task_Task_assignedToIdToUser         Task[]         @relation("Task_assignedToIdToUser")
+  Task_Task_completedByIdToUser        Task[]         @relation("Task_completedByIdToUser")
+  Task_Task_escalatedToIdToUser        Task[]         @relation("Task_escalatedToIdToUser")
+  Task_Task_verifiedByIdToUser         Task[]         @relation("Task_verifiedByIdToUser")
+  TaskTemplate                         TaskTemplate[]
+  Practice                             Practice?      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  PracticeDocument                     PracticeDocument[]
+  TeamInvitation                       TeamInvitation[]
+  Locum                                Locum?
+
+  @@index([email])
+  @@index([practiceId])
+  @@index([role])
+}
+
+model Warning {
+  id              String          @id
+  employeeId      String
+  warningType     WarningType
+  category        WarningCategory
+  incidentDate    DateTime
+  description     String
+  issuedById      String
+  issuedAt        DateTime        @default(now())
+  expiresAt       DateTime
+  acknowledged    Boolean         @default(false)
+  acknowledgedAt  DateTime?
+  employeeComment String?
+  documentUrl     String?
+  isActive        Boolean         @default(true)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime
+  Employee        Employee        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([expiresAt])
+  @@index([isActive])
+  @@index([warningType])
+}
+
+enum AlertChannel {
+  EMAIL
+  WHATSAPP
+  IN_APP
+}
+
+enum AlertStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum AlertType {
+  DOCUMENT_EXPIRY
+  TASK_OVERDUE
+  TASK_REMINDER
+  ESCALATION
+  TASK_ASSIGNED
+  LEAVE_REQUEST
+  LEAVE_APPROVED
+  LEAVE_DECLINED
+  WARNING_ISSUED
+  TRAINING_EXPIRY
+  REGISTRATION_EXPIRY
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  EXPORT
+  UPLOAD
+  DOWNLOAD
+  APPROVE
+  COMPLETE
+}
+
+enum DocumentStatus {
+  CURRENT
+  EXPIRING_SOON
+  EXPIRED
+  NEEDS_REVIEW
+  PENDING_APPROVAL
+}
+
+enum EmploymentType {
+  PERMANENT
+  CONTRACT
+  PART_TIME
+  TEMPORARY
+  LOCUM
+}
+
+enum KpiReviewStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  CANCELLED
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  FAMILY_RESPONSIBILITY
+  MATERNITY
+  UNPAID
+  STUDY
+}
+
+enum ProfessionalBody {
+  HPCSA
+  SANC
+  SAPC
+  AHPCSA
+  OTHER
+}
+
+enum LocumType {
+  DOCTOR
+  NURSE
+  MEDICAL_ASSISTANT
+  OTHER
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+}
+
+enum SubscriptionTier {
+  ESSENTIALS
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum TaskFrequency {
+  MULTIPLE_DAILY
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  BIANNUALLY
+  ANNUALLY
+  EVERY_TWO_YEARS
+  EVERY_FIVE_YEARS
+  CUSTOM
+}
+
+enum TaskStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  VERIFIED
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  PRACTICE_OWNER
+  ADMIN
+  STAFF
+  VIEWER
+  LOCUM
+}
+
+enum WarningCategory {
+  LATE_ARRIVAL
+  ABSENTEEISM
+  MISCONDUCT
+  NEGLIGENCE
+  INSUBORDINATION
+  POLICY_VIOLATION
+  PERFORMANCE
+  OTHER
+}
+
+enum WarningType {
+  VERBAL
+  WRITTEN
+  FINAL_WRITTEN
+}
+
+enum PayFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  MONTHLY
+}
+
+enum UifExemptReason {
+  WORKS_LESS_THAN_24_HOURS
+  INDEPENDENT_CONTRACTOR
+  LEARNER_UNDER_AGREEMENT
+  PUBLIC_SERVANT
+  FOREIGN_GOVERNMENT_EMPLOYEE
+  OTHER
+}
+
+enum DeductionType {
+  PAYE
+  UIF
+  PENSION
+  MEDICAL_AID
+  CUSTOM
+}
+
+enum PayrollStatus {
+  DRAFT
+  PROCESSED
+  PAID
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+// Employee deductions - what deductions apply to each employee
+model EmployeeDeduction {
+  id              String        @id @default(cuid())
+  employeeId      String
+  deductionType   DeductionType
+  name            String?       // For custom deductions
+  amount          Float?        // Fixed amount
+  percentage      Float?        // Percentage of gross (for pension)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  Employee        Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([deductionType])
+}
+
+// Monthly payroll run for the practice
+model PayrollRun {
+  id                  String         @id @default(cuid())
+  practiceId          String
+  month               Int            // 1-12
+  year                Int
+  status              PayrollStatus  @default(DRAFT)
+  totalGross          Float          @default(0)
+  totalDeductions     Float          @default(0)
+  totalNet            Float          @default(0)
+  totalEmployerUif    Float          @default(0)
+  totalEmployerSdl    Float          @default(0)
+  processedAt         DateTime?
+  processedById       String?
+  paidAt              DateTime?
+  sarsSubmitted       Boolean        @default(false)
+  sarsSubmittedAt     DateTime?
+  notes               String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  Practice            Practice       @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  PayrollEntry        PayrollEntry[]
+
+  @@unique([practiceId, month, year])
+  @@index([practiceId])
+  @@index([month, year])
+  @@index([status])
+}
+
+// Individual employee entry in a payroll run
+model PayrollEntry {
+  id                String             @id @default(cuid())
+  payrollRunId      String
+  employeeId        String
+  grossSalary       Float
+  // Deduction amounts
+  payeAmount        Float              @default(0)
+  uifAmount         Float              @default(0)
+  pensionAmount     Float              @default(0)
+  medicalAidAmount  Float              @default(0)
+  otherDeductions   Float              @default(0)
+  totalDeductions   Float              @default(0)
+  netSalary         Float
+  // Employer contributions
+  employerUif       Float              @default(0)
+  employerSdl       Float              @default(0)
+  // Payment details
+  paymentDate       DateTime?
+  paymentReference  String?
+  // Payslip
+  payslipUrl        String?
+  payslipGeneratedAt DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  PayrollRun        PayrollRun         @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  Employee          Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  PayrollDeduction  PayrollDeduction[]
+
+  @@unique([payrollRunId, employeeId])
+  @@index([payrollRunId])
+  @@index([employeeId])
+}
+
+// Detailed deductions for each payroll entry (for itemized payslips)
+model PayrollDeduction {
+  id             String        @id @default(cuid())
+  payrollEntryId String
+  deductionType  DeductionType
+  name           String        // Display name
+  amount         Float
+  createdAt      DateTime      @default(now())
+  PayrollEntry   PayrollEntry  @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+}
+
+// Separate Locum model - independent from employees
+model Locum {
+  id                       String           @id @default(cuid())
+  practiceId               String
+  userId                   String?          @unique // Links to User for login/auth
+  fullName                 String
+  email                    String?
+  phone                    String?
+  idNumber                 String?
+  // Professional registration
+  hpcsaNumber              String?
+  hpcsaExpiry              DateTime?
+  // Source and payment
+  sourceType               LocumSourceType  @default(DIRECT)
+  agencyName               String?          // If agency-sourced
+  hourlyRate               Float
+  // Insurance
+  indemnityInsuranceNumber String?
+  indemnityInsuranceExpiry DateTime?
+  // Status
+  isActive                 Boolean          @default(true)
+  notes                    String?
+  createdAt                DateTime         @default(now())
+  updatedAt                DateTime         @updatedAt
+  // Relations
+  Practice                 Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User                     User?            @relation(fields: [userId], references: [id])
+  LocumTimesheet           LocumTimesheet[]
+  LocumDocument            LocumDocument[]
+
+  @@index([practiceId])
+  @@index([isActive])
+  @@index([sourceType])
+}
+
+// Locum documents (HPCSA certificate, indemnity insurance, etc.)
+model LocumDocument {
+  id           String   @id @default(cuid())
+  locumId      String
+  documentType String   // e.g., "HPCSA Certificate", "Indemnity Insurance", "Contract"
+  title        String
+  fileUrl      String
+  fileName     String?
+  fileSize     Int?
+  expiryDate   DateTime?
+  uploadedById String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  Locum        Locum    @relation(fields: [locumId], references: [id], onDelete: Cascade)
+
+  @@index([locumId])
+  @@index([documentType])
+  @@index([expiryDate])
+}
+
+// Timesheet for clock in/out tracking
+model LocumTimesheet {
+  id            String              @id @default(cuid())
+  locumId       String
+  practiceId    String
+  date          DateTime            @db.Date
+  clockIn       DateTime?           // When they clocked in
+  clockOut      DateTime?           // When they clocked out
+  breakMinutes  Int                 @default(0) // Total break time in minutes
+  hoursWorked   Float?              // Calculated: (clockOut - clockIn - breakMinutes) / 60
+  hourlyRate    Float               // Rate at time of shift (copied from Locum)
+  totalPayable  Float?              // Calculated: hoursWorked * hourlyRate
+  status        TimesheetStatus     @default(CLOCKED_IN)
+  notes         String?             // Locum can add notes
+  // Approval
+  approvedById  String?
+  approvedAt    DateTime?
+  rejectedById  String?
+  rejectedAt    DateTime?
+  rejectionNote String?
+  // Payment tracking
+  paymentStatus PaymentStatus       @default(UNPAID)
+  paidAt        DateTime?
+  paymentRef    String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  Locum         Locum               @relation(fields: [locumId], references: [id], onDelete: Cascade)
+
+  @@unique([locumId, date])
+  @@index([locumId])
+  @@index([practiceId])
+  @@index([date])
+  @@index([status])
+  @@index([paymentStatus])
+  @@index([practiceId, status, paymentStatus]) // Composite for payment queries
+}
+
+enum LocumSourceType {
+  DIRECT    // Hired directly by practice
+  AGENCY    // Through an agency
+}
+
+enum TimesheetStatus {
+  CLOCKED_IN        // Currently working
+  CLOCKED_OUT       // Finished, pending approval
+  APPROVED          // Manager approved
+  REJECTED          // Manager rejected (needs correction)
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+}
+
+enum TrainingStatus {
+  COMPLETED   // Passed/completed successfully
+  FAILED      // Did not pass
+  IN_PROGRESS // Currently undertaking
+  EXPIRED     // Previously completed but now expired
+}
+
+// Team invitation for inviting employees to create user accounts
+model TeamInvitation {
+  id          String           @id @default(cuid())
+  practiceId  String
+  employeeId  String           @unique
+  email       String
+  role        UserRole
+  token       String           @unique
+  expiresAt   DateTime
+  invitedById String
+  status      InvitationStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  acceptedAt  DateTime?
+
+  Practice    Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  Employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  InvitedBy   User             @relation(fields: [invitedById], references: [id])
+
+  @@index([practiceId])
+  @@index([status])
+  @@index([token])
+}
+
+// =============================================================================
+// ADMIN PANEL MODELS
+// =============================================================================
+
+// System-wide configuration and feature flags
+model SystemConfig {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String   // JSON stringified value
+  description String?
+  category    String   @default("general") // general, features, limits, email, etc.
+  isSecret    Boolean  @default(false) // Don't expose in API responses
+  updatedBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+// Feature flags for granular feature control
+model FeatureFlag {
+  id            String   @id @default(cuid())
+  name          String   @unique // e.g., "ai_assistant", "payroll", "locums"
+  description   String?
+  isEnabled     Boolean  @default(true)
+  enabledForAll Boolean  @default(true) // If false, check FeatureFlagOverride
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  Overrides FeatureFlagOverride[]
+}
+
+// Per-practice feature flag overrides
+model FeatureFlagOverride {
+  id            String      @id @default(cuid())
+  featureFlagId String
+  practiceId    String
+  isEnabled     Boolean
+  reason        String?     // Why this override exists
+  expiresAt     DateTime?   // Optional expiry for temporary access
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  FeatureFlag   FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+
+  @@unique([featureFlagId, practiceId])
+  @@index([practiceId])
+}
+
+// Admin activity log (separate from practice AuditLog)
+model AdminAuditLog {
+  id          String          @id @default(cuid())
+  adminId     String          // User ID of admin who performed action
+  action      AdminAction
+  entityType  String          // Practice, User, SystemConfig, etc.
+  entityId    String?
+  practiceId  String?         // If action relates to a specific practice
+  details     Json?           // Additional action details
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime        @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([entityType])
+  @@index([practiceId])
+  @@index([createdAt])
+}
+
+// System announcements to all users
+model SystemAnnouncement {
+  id          String              @id @default(cuid())
+  title       String
+  message     String
+  type        AnnouncementType    @default(INFO)
+  isActive    Boolean             @default(true)
+  showFrom    DateTime            @default(now())
+  showUntil   DateTime?
+  targetTiers SubscriptionTier[]  // Empty = all tiers
+  createdById String
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([isActive])
+  @@index([showFrom, showUntil])
+}
+
+// Email templates for system emails
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique // e.g., "welcome", "password_reset", "expiry_reminder"
+  subject     String
+  htmlBody    String
+  textBody    String?
+  variables   String[] // List of available template variables
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Email log for tracking sent emails
+model EmailLog {
+  id          String       @id @default(cuid())
+  practiceId  String?
+  recipientId String?      // User ID if applicable
+  templateId  String?
+  toEmail     String
+  subject     String
+  status      EmailStatus  @default(PENDING)
+  sentAt      DateTime?
+  errorMessage String?
+  externalId  String?      // ID from email provider (Resend, SendGrid, etc.)
+  createdAt   DateTime     @default(now())
+
+  @@index([practiceId])
+  @@index([recipientId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// API usage tracking for rate limiting and analytics
+model ApiUsageLog {
+  id          String   @id @default(cuid())
+  practiceId  String?
+  userId      String?
+  endpoint    String
+  method      String
+  statusCode  Int
+  responseMs  Int      // Response time in milliseconds
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([practiceId])
+  @@index([userId])
+  @@index([endpoint])
+  @@index([createdAt])
+}
+
+// Error tracking for system health monitoring
+model ErrorLog {
+  id          String       @id @default(cuid())
+  practiceId  String?
+  userId      String?
+  errorType   String       // e.g., "DATABASE", "API", "AUTH", "PAYMENT"
+  errorCode   String?
+  message     String
+  stack       String?
+  context     Json?        // Additional context (request body, etc.)
+  resolved    Boolean      @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime     @default(now())
+
+  @@index([practiceId])
+  @@index([errorType])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+// Support tickets
+model SupportTicket {
+  id           String              @id @default(cuid())
+  practiceId   String?
+  userId       String?
+  userEmail    String
+  subject      String
+  description  String
+  category     TicketCategory      @default(OTHER)
+  priority     TicketPriority      @default(MEDIUM)
+  status       TicketStatus        @default(OPEN)
+  assignedToId String?             // Admin user ID
+  resolvedAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  Messages     SupportTicketMessage[]
+
+  @@index([practiceId])
+  @@index([userId])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([createdAt])
+}
+
+// Support ticket messages/replies
+model SupportTicketMessage {
+  id          String        @id @default(cuid())
+  ticketId    String
+  senderId    String?       // User or Admin ID
+  senderEmail String
+  senderName  String
+  isFromAdmin Boolean       @default(false)
+  message     String
+  attachments String[]      // URLs to attachments
+  createdAt   DateTime      @default(now())
+
+  Ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+}
+
+// Admin panel enums
+enum AdminAction {
+  VIEW_PRACTICE
+  VIEW_USER
+  IMPERSONATE_USER
+  UPDATE_SUBSCRIPTION
+  SUSPEND_PRACTICE
+  ACTIVATE_PRACTICE
+  SUSPEND_USER
+  ACTIVATE_USER
+  RESET_PASSWORD
+  RESET_2FA
+  UPDATE_CONFIG
+  UPDATE_FEATURE_FLAG
+  CREATE_ANNOUNCEMENT
+  DELETE_ANNOUNCEMENT
+  RESPOND_TICKET
+  CLOSE_TICKET
+  EXPORT_DATA
+}
+
+enum AnnouncementType {
+  INFO
+  WARNING
+  SUCCESS
+  MAINTENANCE
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum TicketCategory {
+  BILLING
+  TECHNICAL
+  FEATURE_REQUEST
+  BUG_REPORT
+  ACCOUNT
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_RESPONSE
+  RESOLVED
+  CLOSED
+}
