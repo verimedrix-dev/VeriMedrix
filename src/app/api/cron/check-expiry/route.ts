@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, getDocumentExpiryEmail } from "@/lib/email";
 import { addDays, differenceInDays } from "date-fns";
+import { randomUUID } from "crypto";
 
 // This endpoint should be called by a cron job (e.g., Vercel Cron) daily
 // Configure in vercel.json: { "crons": [{ "path": "/api/cron/check-expiry", "schedule": "0 8 * * *" }] }
@@ -31,9 +32,9 @@ export async function GET(request: Request) {
         },
       },
       include: {
-        practice: true,
-        documentType: true,
-        uploadedBy: true,
+        Practice: true,
+        DocumentType: true,
+        User_Document_uploadedByIdToUser: true,
       },
     });
 
@@ -74,12 +75,13 @@ export async function GET(request: Request) {
             // Create alert record
             const alert = await prisma.alert.create({
               data: {
+                id: randomUUID(),
                 practiceId: doc.practiceId,
                 alertType: "DOCUMENT_EXPIRY",
                 relatedDocumentId: doc.id,
                 recipientId: user.id,
                 channel: "EMAIL",
-                message: `${doc.documentType.name} expires in ${daysUntilExpiry} days`,
+                message: `${doc.DocumentType.name} expires in ${daysUntilExpiry} days`,
                 scheduledFor: new Date(),
                 status: "PENDING",
               },
@@ -88,8 +90,8 @@ export async function GET(request: Request) {
             // Send email
             try {
               const emailContent = getDocumentExpiryEmail({
-                practiceName: doc.practice.name,
-                documentName: doc.documentType.name,
+                practiceName: doc.Practice.name,
+                documentName: doc.DocumentType.name,
                 expiryDate: doc.expiryDate.toLocaleDateString("en-ZA"),
                 daysUntilExpiry,
                 documentUrl: `${process.env.NEXT_PUBLIC_APP_URL}/documents/${doc.id}`,

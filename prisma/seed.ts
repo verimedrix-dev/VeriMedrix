@@ -1,9 +1,27 @@
 import { PrismaClient } from "@prisma/client";
+import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
+interface DocumentTypeDefinition {
+  name: string;
+  isRequired: boolean;
+  requiresExpiry: boolean;
+  ohscMeasureNumber: string;
+  description?: string;
+  defaultReviewMonths?: number;
+}
+
+interface DocumentCategoryDefinition {
+  name: string;
+  description: string;
+  displayOrder: number;
+  icon: string;
+  types: DocumentTypeDefinition[];
+}
+
 // Document categories and types based on OHSC requirements
-const documentCategories = [
+const documentCategories: DocumentCategoryDefinition[] = [
   {
     name: "Licenses & Certificates",
     description: "Legal licenses and compliance certificates required for practice operation",
@@ -171,12 +189,15 @@ async function main() {
         description: category.description,
         displayOrder: category.displayOrder,
         icon: category.icon,
+        updatedAt: new Date(),
       },
       create: {
+        id: randomUUID(),
         name: category.name,
         description: category.description,
         displayOrder: category.displayOrder,
         icon: category.icon,
+        updatedAt: new Date(),
       },
     });
 
@@ -197,8 +218,10 @@ async function main() {
           requiresExpiry: docType.requiresExpiry,
           defaultReviewMonths: docType.defaultReviewMonths,
           ohscMeasureNumber: docType.ohscMeasureNumber,
+          updatedAt: new Date(),
         },
         create: {
+          id: randomUUID(),
           categoryId: createdCategory.id,
           name: docType.name,
           description: docType.description,
@@ -206,6 +229,7 @@ async function main() {
           requiresExpiry: docType.requiresExpiry,
           defaultReviewMonths: docType.defaultReviewMonths,
           ohscMeasureNumber: docType.ohscMeasureNumber,
+          updatedAt: new Date(),
         },
       });
     }

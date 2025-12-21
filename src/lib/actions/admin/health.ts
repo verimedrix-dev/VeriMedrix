@@ -109,7 +109,7 @@ export async function getApiPerformance() {
     by: ["endpoint"],
     where: { createdAt: { gte: oneDayAgo } },
     _count: true,
-    _avg: { responseTime: true },
+    _avg: { responseMs: true },
     orderBy: { _count: { endpoint: "desc" } },
     take: 10,
   });
@@ -128,7 +128,7 @@ export async function getApiPerformance() {
     byEndpoint: apiByEndpoint.map(e => ({
       endpoint: e.endpoint,
       count: e._count,
-      avgResponseTime: Math.round(e._avg.responseTime || 0),
+      avgResponseTime: Math.round(e._avg.responseMs || 0),
     })),
     hourly: hourlyRequests.map(h => ({
       hour: h.hour,

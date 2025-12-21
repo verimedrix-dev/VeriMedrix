@@ -227,9 +227,9 @@ export default async function SystemHealthPage() {
                       <p className="text-sm text-slate-900 dark:text-white mt-1 truncate">
                         {error.message}
                       </p>
-                      {error.endpoint && (
+                      {error.errorCode && (
                         <p className="text-xs text-slate-500 mt-1 truncate">
-                          Endpoint: {error.endpoint}
+                          Error Code: {error.errorCode}
                         </p>
                       )}
                     </div>

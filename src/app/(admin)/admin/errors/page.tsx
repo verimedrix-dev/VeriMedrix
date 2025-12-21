@@ -107,23 +107,23 @@ export default async function ErrorLogsPage({
                       <p className="text-sm font-medium text-slate-900 dark:text-white mt-2">
                         {error.message}
                       </p>
-                      {error.endpoint && (
+                      {error.errorCode && (
                         <p className="text-xs text-slate-500 mt-1">
-                          Endpoint: {error.endpoint}
+                          Error Code: {error.errorCode}
                         </p>
                       )}
-                      {error.stackTrace && (
+                      {error.stack && (
                         <pre className="mt-2 text-xs bg-slate-50 dark:bg-slate-800 p-2 rounded overflow-x-auto max-h-32">
-                          {error.stackTrace}
+                          {error.stack}
                         </pre>
                       )}
-                      {error.metadata && (
+                      {error.context && (
                         <details className="mt-2">
                           <summary className="text-xs text-slate-500 cursor-pointer">
-                            View metadata
+                            View context
                           </summary>
                           <pre className="mt-1 text-xs bg-slate-50 dark:bg-slate-800 p-2 rounded overflow-x-auto">
-                            {JSON.stringify(error.metadata, null, 2)}
+                            {JSON.stringify(error.context, null, 2)}
                           </pre>
                         </details>
                       )}

@@ -380,7 +380,7 @@ export async function assignTask(taskId: string, assignedToId: string | null) {
         id: generateId(),
         practiceId: practice.id,
         recipientId: assignedToId,
-        alertType: "TASK_ESCALATION",
+        alertType: "TASK_ASSIGNED",
         relatedTaskId: taskId,
         message: `You have been assigned a new task: "${task.title}"`,
         channel: "IN_APP",

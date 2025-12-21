@@ -79,10 +79,14 @@ type PendingInvitation = {
 };
 
 type LimitStatus = {
+  isLimitReached: boolean;
   currentCount: number;
   pendingCount: number;
   maxUsers: number | null;
-  canAddMore: boolean;
+  tier: string;
+  tierDisplayName: string;
+  remainingSlots: number | null;
+  canInvite: boolean;
 };
 
 const roleColors: Record<UserRole, { bg: string; text: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -293,7 +297,7 @@ export function TeamSettings() {
             </div>
             <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
               <DialogTrigger asChild>
-                <Button disabled={!limitStatus?.canAddMore}>
+                <Button disabled={!limitStatus?.canInvite}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Invite Member
                 </Button>
@@ -360,7 +364,7 @@ export function TeamSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {!limitStatus?.canAddMore && limitStatus?.maxUsers && (
+          {!limitStatus?.canInvite && limitStatus?.maxUsers && (
             <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
               <p className="text-sm text-amber-800 dark:text-amber-200">
@@ -530,7 +534,7 @@ export function TeamSettings() {
                     variant="outline"
                     size="sm"
                     onClick={() => handleReactivateMember(member.id)}
-                    disabled={actionLoading === member.id || !limitStatus?.canAddMore}
+                    disabled={actionLoading === member.id || !limitStatus?.canInvite}
                   >
                     {actionLoading === member.id ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />

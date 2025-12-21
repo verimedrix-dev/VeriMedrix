@@ -31,7 +31,7 @@ export async function getAdminSupportPageData() {
           prisma.supportTicket.count(),
           prisma.supportTicket.count({ where: { status: "OPEN" } }),
           prisma.supportTicket.count({ where: { status: "IN_PROGRESS" } }),
-          prisma.supportTicket.count({ where: { priority: "CRITICAL" } }),
+          prisma.supportTicket.count({ where: { priority: "URGENT" } }),
           prisma.supportTicket.count({ where: { priority: "HIGH" } }),
           prisma.errorLog.count({ where: { resolved: false } }),
         ]),
@@ -42,7 +42,7 @@ export async function getAdminSupportPageData() {
         }),
       ]);
 
-      const [totalTickets, openTickets, inProgressTickets, criticalTickets, highPriorityTickets, unresolvedErrors] = stats;
+      const [totalTickets, openTickets, inProgressTickets, urgentTickets, highPriorityTickets, unresolvedErrors] = stats;
 
       return {
         tickets,
@@ -50,7 +50,7 @@ export async function getAdminSupportPageData() {
           totalTickets,
           openTickets,
           inProgressTickets,
-          criticalTickets,
+          urgentTickets,
           highPriorityTickets,
           unresolvedErrors,
         },

@@ -952,7 +952,7 @@ export async function getPayslipData(entryId: string) {
   // Add any other deductions from PayrollDeduction records
   for (const ded of entry.PayrollDeduction) {
     if (!["PAYE", "UIF", "PENSION", "MEDICAL_AID"].includes(ded.deductionType)) {
-      deductions.push({ name: ded.deductionName, amount: ded.amount });
+      deductions.push({ name: ded.name, amount: ded.amount });
     }
   }
 

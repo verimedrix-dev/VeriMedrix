@@ -106,11 +106,6 @@ export default async function EmailsPage() {
                           <p className="text-sm text-slate-500 mt-1">
                             Subject: {template.subject}
                           </p>
-                          {template.description && (
-                            <p className="text-sm text-slate-400 mt-1">
-                              {template.description}
-                            </p>
-                          )}
                         </div>
                         <Button variant="outline" size="sm">
                           Edit Template
@@ -156,11 +151,11 @@ export default async function EmailsPage() {
                             </Badge>
                           </div>
                           <p className="text-sm text-slate-500 mt-1 truncate">
-                            To: {email.to}
+                            To: {email.toEmail}
                           </p>
-                          {email.error && (
+                          {email.errorMessage && (
                             <p className="text-sm text-red-500 mt-1 truncate">
-                              Error: {email.error}
+                              Error: {email.errorMessage}
                             </p>
                           )}
                         </div>

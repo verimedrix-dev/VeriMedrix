@@ -68,7 +68,7 @@ export function WarningDialog({ employeeId, employeeName }: WarningDialogProps) 
       await createWarning({
         employeeId,
         warningType: formData.warningType as "VERBAL" | "WRITTEN" | "FINAL_WRITTEN",
-        category: formData.category as "MISCONDUCT" | "POOR_PERFORMANCE" | "POLICY_VIOLATION" | "ATTENDANCE" | "INSUBORDINATION" | "OTHER",
+        category: formData.category as "LATE_ARRIVAL" | "ABSENTEEISM" | "MISCONDUCT" | "NEGLIGENCE" | "INSUBORDINATION" | "POLICY_VIOLATION" | "PERFORMANCE" | "OTHER",
         incidentDate: new Date(formData.incidentDate),
         description: formData.description,
         documentUrl,
@@ -134,11 +134,13 @@ export function WarningDialog({ employeeId, employeeName }: WarningDialogProps) 
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="LATE_ARRIVAL">Late Arrival</SelectItem>
+                  <SelectItem value="ABSENTEEISM">Absenteeism</SelectItem>
                   <SelectItem value="MISCONDUCT">Misconduct</SelectItem>
-                  <SelectItem value="POOR_PERFORMANCE">Poor Performance</SelectItem>
-                  <SelectItem value="POLICY_VIOLATION">Policy Violation</SelectItem>
-                  <SelectItem value="ATTENDANCE">Attendance</SelectItem>
+                  <SelectItem value="NEGLIGENCE">Negligence</SelectItem>
                   <SelectItem value="INSUBORDINATION">Insubordination</SelectItem>
+                  <SelectItem value="POLICY_VIOLATION">Policy Violation</SelectItem>
+                  <SelectItem value="PERFORMANCE">Performance</SelectItem>
                   <SelectItem value="OTHER">Other</SelectItem>
                 </SelectContent>
               </Select>

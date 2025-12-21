@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ interface InvitationData {
   };
 }
 
-export default function AcceptInvitationPage() {
+function AcceptInvitationContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -261,5 +261,28 @@ export default function AcceptInvitationPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="py-12">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            <p className="text-slate-600">Loading...</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function AcceptInvitationPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AcceptInvitationContent />
+    </Suspense>
   );
 }
