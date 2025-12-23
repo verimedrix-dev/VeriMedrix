@@ -101,7 +101,7 @@ export default async function SettingsPage() {
 
         {/* Security Settings */}
         <TabsContent value="security">
-          <SecuritySettings />
+          <SecuritySettings practiceName={practice?.name} />
         </TabsContent>
       </Tabs>
     </div>
