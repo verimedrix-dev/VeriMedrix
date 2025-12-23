@@ -1,4 +1,5 @@
 {
+  "_comment": "TODO: Add delete-expired-accounts cron when upgrading Vercel plan (path: /api/cron/delete-expired-accounts, schedule: 0 2 * * *)",
   "crons": [
     {
       "path": "/api/cron/check-expiry",
