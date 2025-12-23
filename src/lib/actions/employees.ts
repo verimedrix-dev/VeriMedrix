@@ -254,8 +254,36 @@ export async function deleteEmployee(id: string) {
   const { practice } = await ensureUserAndPractice();
   if (!practice) throw new Error("Not authenticated");
 
-  await prisma.employee.delete({
+  // First, get the employee to check if they have a linked user account
+  const employee = await prisma.employee.findFirst({
     where: { id, practiceId: practice.id },
+    select: { userId: true },
+  });
+
+  if (!employee) throw new Error("Employee not found");
+
+  // Use a transaction to delete employee, associated user, and cancel invitations
+  await prisma.$transaction(async (tx) => {
+    // Cancel any pending invitations for this employee
+    await tx.teamInvitation.updateMany({
+      where: {
+        employeeId: id,
+        status: "PENDING",
+      },
+      data: { status: "CANCELLED" },
+    });
+
+    // Delete the employee (this will cascade delete related records)
+    await tx.employee.delete({
+      where: { id, practiceId: practice.id },
+    });
+
+    // If employee had a linked user account, delete it
+    if (employee.userId) {
+      await tx.user.delete({
+        where: { id: employee.userId },
+      });
+    }
   });
 
   // Invalidate caches
@@ -265,6 +293,7 @@ export async function deleteEmployee(id: string) {
   ]);
 
   revalidatePath("/employees");
+  revalidatePath("/team"); // Also revalidate team page
 }
 
 // =============================================================================
