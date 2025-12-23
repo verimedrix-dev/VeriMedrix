@@ -45,6 +45,11 @@ type EmployeeWithDeductions = {
   bankBranchCode: string | null;
   uifExempt: boolean;
   uifExemptReason: UifExemptReason | null;
+  taxNumber: string | null;
+  dateOfBirth: Date | null;
+  medicalAidDependents: number;
+  retirementContribution: number | null;
+  payeOverride: number | null;
   EmployeeDeduction: Array<{
     id: string;
     deductionType: DeductionType;
@@ -75,7 +80,6 @@ const UIF_EXEMPT_REASONS: { value: UifExemptReason; label: string }[] = [
 ];
 
 const DEDUCTION_TYPES: { value: DeductionType; label: string }[] = [
-  { value: "PAYE", label: "PAYE (Tax)" },
   { value: "PENSION", label: "Pension" },
   { value: "MEDICAL_AID", label: "Medical Aid" },
   { value: "CUSTOM", label: "Custom Deduction" },
@@ -97,6 +101,11 @@ export function CompensationDialog({ employee }: CompensationDialogProps) {
     bankBranchCode: employee.bankBranchCode || "",
     uifExempt: employee.uifExempt,
     uifExemptReason: employee.uifExemptReason || "",
+    taxNumber: employee.taxNumber || "",
+    dateOfBirth: employee.dateOfBirth ? new Date(employee.dateOfBirth).toISOString().split('T')[0] : "",
+    medicalAidDependents: employee.medicalAidDependents?.toString() || "0",
+    retirementContribution: employee.retirementContribution?.toString() || "",
+    payeOverride: employee.payeOverride?.toString() || "",
   });
 
   // New deduction form
@@ -121,6 +130,11 @@ export function CompensationDialog({ employee }: CompensationDialogProps) {
         uifExemptReason: compData.uifExempt
           ? (compData.uifExemptReason as UifExemptReason) || undefined
           : null,
+        taxNumber: compData.taxNumber || undefined,
+        dateOfBirth: compData.dateOfBirth ? new Date(compData.dateOfBirth) : undefined,
+        medicalAidDependents: compData.medicalAidDependents ? parseInt(compData.medicalAidDependents) : 0,
+        retirementContribution: compData.retirementContribution ? parseFloat(compData.retirementContribution) : undefined,
+        payeOverride: compData.payeOverride ? parseFloat(compData.payeOverride) : undefined,
       });
       refresh();
       toast.success("Compensation updated successfully");
@@ -202,9 +216,10 @@ export function CompensationDialog({ employee }: CompensationDialogProps) {
         </DialogHeader>
 
         <Tabs defaultValue="salary" className="mt-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="salary">Salary</TabsTrigger>
             <TabsTrigger value="banking">Banking</TabsTrigger>
+            <TabsTrigger value="tax">Tax</TabsTrigger>
             <TabsTrigger value="deductions">Deductions</TabsTrigger>
           </TabsList>
 
@@ -357,6 +372,112 @@ export function CompensationDialog({ employee }: CompensationDialogProps) {
             </DialogFooter>
           </TabsContent>
 
+          {/* Tax Tab */}
+          <TabsContent value="tax" className="space-y-4 mt-4">
+            <div className="bg-blue-50 p-3 rounded-lg mb-4">
+              <p className="text-sm text-blue-700">
+                <strong>Tax Configuration:</strong> These fields are used for automated PAYE calculation according to SARS requirements.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="taxNumber">
+                Tax Number <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="taxNumber"
+                placeholder="e.g., 1234567890"
+                maxLength={10}
+                value={compData.taxNumber}
+                onChange={(e) => setCompData({ ...compData, taxNumber: e.target.value })}
+              />
+              <p className="text-xs text-slate-500">
+                Required for SARS compliance. 10-digit tax number.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={compData.dateOfBirth}
+                onChange={(e) => setCompData({ ...compData, dateOfBirth: e.target.value })}
+              />
+              <p className="text-xs text-slate-500">
+                Used for age-based rebates (65+ and 75+ receive additional rebates).
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="medicalAidDependents">Medical Aid Dependents</Label>
+                <Input
+                  id="medicalAidDependents"
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={compData.medicalAidDependents}
+                  onChange={(e) => setCompData({ ...compData, medicalAidDependents: e.target.value })}
+                />
+                <p className="text-xs text-slate-500">
+                  Number of dependents for medical tax credits.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="retirementContribution">Retirement Contribution</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">R</span>
+                  <Input
+                    id="retirementContribution"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.00"
+                    value={compData.retirementContribution}
+                    onChange={(e) => setCompData({ ...compData, retirementContribution: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+                <p className="text-xs text-slate-500">
+                  Monthly retirement fund contribution. Max 27.5% of taxable income is tax-deductible.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="payeOverride">
+                  Manual PAYE Override{" "}
+                  <span className="text-slate-400 text-sm">(Optional)</span>
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">R</span>
+                  <Input
+                    id="payeOverride"
+                    type="number"
+                    step="0.01"
+                    placeholder="Leave blank for auto-calculation"
+                    value={compData.payeOverride}
+                    onChange={(e) => setCompData({ ...compData, payeOverride: e.target.value })}
+                    className="pl-8"
+                  />
+                </div>
+                <p className="text-xs text-orange-600">
+                  <strong>Warning:</strong> Setting this will override automatic PAYE calculation.
+                  Leave blank to let the system calculate PAYE automatically based on SARS tables.
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter className="mt-4">
+              <Button onClick={handleSaveCompensation} disabled={loading}>
+                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Tax Configuration
+              </Button>
+            </DialogFooter>
+          </TabsContent>
+
           {/* Deductions Tab */}
           <TabsContent value="deductions" className="space-y-4 mt-4">
             {/* Existing Deductions */}
@@ -487,10 +608,10 @@ export function CompensationDialog({ employee }: CompensationDialogProps) {
               </Button>
             </div>
 
-            <div className="bg-blue-50 p-3 rounded-lg mt-4">
-              <p className="text-sm text-blue-700">
-                <strong>Note:</strong> PAYE amounts are entered manually (not auto-calculated).
-                UIF is automatically calculated at 1% of gross salary, capped at R177.12.
+            <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg mt-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Note:</strong> PAYE is automatically calculated based on SARS tax tables when you run payroll.
+                UIF is also auto-calculated at 1% of gross salary, capped at R177.12.
               </p>
             </div>
           </TabsContent>

@@ -19,6 +19,8 @@ import {
   FileSpreadsheet,
   AlertTriangle,
   PlayCircle,
+  TrendingUp,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { getEmployeesWithCompensation, getPayrollRuns, getSarsSummary } from "@/lib/actions/payroll";
@@ -27,9 +29,23 @@ import { SarsReminderCard } from "@/components/payroll/sars-reminder-card";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 
-// Dynamic import for dialog - not needed on initial render
+// Dynamic import for dialogs - not needed on initial render
 const CompensationDialog = dynamic(
   () => import("@/components/payroll/compensation-dialog").then((mod) => mod.CompensationDialog),
+  {
+    loading: () => <Skeleton className="h-8 w-20" />,
+  }
+);
+
+const FringeBenefitsDialog = dynamic(
+  () => import("@/components/payroll/fringe-benefits-dialog").then((mod) => mod.FringeBenefitsDialog),
+  {
+    loading: () => <Skeleton className="h-8 w-20" />,
+  }
+);
+
+const GarnisheeDeductionDialog = dynamic(
+  () => import("@/components/payroll/garnishee-deduction-dialog").then((mod) => mod.GarnisheeDeductionDialog),
   {
     loading: () => <Skeleton className="h-8 w-20" />,
   }
@@ -69,12 +85,32 @@ export default async function PayrollPage() {
             Manage employee compensation, run payroll, and generate reports
           </p>
         </div>
-        <Link href="/payroll/run">
-          <Button>
-            <PlayCircle className="h-4 w-4 mr-2" />
-            Run Payroll
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/payroll/ytd">
+            <Button variant="outline">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              YTD
+            </Button>
+          </Link>
+          <Link href="/payroll/audit">
+            <Button variant="outline">
+              <FileText className="h-4 w-4 mr-2" />
+              Audit Trail
+            </Button>
+          </Link>
+          <Link href="/payroll/reports">
+            <Button variant="outline">
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              SARS Reports
+            </Button>
+          </Link>
+          <Link href="/payroll/run">
+            <Button>
+              <PlayCircle className="h-4 w-4 mr-2" />
+              Run Payroll
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Stats Row */}
@@ -252,7 +288,11 @@ export default async function PayrollPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <CompensationDialog employee={employee} />
+                            <div className="flex gap-2 flex-wrap">
+                              <CompensationDialog employee={employee} />
+                              <FringeBenefitsDialog employeeId={employee.id} employeeName={employee.fullName} />
+                              <GarnisheeDeductionDialog employeeId={employee.id} employeeName={employee.fullName} />
+                            </div>
                           </TableCell>
                         </TableRow>
                       );

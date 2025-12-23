@@ -189,6 +189,12 @@ model Employee {
   indemnityInsuranceExpiry DateTime?
   locumContractUrl         String?                    // Stored contract document
   locumNotes               String?                    // Additional notes about the locum
+  // PAYE tax configuration (added for tax compliance)
+  taxNumber                String?                    // SARS tax number
+  medicalAidDependents     Int                        @default(0) // For medical tax credits
+  retirementContribution   Float?                     // Monthly retirement contribution
+  payeOverride             Float?                     // Manual PAYE override (if set, skip auto-calculation)
+
   Practice                 Practice                   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   EmployeeDocument         EmployeeDocument[]
   EmployeeTraining         EmployeeTraining[]
@@ -199,6 +205,9 @@ model Employee {
   EmployeeDeduction        EmployeeDeduction[]
   PayrollEntry             PayrollEntry[]
   TeamInvitation           TeamInvitation?
+  PayrollAuditLog          PayrollAuditLog[]
+  EmployeeYTD              EmployeeYTD[]
+  EmployeeFringeBenefit    EmployeeFringeBenefit[]
 
   @@index([employeeNumber])
   @@index([isActive])
@@ -771,6 +780,7 @@ model PayrollRun {
   updatedAt           DateTime       @updatedAt
   Practice            Practice       @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   PayrollEntry        PayrollEntry[]
+  PayrollAuditLog     PayrollAuditLog[]
 
   @@unique([practiceId, month, year])
   @@index([practiceId])
@@ -795,6 +805,12 @@ model PayrollEntry {
   // Employer contributions
   employerUif       Float              @default(0)
   employerSdl       Float              @default(0)
+  // Irregular payments (Phase 5)
+  paymentType       PaymentType        @default(REGULAR)
+  bonusAmount       Float?             // Bonus/commission amount
+  annualisationMethod String?          // 'standard', 'average_over_period', 'lump_sum_table'
+  // Fringe benefits
+  fringeBenefitsTotal Float            @default(0)
   // Payment details
   paymentDate       DateTime?
   paymentReference  String?
@@ -806,10 +822,12 @@ model PayrollEntry {
   PayrollRun        PayrollRun         @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
   Employee          Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
   PayrollDeduction  PayrollDeduction[]
+  PayrollAddition   PayrollAddition[]
 
   @@unique([payrollRunId, employeeId])
   @@index([payrollRunId])
   @@index([employeeId])
+  @@index([paymentType])
 }
 
 // Detailed deductions for each payroll entry (for itemized payslips)
@@ -821,6 +839,19 @@ model PayrollDeduction {
   amount         Float
   createdAt      DateTime      @default(now())
   PayrollEntry   PayrollEntry  @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
+
+  @@index([payrollEntryId])
+}
+
+// Irregular payments/additions for a payroll entry (bonus, overtime, commission, etc.)
+model PayrollAddition {
+  id             String      @id @default(cuid())
+  payrollEntryId String
+  paymentType    PaymentType
+  name           String      // Display name (e.g., "December Bonus", "Week 1 Overtime")
+  amount         Float
+  createdAt      DateTime    @default(now())
+  PayrollEntry   PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
 
   @@index([payrollEntryId])
 }
@@ -1224,4 +1255,162 @@ enum TicketStatus {
   WAITING_RESPONSE
   RESOLVED
   CLOSED
+}
+
+// =============================================================================
+// PAYROLL ENHANCEMENTS - TAX COMPLIANCE & REPORTING
+// =============================================================================
+
+// SARS tax brackets for PAYE calculation
+model TaxBracket {
+  id        String   @id @default(cuid())
+  taxYear   String   // "2024/2025"
+  minIncome Decimal  @db.Decimal(12, 2)
+  maxIncome Decimal? @db.Decimal(12, 2) // null = unlimited (top bracket)
+  rate      Decimal  @db.Decimal(5, 4) // 0.18, 0.26, 0.31, 0.36, 0.39, 0.41, 0.45
+  baseTax   Decimal  @db.Decimal(12, 2) // Fixed amount at start of bracket
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([taxYear, minIncome])
+  @@index([taxYear])
+}
+
+// SARS tax rebates (age-based)
+model TaxRebate {
+  id           String     @id @default(cuid())
+  taxYear      String     // "2024/2025"
+  rebateType   RebateType
+  amount       Decimal    @db.Decimal(10, 2)
+  ageThreshold Int?       // 65 for secondary, 75 for tertiary
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([taxYear, rebateType])
+  @@index([taxYear])
+}
+
+enum RebateType {
+  PRIMARY   // All taxpayers
+  SECONDARY // Age 65+
+  TERTIARY  // Age 75+
+}
+
+// Medical tax credits
+model MedicalTaxCredit {
+  id              String   @id @default(cuid())
+  taxYear         String   // "2024/2025"
+  mainMember      Decimal  @db.Decimal(10, 2) // R364
+  firstDependent  Decimal  @db.Decimal(10, 2) // R364
+  otherDependents Decimal  @db.Decimal(10, 2) // R246 per additional
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([taxYear])
+}
+
+// Immutable audit trail for all payroll calculations
+model PayrollAuditLog {
+  id                   String     @id @default(cuid())
+  payrollRunId         String
+  employeeId           String
+  calculationTimestamp DateTime   @default(now())
+
+  // Calculation snapshot
+  grossRemuneration    Decimal    @db.Decimal(12, 2)
+  taxableIncome        Decimal    @db.Decimal(12, 2)
+  payeCalculated       Decimal    @db.Decimal(12, 2)
+  uifEmployee          Decimal    @db.Decimal(8, 2)
+  uifEmployer          Decimal    @db.Decimal(8, 2)
+  sdl                  Decimal    @db.Decimal(8, 2)
+
+  // Detailed breakdown (JSON for flexibility)
+  calculationBreakdown Json       // Step-by-step PAYE calculation
+  appliedRebates       Json       // Which rebates were applied
+  medicalCredits       Decimal    @db.Decimal(8, 2)
+  fringeBenefits       Decimal    @db.Decimal(10, 2) @default(0)
+
+  // Metadata
+  taxYear              String
+  createdBy            String
+  createdAt            DateTime   @default(now())
+
+  PayrollRun           PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  Employee             Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([payrollRunId])
+  @@index([employeeId])
+  @@index([taxYear])
+  @@index([calculationTimestamp])
+}
+
+// Year-to-date tracking per employee per tax year
+model EmployeeYTD {
+  id                  String   @id @default(cuid())
+  employeeId          String
+  taxYear             String   // "2024/2025"
+
+  // Cumulative totals
+  ytdGross            Decimal  @db.Decimal(12, 2) @default(0)
+  ytdTaxableIncome    Decimal  @db.Decimal(12, 2) @default(0)
+  ytdPaye             Decimal  @db.Decimal(12, 2) @default(0)
+  ytdUifEmployee      Decimal  @db.Decimal(12, 2) @default(0)
+  ytdUifEmployer      Decimal  @db.Decimal(12, 2) @default(0)
+  ytdSdl              Decimal  @db.Decimal(12, 2) @default(0)
+  ytdRetirement       Decimal  @db.Decimal(12, 2) @default(0)
+  ytdMedicalAid       Decimal  @db.Decimal(12, 2) @default(0)
+  ytdMedicalCredits   Decimal  @db.Decimal(12, 2) @default(0)
+  ytdFringeBenefits   Decimal  @db.Decimal(12, 2) @default(0)
+
+  lastUpdated         DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  Employee            Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, taxYear])
+  @@index([employeeId])
+  @@index([taxYear])
+}
+
+// Fringe benefits tracking per employee
+model EmployeeFringeBenefit {
+  id                  String      @id @default(cuid())
+  employeeId          String
+  benefitType         BenefitType
+  monthlyTaxableValue Decimal     @db.Decimal(10, 2)
+  effectiveFrom       DateTime
+  effectiveTo         DateTime?
+  calculationMethod   Json?       // SARS calculation parameters
+  description         String?     // E.g., "BMW 320i - Company Car"
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  Employee            Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+  @@index([benefitType])
+  @@index([effectiveFrom, effectiveTo])
+}
+
+enum BenefitType {
+  COMPANY_CAR
+  HOUSING_ALLOWANCE
+  MEDICAL_AID_EMPLOYER_PORTION
+  CELL_PHONE
+  TRAVEL_ALLOWANCE
+  FUEL_CARD
+  MEAL_ALLOWANCE
+  OTHER
+}
+
+// Payment types for irregular payments
+enum PaymentType {
+  REGULAR
+  BONUS
+  COMMISSION
+  BACKPAY
+  SEVERANCE
+  THIRTEENTH_CHEQUE
+  OVERTIME
+  ALLOWANCE
 }

@@ -442,25 +442,38 @@ export default function HomePage() {
                 title: "Sign Up & Setup",
                 description: "Create your account and set up your practice profile. Our onboarding wizard guides you through every step.",
                 color: "blue",
+                icon: "/Sign Up & Setup.gif",
               },
               {
                 step: "02",
                 title: "Upload Documents",
                 description: "Upload your existing compliance documents. We'll automatically track expiry dates and set up reminders.",
                 color: "indigo",
+                icon: "/Upload Documents.gif",
               },
               {
                 step: "03",
                 title: "Stay Compliant",
                 description: "Receive automatic reminders, complete tasks, and maintain inspection-ready status at all times.",
                 color: "purple",
+                icon: "/Stay Compliant.gif",
               },
             ].map((item, i) => (
               <FeatureSection key={i} delay={i * 150}>
                 <div className="relative group cursor-default">
                   <div className={`absolute inset-0 bg-gradient-to-r from-${item.color}-100 to-${item.color}-50 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -m-4`} />
-                  <div className="relative">
-                    <div className={`text-6xl font-bold bg-gradient-to-r from-${item.color}-200 to-${item.color}-100 bg-clip-text text-transparent mb-4 transition-transform duration-300 group-hover:scale-110`}>
+                  <div className="relative text-center">
+                    <div className="mb-4 flex justify-center">
+                      <Image
+                        src={item.icon}
+                        alt={item.title}
+                        width={120}
+                        height={120}
+                        className="transition-transform duration-300 group-hover:scale-110"
+                        unoptimized
+                      />
+                    </div>
+                    <div className={`text-5xl font-bold bg-gradient-to-r from-${item.color}-600 to-${item.color}-400 bg-clip-text text-transparent mb-4 transition-transform duration-300 group-hover:scale-110`}>
                       {item.step}
                     </div>
                     <h3 className="text-xl font-bold text-slate-900 mb-3">{item.title}</h3>
@@ -528,14 +541,14 @@ export default function HomePage() {
 
             {/* Professional */}
             <FeatureSection delay={200}>
-              <Card className="relative border-2 border-blue-500 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full overflow-hidden">
+              <Card className="relative border-2 border-blue-500 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full overflow-visible">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-2xl" />
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <span className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-full shadow-lg">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <span className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-sm font-medium rounded-full shadow-lg whitespace-nowrap">
                     Most Popular
                   </span>
                 </div>
-                <CardContent className="p-8 relative">
+                <CardContent className="p-8 relative pt-6">
                   <h3 className="text-xl font-bold text-slate-900 mb-2">Professional</h3>
                   <p className="text-slate-500 mb-6">For growing practices</p>
                   <div className="mb-8">

@@ -16,6 +16,8 @@ import { format } from "date-fns";
 import { PayrollRunActions } from "@/components/payroll/payroll-run-actions";
 import { GeneratePayrollButton } from "@/components/payroll/generate-payroll-button";
 import { PayslipDownloadButton } from "@/components/payroll/payslip-download-button";
+import { PayrollValidationWarnings } from "@/components/payroll/payroll-validation-warnings";
+import { IrregularPaymentDialog } from "@/components/payroll/irregular-payment-dialog";
 
 function formatCurrency(amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return "R 0.00";
@@ -105,7 +107,9 @@ export default async function PayrollRunPage({
                 </p>
                 <ul className="list-disc list-inside text-sm text-slate-500 dark:text-slate-400 space-y-1">
                   <li>Gross salary for each employee</li>
-                  <li>Deductions (PAYE, UIF, pension, medical aid, custom)</li>
+                  <li><strong>PAYE</strong> (auto-calculated using SARS tax tables)</li>
+                  <li><strong>UIF</strong> (auto-calculated at 1%, capped at R177.12)</li>
+                  <li>Pension, medical aid, and custom deductions</li>
                   <li>Net salary after deductions</li>
                   <li>Employer contributions (UIF and SDL)</li>
                 </ul>
@@ -187,6 +191,11 @@ export default async function PayrollRunPage({
             </Card>
           </div>
 
+          {/* Validation Warnings */}
+          {payrollRun.status === "DRAFT" && (
+            <PayrollValidationWarnings payrollRunId={payrollRun.id} />
+          )}
+
           {/* Actions */}
           <PayrollRunActions payrollRun={payrollRun} />
 
@@ -211,6 +220,7 @@ export default async function PayrollRunPage({
                     <TableHead className="text-right">Other</TableHead>
                     <TableHead className="text-right">Total Ded.</TableHead>
                     <TableHead className="text-right">Net Pay</TableHead>
+                    {payrollRun.status === "DRAFT" && <TableHead className="text-center">Actions</TableHead>}
                     <TableHead className="text-center">Payslip</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -220,7 +230,18 @@ export default async function PayrollRunPage({
                       <TableCell>
                         <div>
                           <p className="font-medium dark:text-white">{entry.Employee.fullName}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{entry.Employee.position}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {entry.Employee.position}
+                          </p>
+                          {entry.PayrollAddition && entry.PayrollAddition.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.PayrollAddition.map((addition) => (
+                                <Badge key={addition.id} variant="secondary" className="text-xs">
+                                  +R{addition.amount.toFixed(2)} {addition.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
@@ -247,6 +268,15 @@ export default async function PayrollRunPage({
                       <TableCell className="text-right font-bold text-green-600">
                         {formatCurrency(entry.netSalary)}
                       </TableCell>
+                      {payrollRun.status === "DRAFT" && (
+                        <TableCell className="text-center">
+                          <IrregularPaymentDialog
+                            entryId={entry.id}
+                            employeeName={entry.Employee.fullName}
+                            additions={entry.PayrollAddition || []}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell className="text-center">
                         <PayslipDownloadButton
                           payrollEntryId={entry.id}

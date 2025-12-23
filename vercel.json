@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/check-expiry",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/check-overdue-tasks",
+      "schedule": "0 8 * * *"
     }
   ]
 }

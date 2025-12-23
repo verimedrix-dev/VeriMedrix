@@ -3,8 +3,9 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ensureUserAndPractice } from "./practice";
-import type { PayFrequency, UifExemptReason, DeductionType, PayrollStatus } from "@prisma/client";
+import type { PayFrequency, UifExemptReason, DeductionType, PayrollStatus, PaymentType } from "@prisma/client";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
+import { calculatePAYE, getCurrentTaxYear } from "@/lib/tax-calculator";
 
 // UIF Constants (South Africa)
 const UIF_RATE = 0.01; // 1%
@@ -145,6 +146,11 @@ export async function updateEmployeeCompensation(
     bankBranchCode?: string;
     uifExempt?: boolean;
     uifExemptReason?: UifExemptReason | null;
+    taxNumber?: string;
+    dateOfBirth?: Date;
+    medicalAidDependents?: number;
+    retirementContribution?: number;
+    payeOverride?: number;
   }
 ) {
   const { practice } = await ensureUserAndPractice();
@@ -335,6 +341,7 @@ export async function getPayrollRun(month: number, year: number) {
             },
           },
           PayrollDeduction: true,
+          PayrollAddition: true,
         },
       },
     },
@@ -409,20 +416,40 @@ export async function createOrUpdatePayrollRun(month: number, year: number) {
       amount: number;
     }> = [];
 
+    // ENHANCED: Calculate PAYE automatically using SARS tax tables
+    try {
+      const payeCalculation = await calculatePAYE(employee.id, grossSalary, month, year);
+      payeAmount = payeCalculation.monthlyPaye;
+
+      if (payeAmount > 0) {
+        deductionDetails.push({
+          deductionType: "PAYE",
+          name: "PAYE (Tax)",
+          amount: payeAmount,
+        });
+      }
+    } catch (error) {
+      console.error(`PAYE calculation error for employee ${employee.id}:`, error);
+      // Fallback to manual PAYE if calculation fails
+      const manualPaye = employee.EmployeeDeduction.find(d => d.deductionType === 'PAYE');
+      if (manualPaye) {
+        payeAmount = manualPaye.amount || 0;
+        if (payeAmount > 0) {
+          deductionDetails.push({
+            deductionType: "PAYE",
+            name: "PAYE (Tax - Manual)",
+            amount: payeAmount,
+          });
+        }
+      }
+    }
+
     for (const deduction of employee.EmployeeDeduction) {
       let amount = 0;
 
       switch (deduction.deductionType) {
         case "PAYE":
-          amount = deduction.amount || 0;
-          payeAmount = amount;
-          if (amount > 0) {
-            deductionDetails.push({
-              deductionType: "PAYE",
-              name: "PAYE (Tax)",
-              amount,
-            });
-          }
+          // Skip - already calculated above with automated PAYE
           break;
 
         case "UIF":
@@ -915,17 +942,26 @@ export async function getPayslipData(entryId: string) {
       },
       Employee: {
         select: {
+          id: true,
           fullName: true,
           position: true,
           department: true,
           employeeNumber: true,
           idNumber: true,
+          taxNumber: true,
+          annualLeaveBalance: true,
+          sickLeaveBalance: true,
+          familyLeaveBalance: true,
           bankName: true,
           bankAccountNumber: true,
           bankBranchCode: true,
+          hireDate: true,
+          address: true,
+          grossSalary: true, // Base salary for payslip
         },
       },
       PayrollDeduction: true,
+      PayrollAddition: true,
     },
   });
 
@@ -933,14 +969,62 @@ export async function getPayslipData(entryId: string) {
     throw new Error("Payroll entry not found");
   }
 
+  // Get YTD figures by summing all entries for this employee in the current tax year
+  const month = entry.PayrollRun.month;
+  const year = entry.PayrollRun.year;
+
+  // Tax year in SA runs March to February
+  const taxYearStart = month >= 3
+    ? new Date(year, 2, 1) // March of current year
+    : new Date(year - 1, 2, 1); // March of previous year
+
+  const ytdEntries = await prisma.payrollEntry.findMany({
+    where: {
+      employeeId: entry.Employee.id,
+      PayrollRun: {
+        practiceId: practice.id,
+        status: { in: ["PROCESSED", "PAID"] },
+        OR: [
+          // Same tax year entries
+          {
+            year: taxYearStart.getFullYear(),
+            month: { gte: 3 },
+          },
+          {
+            year: taxYearStart.getFullYear() + 1,
+            month: { lte: 2 },
+          },
+        ],
+      },
+    },
+    include: {
+      PayrollRun: {
+        select: { month: true, year: true },
+      },
+    },
+  });
+
+  // Filter to only include entries up to and including current month
+  const relevantEntries = ytdEntries.filter(e => {
+    const entryDate = new Date(e.PayrollRun.year, e.PayrollRun.month - 1, 1);
+    const currentDate = new Date(year, month - 1, 1);
+    return entryDate <= currentDate;
+  });
+
+  // Calculate YTD totals
+  const ytdGross = relevantEntries.reduce((sum, e) => sum + e.grossSalary, 0);
+  const ytdPaye = relevantEntries.reduce((sum, e) => sum + e.payeAmount, 0);
+  const ytdUif = relevantEntries.reduce((sum, e) => sum + e.uifAmount, 0);
+  const ytdDeductions = relevantEntries.reduce((sum, e) => sum + e.totalDeductions, 0);
+  const ytdNet = relevantEntries.reduce((sum, e) => sum + e.netSalary, 0);
+  const ytdEmployerUIF = relevantEntries.reduce((sum, e) => sum + e.employerUif, 0);
+  const ytdEmployerSDL = relevantEntries.reduce((sum, e) => sum + e.employerSdl, 0);
+
   // Build deductions array from individual amounts
   const deductions: Array<{ name: string; amount: number; isEmployerContribution?: boolean }> = [];
 
-  if (entry.payeAmount > 0) {
-    deductions.push({ name: "PAYE (Tax)", amount: entry.payeAmount });
-  }
   if (entry.uifAmount > 0) {
-    deductions.push({ name: "UIF (Employee)", amount: entry.uifAmount });
+    deductions.push({ name: "UIF - Employee", amount: entry.uifAmount });
   }
   if (entry.pensionAmount > 0) {
     deductions.push({ name: "Pension Fund", amount: entry.pensionAmount });
@@ -948,28 +1032,336 @@ export async function getPayslipData(entryId: string) {
   if (entry.medicalAidAmount > 0) {
     deductions.push({ name: "Medical Aid", amount: entry.medicalAidAmount });
   }
+  if (entry.payeAmount > 0) {
+    deductions.push({ name: "Tax", amount: entry.payeAmount });
+  }
 
-  // Add any other deductions from PayrollDeduction records
+  // Add any other deductions from PayrollDeduction records (garnishee orders, custom)
   for (const ded of entry.PayrollDeduction) {
     if (!["PAYE", "UIF", "PENSION", "MEDICAL_AID"].includes(ded.deductionType)) {
       deductions.push({ name: ded.name, amount: ded.amount });
     }
   }
 
+  // Build allowances/additions array from PayrollAddition records
+  const allowances: Array<{ name: string; amount: number }> = [];
+  for (const addition of entry.PayrollAddition || []) {
+    allowances.push({ name: addition.name, amount: addition.amount });
+  }
+
+  // Calculate base salary (gross minus additions)
+  const baseSalary = entry.Employee.grossSalary || entry.grossSalary;
+
   return {
     employeeName: entry.Employee.fullName,
     employeeNumber: entry.Employee.employeeNumber,
     idNumber: entry.Employee.idNumber,
+    taxNumber: entry.Employee.taxNumber,
     position: entry.Employee.position,
     department: entry.Employee.department,
+    employmentDate: entry.Employee.hireDate
+      ? new Date(entry.Employee.hireDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })
+      : null,
+    employeeAddress: entry.Employee.address,
     bankName: entry.Employee.bankName,
     bankAccountNumber: entry.Employee.bankAccountNumber,
     bankBranchCode: entry.Employee.bankBranchCode,
     grossSalary: entry.grossSalary,
+    basicSalary: baseSalary,
+    allowances, // Bonuses, overtime, commission, etc.
     deductions,
     totalDeductions: entry.totalDeductions,
     netPay: entry.netSalary,
+    // Employer contributions
+    employerUIF: entry.employerUif,
+    employerSDL: entry.employerSdl,
+    // YTD figures
+    ytdGross,
+    ytdPaye,
+    ytdUif,
+    ytdDeductions,
+    ytdNet,
+    ytdEmployerUIF,
+    ytdEmployerSDL,
+    // Leave balances
+    leaveBalances: {
+      annual: entry.Employee.annualLeaveBalance,
+      sick: entry.Employee.sickLeaveBalance,
+      family: entry.Employee.familyLeaveBalance,
+      annualAdjustment: 0,
+      sickAdjustment: 0,
+      familyAdjustment: 0,
+      annualTaken: 0,
+      sickTaken: 0,
+      familyTaken: 0,
+      annualScheduled: 0,
+      sickScheduled: 0,
+      familyScheduled: 0,
+    },
     companyName: entry.PayrollRun.Practice.name,
     companyAddress: entry.PayrollRun.Practice.address,
   };
+}
+
+// ==================== PAYROLL VALIDATION ====================
+
+export async function validatePayrollRun(payrollRunId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  const payrollRun = await prisma.payrollRun.findFirst({
+    where: { id: payrollRunId, practiceId: practice.id },
+  });
+
+  if (!payrollRun) {
+    throw new Error("Payroll run not found");
+  }
+
+  // Import and call the validation function from payroll-compliance
+  const { validatePayrollRun: validateRun } = await import("@/lib/payroll-compliance");
+  return await validateRun(payrollRunId);
+}
+
+// ==================== IRREGULAR PAYMENTS ====================
+
+export async function addIrregularPayment(data: {
+  entryId: string;
+  paymentType: string;
+  name: string;
+  amount: number;
+}) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  // Verify entry belongs to practice and is in DRAFT status
+  const entry = await prisma.payrollEntry.findFirst({
+    where: { id: data.entryId },
+    include: {
+      PayrollRun: {
+        select: { practiceId: true, status: true, month: true, year: true },
+      },
+      Employee: {
+        select: { id: true, grossSalary: true },
+      },
+      PayrollAddition: true,
+    },
+  });
+
+  if (!entry || entry.PayrollRun.practiceId !== practice.id) {
+    throw new Error("Payroll entry not found");
+  }
+
+  if (entry.PayrollRun.status !== "DRAFT") {
+    throw new Error("Cannot modify a processed or paid payroll entry");
+  }
+
+  // Create the new addition
+  await prisma.payrollAddition.create({
+    data: {
+      payrollEntryId: data.entryId,
+      paymentType: data.paymentType as PaymentType,
+      name: data.name,
+      amount: data.amount,
+    },
+  });
+
+  // Recalculate entry totals with all additions
+  await recalculatePayrollEntry(data.entryId);
+
+  revalidatePath("/payroll/run");
+}
+
+export async function removeIrregularPayment(additionId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  // Verify the addition exists and belongs to practice
+  const addition = await prisma.payrollAddition.findUnique({
+    where: { id: additionId },
+    include: {
+      PayrollEntry: {
+        include: {
+          PayrollRun: {
+            select: { practiceId: true, status: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!addition || addition.PayrollEntry.PayrollRun.practiceId !== practice.id) {
+    throw new Error("Payment not found");
+  }
+
+  if (addition.PayrollEntry.PayrollRun.status !== "DRAFT") {
+    throw new Error("Cannot modify a processed or paid payroll entry");
+  }
+
+  const entryId = addition.payrollEntryId;
+
+  // Delete the addition
+  await prisma.payrollAddition.delete({
+    where: { id: additionId },
+  });
+
+  // Recalculate entry totals
+  await recalculatePayrollEntry(entryId);
+
+  revalidatePath("/payroll/run");
+}
+
+// Helper function to recalculate payroll entry after adding/removing irregular payments
+async function recalculatePayrollEntry(entryId: string) {
+  const entry = await prisma.payrollEntry.findUnique({
+    where: { id: entryId },
+    include: {
+      PayrollRun: {
+        select: { month: true, year: true },
+      },
+      Employee: {
+        select: { id: true, grossSalary: true, uifExempt: true },
+      },
+      PayrollAddition: true,
+    },
+  });
+
+  if (!entry) throw new Error("Entry not found");
+
+  const baseSalary = entry.Employee.grossSalary || 0;
+  const totalAdditions = entry.PayrollAddition.reduce((sum, a) => sum + a.amount, 0);
+  const newGrossSalary = baseSalary + totalAdditions;
+
+  // Recalculate PAYE with all bonuses
+  let newPayeAmount = 0;
+  try {
+    const payeCalculation = await calculatePAYE(
+      entry.Employee.id,
+      baseSalary,
+      entry.PayrollRun.month,
+      entry.PayrollRun.year,
+      {
+        bonusAmount: totalAdditions > 0 ? totalAdditions : undefined,
+        paymentType: totalAdditions > 0 ? "BONUS" : undefined,
+      }
+    );
+    newPayeAmount = payeCalculation.monthlyPaye;
+  } catch (error) {
+    console.error("PAYE recalculation error:", error);
+  }
+
+  // Recalculate UIF on new gross
+  const newUifAmount = entry.Employee.uifExempt ? 0 : calculateUif(newGrossSalary, false);
+  const newEmployerUif = entry.Employee.uifExempt ? 0 : calculateUif(newGrossSalary, false);
+  const newEmployerSdl = newGrossSalary * SDL_RATE;
+
+  const newTotalDeductions = newPayeAmount + newUifAmount + entry.pensionAmount + entry.medicalAidAmount + entry.otherDeductions;
+  const newNetSalary = newGrossSalary - newTotalDeductions;
+
+  // Determine payment type based on additions
+  let paymentType: PaymentType = "REGULAR";
+  if (entry.PayrollAddition.length > 0) {
+    // Use the first addition's type, or BONUS if multiple types
+    const types = new Set(entry.PayrollAddition.map(a => a.paymentType));
+    if (types.size === 1) {
+      paymentType = entry.PayrollAddition[0].paymentType;
+    } else {
+      paymentType = "BONUS"; // Multiple types, use generic BONUS
+    }
+  }
+
+  await prisma.payrollEntry.update({
+    where: { id: entryId },
+    data: {
+      grossSalary: newGrossSalary,
+      payeAmount: newPayeAmount,
+      uifAmount: newUifAmount,
+      employerUif: newEmployerUif,
+      employerSdl: newEmployerSdl,
+      totalDeductions: newTotalDeductions,
+      netSalary: newNetSalary,
+      paymentType,
+      bonusAmount: totalAdditions > 0 ? totalAdditions : null,
+    },
+  });
+}
+
+// ==================== GARNISHEE DEDUCTIONS ====================
+
+export async function addGarnisheeDeduction(data: {
+  employeeId: string;
+  name: string;
+  amount: number;
+}) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  // Verify employee belongs to practice
+  const employee = await prisma.employee.findFirst({
+    where: { id: data.employeeId, practiceId: practice.id },
+  });
+
+  if (!employee) {
+    throw new Error("Employee not found");
+  }
+
+  await prisma.employeeDeduction.create({
+    data: {
+      employeeId: data.employeeId,
+      deductionType: "CUSTOM",
+      name: data.name,
+      amount: data.amount,
+      isActive: true,
+    },
+  });
+
+  revalidatePath("/payroll");
+}
+
+export async function removeGarnisheeDeduction(deductionId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  // Verify deduction belongs to an employee in this practice
+  const deduction = await prisma.employeeDeduction.findFirst({
+    where: {
+      id: deductionId,
+      Employee: { practiceId: practice.id },
+    },
+  });
+
+  if (!deduction) {
+    throw new Error("Deduction not found");
+  }
+
+  // Soft delete by setting isActive to false
+  await prisma.employeeDeduction.update({
+    where: { id: deductionId },
+    data: { isActive: false },
+  });
+
+  revalidatePath("/payroll");
+}
+
+export async function getEmployeeGarnisheeDeductions(employeeId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Unauthorized");
+
+  // Verify employee belongs to practice
+  const employee = await prisma.employee.findFirst({
+    where: { id: employeeId, practiceId: practice.id },
+  });
+
+  if (!employee) {
+    throw new Error("Employee not found");
+  }
+
+  const deductions = await prisma.employeeDeduction.findMany({
+    where: {
+      employeeId,
+      deductionType: "CUSTOM",
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return deductions;
 }
