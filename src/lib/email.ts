@@ -400,3 +400,166 @@ export async function sendTaskAssignmentNotification(
 
   return sendEmail({ to, subject, html });
 }
+
+// Account Deletion Email Template
+export function getAccountDeletionEmail({
+  userName,
+  practiceName,
+  deletionDate,
+  reactivateUrl,
+}: {
+  userName: string;
+  practiceName: string;
+  deletionDate: string;
+  reactivateUrl: string;
+}) {
+  return {
+    subject: `Your VeriMedrix account is scheduled for deletion`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">VeriMedrix</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Account Deletion Notice</p>
+  </div>
+
+  <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+    <p>Hi ${userName},</p>
+
+    <p>We've received your request to delete your VeriMedrix account for <strong>${practiceName}</strong>.</p>
+
+    <div style="background: #FEF2F2; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #FECACA;">
+      <h3 style="margin: 0 0 10px 0; color: #DC2626;">Important Information</h3>
+      <p style="margin: 0 0 10px 0;">Your account and all associated data will be <strong>permanently deleted</strong> on:</p>
+      <p style="margin: 0; font-size: 20px; font-weight: bold; color: #DC2626;">${deletionDate}</p>
+    </div>
+
+    <p>Until then:</p>
+    <ul style="color: #475569; padding-left: 20px;">
+      <li style="margin-bottom: 8px;">Your subscription has been cancelled and you won't be billed</li>
+      <li style="margin-bottom: 8px;">Your data is still saved but inaccessible</li>
+      <li style="margin-bottom: 8px;">You have 30 days to change your mind</li>
+    </ul>
+
+    <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #BBF7D0;">
+      <h3 style="margin: 0 0 10px 0; color: #16A34A;">Changed Your Mind?</h3>
+      <p style="margin: 0 0 15px 0;">If you want to keep your account, you can reactivate it before the deletion date.</p>
+      <a href="${reactivateUrl}" style="display: inline-block; background: #16A34A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Reactivate My Account</a>
+    </div>
+
+    <p style="font-size: 14px; color: #64748B; margin-top: 30px;">
+      If you didn't request this deletion, please contact our support team immediately.
+    </p>
+  </div>
+
+  <div style="background: #F8FAFC; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #64748B;">
+      © ${new Date().getFullYear()} VeriMedrix. All rights reserved.
+    </p>
+  </div>
+</body>
+</html>
+    `,
+  };
+}
+
+// Account Reactivation Email Template
+export function getAccountReactivatedEmail({
+  userName,
+  practiceName,
+  dashboardUrl,
+}: {
+  userName: string;
+  practiceName: string;
+  dashboardUrl: string;
+}) {
+  return {
+    subject: `Welcome back! Your VeriMedrix account has been reactivated`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">VeriMedrix</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Account Reactivated! 🎉</p>
+  </div>
+
+  <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+    <p>Hi ${userName},</p>
+
+    <p>Great news! Your VeriMedrix account for <strong>${practiceName}</strong> has been successfully reactivated.</p>
+
+    <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #BBF7D0;">
+      <h3 style="margin: 0 0 10px 0; color: #16A34A;">What's been restored:</h3>
+      <ul style="margin: 0; padding-left: 20px; color: #475569;">
+        <li style="margin-bottom: 8px;">All your practice data and documents</li>
+        <li style="margin-bottom: 8px;">Employee records and compliance history</li>
+        <li style="margin-bottom: 8px;">Your subscription (billing will resume)</li>
+        <li style="margin-bottom: 8px;">Team member access</li>
+      </ul>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${dashboardUrl}" style="display: inline-block; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">Go to Dashboard</a>
+    </div>
+
+    <p style="font-size: 14px; color: #64748B; margin-top: 30px;">
+      Thank you for choosing to stay with VeriMedrix. We're glad to have you back!
+    </p>
+  </div>
+
+  <div style="background: #F8FAFC; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #64748B;">
+      © ${new Date().getFullYear()} VeriMedrix. All rights reserved.
+    </p>
+  </div>
+</body>
+</html>
+    `,
+  };
+}
+
+// Convenience function to send account deletion email
+export async function sendAccountDeletionEmail(
+  to: string,
+  userName: string,
+  practiceName: string,
+  deletionDate: Date
+) {
+  const { subject, html } = getAccountDeletionEmail({
+    userName,
+    practiceName,
+    deletionDate: deletionDate.toLocaleDateString("en-ZA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+    reactivateUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://verimedrix.com"}/reactivate-account`,
+  });
+
+  return sendEmail({ to, subject, html });
+}
+
+// Convenience function to send account reactivated email
+export async function sendAccountReactivatedEmail(
+  to: string,
+  userName: string,
+  practiceName: string
+) {
+  const { subject, html } = getAccountReactivatedEmail({
+    userName,
+    practiceName,
+    dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL || "https://verimedrix.com"}/dashboard`,
+  });
+
+  return sendEmail({ to, subject, html });
+}
