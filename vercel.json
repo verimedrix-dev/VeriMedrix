@@ -7,10 +7,6 @@
     {
       "path": "/api/cron/check-overdue-tasks",
       "schedule": "0 8 * * *"
-    },
-    {
-      "path": "/api/cron/delete-expired-accounts",
-      "schedule": "0 2 * * *"
     }
   ]
 }
