@@ -504,11 +504,11 @@ export default function HomePage() {
           </FeatureSection>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Essentials */}
+            {/* Starter */}
             <FeatureSection delay={100}>
               <Card className="relative border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                 <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Essentials</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Starter</h3>
                   <p className="text-slate-500 mb-6">Perfect for small practices</p>
                   <div className="mb-8">
                     <span className="text-4xl font-bold text-slate-900">R1,999</span>
@@ -516,12 +516,14 @@ export default function HomePage() {
                   </div>
                   <ul className="space-y-4 mb-8">
                     {[
-                      "Up to 6 users",
-                      "OHSC Document Management",
+                      "Up to 3 users",
+                      "Unlimited Documents",
                       "Task Management",
-                      "Calendar & Scheduling",
-                      "Employee Management",
-                      "Leave Management",
+                      "Complaints Register",
+                      "Adverse Events Register",
+                      "Daily Logbook",
+                      "Inspection Readiness Dashboard",
+                      "Training Tracking",
                       "Email Support",
                     ].map((feature) => (
                       <li key={feature} className="flex items-start gap-3 group">
@@ -558,11 +560,13 @@ export default function HomePage() {
                   <ul className="space-y-4 mb-8">
                     {[
                       "Unlimited users",
-                      "Everything in Essentials",
-                      "AI Compliance Assistant",
+                      "Everything in Starter",
+                      "Leave Management",
+                      "Unlimited Payroll",
                       "Locum Management",
-                      "Payroll Management",
-                      "Training Management",
+                      "SARS Reporting (IRP5, EMP201)",
+                      "Team Invitations",
+                      "AI Compliance Assistant",
                       "Priority Support",
                     ].map((feature) => (
                       <li key={feature} className="flex items-start gap-3 group">
