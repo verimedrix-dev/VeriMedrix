@@ -585,6 +585,94 @@ export async function reactivateTeamMember(userId: string) {
 }
 
 /**
+ * Permanently delete a team member (removes from database)
+ * Only works for deactivated users to prevent accidental deletion
+ */
+export async function deleteTeamMember(userId: string) {
+  await requirePermission(PERMISSIONS.TEAM);
+  const { user, practice } = await ensureUserAndPractice();
+
+  if (!practice || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // Cannot delete self
+  if (userId === user.id) {
+    throw new Error("You cannot delete yourself");
+  }
+
+  const [targetUser, linkedEmployee] = await withDbConnection(() =>
+    Promise.all([
+      prisma.user.findFirst({
+        where: {
+          id: userId,
+          practiceId: practice.id,
+        },
+      }),
+      prisma.employee.findFirst({
+        where: {
+          userId: userId,
+          practiceId: practice.id,
+        },
+      }),
+    ])
+  );
+
+  if (!targetUser) {
+    throw new Error("User not found");
+  }
+
+  // Cannot delete practice owner
+  if (targetUser.role === "PRACTICE_OWNER" || targetUser.role === "SUPER_ADMIN") {
+    throw new Error("Cannot delete practice owner");
+  }
+
+  // Only allow deleting deactivated users (safety measure)
+  if (targetUser.isActive) {
+    throw new Error("Please deactivate the user first before deleting permanently");
+  }
+
+  // Delete in transaction
+  await withDbConnection(() =>
+    prisma.$transaction(async (tx) => {
+      // Unlink employee if linked
+      if (linkedEmployee) {
+        await tx.employee.update({
+          where: { id: linkedEmployee.id },
+          data: { userId: null },
+        });
+      }
+
+      // Delete any pending invitations for this email
+      await tx.teamInvitation.deleteMany({
+        where: {
+          email: targetUser.email,
+          practiceId: practice.id,
+        },
+      });
+
+      // Delete the user
+      await tx.user.delete({
+        where: { id: userId },
+      });
+    })
+  );
+
+  // Also delete from Supabase if they have a clerkId (which stores Supabase ID)
+  if (targetUser.clerkId) {
+    try {
+      const supabaseAdmin = getSupabaseAdmin();
+      await supabaseAdmin.auth.admin.deleteUser(targetUser.clerkId);
+    } catch (error) {
+      console.error("Failed to delete Supabase user:", error);
+      // Don't throw - the database record is already deleted
+    }
+  }
+
+  revalidatePath("/team");
+}
+
+/**
  * Get all team members with their details
  */
 export async function getTeamMembers() {

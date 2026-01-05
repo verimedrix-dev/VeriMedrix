@@ -20,10 +20,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { MoreHorizontal, Shield, UserMinus, UserCheck, Loader2 } from "lucide-react";
+import { MoreHorizontal, Shield, UserMinus, UserCheck, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { UserRole } from "@prisma/client";
-import { changeTeamMemberRole, removeTeamMember, reactivateTeamMember } from "@/lib/actions/team";
+import { changeTeamMemberRole, removeTeamMember, reactivateTeamMember, deleteTeamMember } from "@/lib/actions/team";
 import { getAccessLevelDisplayName, getInvitableRoles } from "@/lib/permissions";
 
 interface TeamMemberActionsProps {
@@ -43,6 +43,7 @@ export function TeamMemberActions({
 }: TeamMemberActionsProps) {
   const [loading, setLoading] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const invitableRoles = getInvitableRoles();
 
   // Can't manage the owner
@@ -92,6 +93,20 @@ export function TeamMemberActions({
     }
   };
 
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await deleteTeamMember(userId);
+      toast.success(`${userName} has been permanently deleted`);
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error("Failed to delete member:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to delete member");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -132,10 +147,19 @@ export function TeamMemberActions({
               Deactivate Member
             </DropdownMenuItem>
           ) : (
-            <DropdownMenuItem onClick={handleReactivate}>
-              <UserCheck className="h-4 w-4 mr-2" />
-              Reactivate Member
-            </DropdownMenuItem>
+            <>
+              <DropdownMenuItem onClick={handleReactivate}>
+                <UserCheck className="h-4 w-4 mr-2" />
+                Reactivate Member
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Permanently
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
@@ -163,6 +187,36 @@ export function TeamMemberActions({
                 </>
               ) : (
                 "Deactivate"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Permanently Delete Team Member?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {userName}&apos;s account and cannot be undone.
+              Their employee record will remain but will no longer be linked to any user account.
+              They can be re-invited later if needed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -365,23 +365,27 @@ model LeaveRequest {
 }
 
 model Practice {
-  id                   String             @id
-  name                 String
-  practiceNumber       String?            // Practice registration/license number
-  address              String?
-  phone                String?
-  email                String
-  subscriptionTier     SubscriptionTier   @default(ESSENTIALS)
-  subscriptionStatus   SubscriptionStatus @default(TRIAL)
-  trialEndsAt          DateTime?
-  onboardingCompleted  Boolean            @default(false)
-  practiceSize         String?            // "solo", "small", "medium", "large"
+  id                       String             @id
+  name                     String
+  practiceNumber           String?            // Practice registration/license number
+  address                  String?
+  phone                    String?
+  email                    String
+  subscriptionTier         SubscriptionTier   @default(ESSENTIALS)
+  subscriptionStatus       SubscriptionStatus @default(TRIAL)
+  trialEndsAt              DateTime?
+  // Scheduled tier change (for downgrades that take effect next billing)
+  scheduledTierChange      SubscriptionTier?
+  scheduledTierChangeDate  DateTime?
+  nextBillingDate          DateTime?
+  onboardingCompleted      Boolean            @default(false)
+  practiceSize             String?            // "solo", "small", "medium", "large"
   // Soft delete fields
-  deletedAt            DateTime?          // When the account was marked for deletion
-  scheduledDeletionAt  DateTime?          // When permanent deletion will occur (30 days after deletedAt)
-  deletionReason       String?            // Optional reason for deletion
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime
+  deletedAt                DateTime?          // When the account was marked for deletion
+  scheduledDeletionAt      DateTime?          // When permanent deletion will occur (30 days after deletedAt)
+  deletionReason           String?            // Optional reason for deletion
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime
   Alert                Alert[]
   AuditLog             AuditLog[]
   Document             Document[]

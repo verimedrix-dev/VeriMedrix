@@ -248,6 +248,27 @@ export async function disable2FA(code: string) {
   return { success: true };
 }
 
+// Check if user has 2FA enabled (for login flow)
+export async function check2FARequired(email: string) {
+  const user = await prisma.user.findFirst({
+    where: { email },
+    select: {
+      twoFactorEnabled: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    return { required: false, error: null };
+  }
+
+  return {
+    required: user.twoFactorEnabled,
+    isOwner: user.role === "PRACTICE_OWNER" || user.role === "SUPER_ADMIN",
+    error: null,
+  };
+}
+
 // Verify 2FA code during login
 export async function verify2FALogin(email: string, code: string) {
   const user = await prisma.user.findFirst({

@@ -8,7 +8,7 @@ import {
   Shield,
   FileText,
 } from "lucide-react";
-import { getPracticeSettings, getPracticeDocuments, getSubscriptionInfo } from "@/lib/actions/practice";
+import { getPracticeSettings, getPracticeDocuments, getSubscriptionDetails } from "@/lib/actions/practice";
 import { PracticeSettingsForm } from "@/components/settings/practice-settings-form";
 import { PracticeDocuments } from "@/components/settings/practice-documents";
 import { BillingSection } from "@/components/settings/billing-section";
@@ -24,7 +24,7 @@ export default async function SettingsPage() {
 
   const practice = await getPracticeSettings();
   const documents = await getPracticeDocuments();
-  const subscription = await getSubscriptionInfo();
+  const subscription = await getSubscriptionDetails();
 
   return (
     <div className="space-y-6">
@@ -96,7 +96,12 @@ export default async function SettingsPage() {
 
         {/* Billing Settings */}
         <TabsContent value="billing">
-          <BillingSection currentTier={subscription?.subscriptionTier || "ESSENTIALS"} />
+          <BillingSection
+            currentTier={subscription?.subscriptionTier || "ESSENTIALS"}
+            scheduledTierChange={subscription?.scheduledTierChange}
+            scheduledTierChangeDate={subscription?.scheduledTierChangeDate}
+            nextBillingDate={subscription?.nextBillingDate}
+          />
         </TabsContent>
 
         {/* Security Settings */}

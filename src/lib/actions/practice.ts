@@ -227,20 +227,181 @@ export async function getSubscriptionInfo() {
   });
 }
 
-export async function updateSubscriptionTier(tier: "ESSENTIALS" | "PROFESSIONAL") {
+import { SUBSCRIPTION_LIMITS } from "@/lib/subscription-config";
+
+/**
+ * Get the next billing date (or set one if not exists)
+ */
+function getNextBillingDate(existingDate: Date | null): Date {
+  if (existingDate && existingDate > new Date()) {
+    return existingDate;
+  }
+  // Default to 30 days from now for demo purposes
+  const nextBilling = new Date();
+  nextBilling.setDate(nextBilling.getDate() + 30);
+  return nextBilling;
+}
+
+/**
+ * Update subscription tier with proper upgrade/downgrade logic:
+ * - Upgrade (to PROFESSIONAL): Takes effect immediately, prorated charge
+ * - Downgrade (to ESSENTIALS): Scheduled for next billing date
+ */
+export async function updateSubscriptionTier(tier: "ESSENTIALS" | "PROFESSIONAL"): Promise<{
+  success: boolean;
+  message: string;
+  isImmediate: boolean;
+  effectiveDate?: Date;
+  chargeAmount?: number;
+}> {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Practice not found");
+
+  // Get full practice data including scheduled changes
+  const fullPractice = await prisma.practice.findUnique({
+    where: { id: practice.id },
+    select: {
+      subscriptionTier: true,
+      scheduledTierChange: true,
+      scheduledTierChangeDate: true,
+      nextBillingDate: true,
+    },
+  });
+
+  if (!fullPractice) throw new Error("Practice not found");
+
+  const currentTier = fullPractice.subscriptionTier;
+
+  // No change needed
+  if (tier === currentTier) {
+    // If there's a scheduled change, cancel it
+    if (fullPractice.scheduledTierChange) {
+      await prisma.practice.update({
+        where: { id: practice.id },
+        data: {
+          scheduledTierChange: null,
+          scheduledTierChangeDate: null,
+          updatedAt: new Date(),
+        },
+      });
+      revalidatePath("/settings");
+      return {
+        success: true,
+        message: "Scheduled tier change has been cancelled. You will remain on your current plan.",
+        isImmediate: true,
+      };
+    }
+    return {
+      success: true,
+      message: "You are already on this plan.",
+      isImmediate: true,
+    };
+  }
+
+  const currentPrice = SUBSCRIPTION_LIMITS[currentTier].price;
+  const newPrice = SUBSCRIPTION_LIMITS[tier].price;
+  const isUpgrade = newPrice > currentPrice;
+
+  if (isUpgrade) {
+    // UPGRADE: Apply immediately
+    const priceDifference = newPrice - currentPrice;
+
+    await prisma.practice.update({
+      where: { id: practice.id },
+      data: {
+        subscriptionTier: tier,
+        scheduledTierChange: null,
+        scheduledTierChangeDate: null,
+        nextBillingDate: getNextBillingDate(fullPractice.nextBillingDate),
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/settings");
+    revalidatePath("/dashboard");
+
+    return {
+      success: true,
+      message: `Upgraded to ${SUBSCRIPTION_LIMITS[tier].displayName}! Prorated charge of R${priceDifference.toLocaleString()} applied. Full amount of R${newPrice.toLocaleString()} will be charged on your next billing date.`,
+      isImmediate: true,
+      chargeAmount: priceDifference,
+    };
+  } else {
+    // DOWNGRADE: Schedule for next billing date
+    const nextBillingDate = getNextBillingDate(fullPractice.nextBillingDate);
+
+    await prisma.practice.update({
+      where: { id: practice.id },
+      data: {
+        scheduledTierChange: tier,
+        scheduledTierChangeDate: nextBillingDate,
+        nextBillingDate: nextBillingDate,
+        updatedAt: new Date(),
+      },
+    });
+
+    revalidatePath("/settings");
+
+    return {
+      success: true,
+      message: `Downgrade to ${SUBSCRIPTION_LIMITS[tier].displayName} scheduled for ${nextBillingDate.toLocaleDateString("en-ZA", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      })}. You will continue to have access to Professional features until then.`,
+      isImmediate: false,
+      effectiveDate: nextBillingDate,
+    };
+  }
+}
+
+/**
+ * Cancel a scheduled downgrade
+ */
+export async function cancelScheduledTierChange(): Promise<void> {
   const { practice } = await ensureUserAndPractice();
   if (!practice) throw new Error("Practice not found");
 
   await prisma.practice.update({
     where: { id: practice.id },
     data: {
-      subscriptionTier: tier,
+      scheduledTierChange: null,
+      scheduledTierChangeDate: null,
       updatedAt: new Date(),
     },
   });
 
   revalidatePath("/settings");
-  revalidatePath("/dashboard");
+}
+
+/**
+ * Get subscription details including any scheduled changes
+ */
+export async function getSubscriptionDetails() {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) return null;
+
+  const fullPractice = await prisma.practice.findUnique({
+    where: { id: practice.id },
+    select: {
+      subscriptionTier: true,
+      subscriptionStatus: true,
+      scheduledTierChange: true,
+      scheduledTierChangeDate: true,
+      nextBillingDate: true,
+      trialEndsAt: true,
+    },
+  });
+
+  if (!fullPractice) return null;
+
+  return {
+    ...fullPractice,
+    currentPlan: SUBSCRIPTION_LIMITS[fullPractice.subscriptionTier],
+    scheduledPlan: fullPractice.scheduledTierChange
+      ? SUBSCRIPTION_LIMITS[fullPractice.scheduledTierChange]
+      : null,
+  };
 }
 
 // ==================== ACCOUNT DELETION ====================
