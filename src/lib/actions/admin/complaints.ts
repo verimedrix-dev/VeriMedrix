@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireSuperAdmin } from "./users";
+import { requireSuperAdmin } from "@/lib/admin-auth";
 
 export async function getComplaintsOverview() {
   await requireSuperAdmin();
