@@ -12,6 +12,10 @@ export const PERMISSIONS = {
   TRAINING: "training",
   LEAVE: "leave",
 
+  // OHSC Registers
+  COMPLAINTS: "complaints",
+  ADVERSE_EVENTS: "adverse_events",
+
   // HR Management
   EMPLOYEES: "employees",
   EMPLOYEES_CRUD: "employees_crud", // Create, edit, delete employees
@@ -57,6 +61,10 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
   [PERMISSIONS.TRAINING]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.LEAVE]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
 
+  // OHSC Registers - Admin and above can access
+  [PERMISSIONS.COMPLAINTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
+  [PERMISSIONS.ADVERSE_EVENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
+
   // HR Management - limited access
   [PERMISSIONS.EMPLOYEES]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
   [PERMISSIONS.EMPLOYEES_CRUD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
@@ -80,6 +88,8 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/calendar": PERMISSIONS.CALENDAR,
   "/training": PERMISSIONS.TRAINING,
   "/leave": PERMISSIONS.LEAVE,
+  "/complaints": PERMISSIONS.COMPLAINTS,
+  "/adverse-events": PERMISSIONS.ADVERSE_EVENTS,
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,

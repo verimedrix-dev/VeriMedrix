@@ -263,8 +263,8 @@ export async function deletePracticeAccount(confirmationText: string, reason?: s
   if (!practice) throw new Error("Practice not found");
   if (!user) throw new Error("User not found");
 
-  // Only practice owner can delete the account
-  if (user.role !== "PRACTICE_OWNER") {
+  // Only practice owner or super admin can delete the account
+  if (user.role !== "PRACTICE_OWNER" && user.role !== "SUPER_ADMIN") {
     throw new Error("Only the practice owner can delete the account");
   }
 

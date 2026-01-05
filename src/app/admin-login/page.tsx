@@ -54,18 +54,11 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4">
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
-
-      <Card className="w-full max-w-md relative bg-white/95 backdrop-blur-sm shadow-2xl border-0">
+    <div className="min-h-screen flex items-center justify-center bg-white px-4">
+      <Card className="w-full max-w-md relative bg-white shadow-lg border border-slate-200">
         <CardHeader className="space-y-1 text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full"></div>
-              <div className="relative bg-white rounded-full p-3 shadow-lg">
-                <VeyroLogo className="h-10 w-10 text-primary" />
-              </div>
-            </div>
+            <VeyroLogo className="h-10 w-10 text-primary" />
           </div>
           <div className="flex items-center justify-center gap-2 mb-2">
             <Shield className="h-5 w-5 text-primary" />

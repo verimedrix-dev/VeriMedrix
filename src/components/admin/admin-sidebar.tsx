@@ -15,6 +15,7 @@ import {
   Bell,
   Shield,
   Mail,
+  MessageSquare,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const mainNavigation: NavItem[] = [
 
 const analyticsNavigation: NavItem[] = [
   { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+  { name: "Complaints", href: "/admin/complaints", icon: MessageSquare },
   { name: "System Health", href: "/admin/health", icon: Activity },
 ];
 

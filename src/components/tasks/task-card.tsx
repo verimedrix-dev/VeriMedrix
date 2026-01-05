@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -36,10 +38,13 @@ import {
   UserPlus,
   Loader2,
   Trash2,
+  Camera,
+  ImageIcon,
+  X,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { completeTask, uncompleteTask, deleteTask, assignTask, getPracticeTeamMembers } from "@/lib/actions/tasks";
+import { completeTask, uncompleteTask, deleteTask, assignTask, getPracticeTeamMembers, uploadTaskEvidence } from "@/lib/actions/tasks";
 import { Label } from "@/components/ui/label";
 
 type TeamMember = {
@@ -57,7 +62,9 @@ type Task = {
   dueTime: string | null;
   status: string;
   completedAt: Date | null;
+  evidenceUrl: string | null;
   User_Task_assignedToIdToUser?: { id: string; name: string | null } | null;
+  TaskTemplate?: { id: string; name: string; requiresEvidence: boolean } | null;
 };
 
 function getStatusBadge(status: string) {
@@ -92,15 +99,23 @@ function getStatusBadge(status: string) {
 export function TaskCard({ task }: { task: Task }) {
   const [loading, setLoading] = useState(false);
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
+  const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>(
     task.User_Task_assignedToIdToUser?.id || ""
   );
   const [assigning, setAssigning] = useState(false);
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
+  const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [evidenceNotes, setEvidenceNotes] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isOverdue = task.status === "OVERDUE";
   const isCompleted = task.status === "COMPLETED" || task.status === "VERIFIED";
   const assignedTo = task.User_Task_assignedToIdToUser;
+  const requiresEvidence = task.TaskTemplate?.requiresEvidence ?? false;
 
   // Load team members when assign dialog opens
   useEffect(() => {
@@ -109,20 +124,79 @@ export function TaskCard({ task }: { task: Task }) {
     }
   }, [assignDialogOpen]);
 
+  // Handle file selection
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file");
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Image must be less than 5MB");
+        return;
+      }
+      setEvidenceFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEvidencePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const clearEvidence = () => {
+    setEvidenceFile(null);
+    setEvidencePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleToggleComplete = async () => {
-    setLoading(true);
-    try {
-      if (isCompleted) {
+    if (isCompleted) {
+      // Uncomplete the task
+      setLoading(true);
+      try {
         await uncompleteTask(task.id);
         toast.success("Task marked as incomplete");
-      } else {
-        await completeTask(task.id);
-        toast.success("Task marked as complete!");
+      } catch {
+        toast.error("Failed to uncomplete task");
+      } finally {
+        setLoading(false);
       }
+    } else {
+      // Show completion dialog if evidence is required or available
+      setCompleteDialogOpen(true);
+    }
+  };
+
+  const handleCompleteWithEvidence = async () => {
+    setUploading(true);
+    try {
+      let evidenceUrl: string | undefined;
+
+      // Upload evidence if provided
+      if (evidenceFile) {
+        const formData = new FormData();
+        formData.append("file", evidenceFile);
+        const uploadResult = await uploadTaskEvidence(formData);
+        evidenceUrl = uploadResult.url;
+      }
+
+      await completeTask(task.id, {
+        evidenceNotes: evidenceNotes || undefined,
+        evidenceUrl,
+      });
+
+      toast.success("Task completed!");
+      setCompleteDialogOpen(false);
+      clearEvidence();
+      setEvidenceNotes("");
     } catch (error) {
-      toast.error(isCompleted ? "Failed to uncomplete task" : "Failed to complete task");
+      toast.error(error instanceof Error ? error.message : "Failed to complete task");
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -198,10 +272,26 @@ export function TaskCard({ task }: { task: Task }) {
                   {format(new Date(task.dueDate), "MMM d, yyyy")}
                   {task.dueTime && ` at ${task.dueTime}`}
                 </div>
+                {requiresEvidence && (
+                  <Badge variant="outline" className="text-xs">
+                    <Camera className="h-3 w-3 mr-1" />
+                    Photo Required
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {/* Evidence indicator */}
+            {task.evidenceUrl && (
+              <button
+                onClick={() => setEvidenceDialogOpen(true)}
+                className="p-1.5 rounded-lg bg-green-100 dark:bg-green-900/50 hover:bg-green-200 dark:hover:bg-green-900 transition-colors"
+                title="View evidence photo"
+              >
+                <ImageIcon className="h-4 w-4 text-green-600 dark:text-green-400" />
+              </button>
+            )}
             {assignedTo && (
               <Avatar className="h-8 w-8" title={assignedTo.name || "Assigned"}>
                 <AvatarFallback className="text-xs bg-slate-100 dark:bg-slate-800 dark:text-white">
@@ -271,6 +361,130 @@ export function TaskCard({ task }: { task: Task }) {
             <Button onClick={handleAssign} disabled={assigning}>
               {assigning && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {selectedAssignee ? "Assign" : "Unassign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Complete Task Dialog with Photo Upload */}
+      <Dialog open={completeDialogOpen} onOpenChange={(open) => {
+        setCompleteDialogOpen(open);
+        if (!open) {
+          clearEvidence();
+          setEvidenceNotes("");
+        }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Complete Task</DialogTitle>
+            <DialogDescription>
+              {requiresEvidence
+                ? "Upload a photo as proof of completion"
+                : "Optionally add a photo as evidence"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Photo Upload Area */}
+            <div className="space-y-2">
+              <Label>Evidence Photo {requiresEvidence && <span className="text-red-500">*</span>}</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              {evidencePreview ? (
+                <div className="relative">
+                  <Image
+                    src={evidencePreview}
+                    alt="Evidence preview"
+                    width={400}
+                    height={300}
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <button
+                    onClick={clearEvidence}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                >
+                  <Camera className="h-8 w-8 text-slate-400" />
+                  <span className="text-sm text-slate-500 dark:text-slate-400">
+                    Tap to take photo or upload
+                  </span>
+                </button>
+              )}
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="evidence-notes">Notes (optional)</Label>
+              <Textarea
+                id="evidence-notes"
+                placeholder="Any additional notes about this task..."
+                value={evidenceNotes}
+                onChange={(e) => setEvidenceNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCompleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCompleteWithEvidence}
+              disabled={uploading || (requiresEvidence && !evidenceFile)}
+              className="w-full sm:w-auto"
+            >
+              {uploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <CheckCircle className="h-4 w-4 mr-2" />
+              Complete Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Evidence Dialog */}
+      <Dialog open={evidenceDialogOpen} onOpenChange={setEvidenceDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Task Evidence</DialogTitle>
+            <DialogDescription>
+              Photo evidence for &quot;{task.title}&quot;
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {task.evidenceUrl && (
+              <Image
+                src={task.evidenceUrl}
+                alt="Task evidence"
+                width={600}
+                height={400}
+                className="w-full rounded-lg"
+              />
+            )}
+            {task.completedAt && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+                Completed on {format(new Date(task.completedAt), "MMM d, yyyy 'at' h:mm a")}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEvidenceDialogOpen(false)}>
+              Close
             </Button>
           </DialogFooter>
         </DialogContent>

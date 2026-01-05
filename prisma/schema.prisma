@@ -394,6 +394,8 @@ model Practice {
   PracticeDocument     PracticeDocument[]
   TeamInvitation       TeamInvitation[]
   TrainingModule       TrainingModule[]
+  Complaint            Complaint[]
+  AdverseEvent         AdverseEvent[]
 
   @@index([email])
   @@index([subscriptionStatus])
@@ -1418,4 +1420,181 @@ enum PaymentType {
   THIRTEENTH_CHEQUE
   OVERTIME
   ALLOWANCE
+}
+
+// =============================================================================
+// OHSC REGISTERS - COMPLAINTS & ADVERSE EVENTS
+// =============================================================================
+
+// Complaints Register - OHSC Non-Negotiable #5
+model Complaint {
+  id                  String            @id @default(cuid())
+  practiceId          String
+  referenceNumber     String            // Auto-generated: CMP-2025-001
+
+  // Complaint Details
+  dateReceived        DateTime
+  complainantName     String?           // Optional - can be anonymous
+  complainantContact  String?           // Phone or email
+
+  // Classification
+  category            ComplaintCategory
+  severity            Severity          @default(MEDIUM)
+  summary             String            // Brief description (required)
+  details             String?           // Full details (optional)
+
+  // Investigation
+  investigatedBy      String?           // Staff member name
+  investigationDate   DateTime?
+  investigationNotes  String?
+  rootCause           String?
+
+  // Resolution
+  status              ComplaintStatus   @default(RECEIVED)
+  acknowledgedAt      DateTime?         // OHSC requires acknowledgement within 5 working days
+  resolvedAt          DateTime?
+  resolutionSummary   String?
+  resolutionType      ResolutionType?
+
+  // Evidence/Attachments
+  attachments         String[]          // URLs to supporting documents
+
+  // Audit
+  createdAt           DateTime          @default(now())
+  createdBy           String            // User ID who logged it
+  updatedAt           DateTime          @updatedAt
+
+  Practice            Practice          @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, referenceNumber])
+  @@index([practiceId])
+  @@index([status])
+  @@index([dateReceived])
+  @@index([category])
+}
+
+// Adverse Events Register - OHSC Non-Negotiable #10
+model AdverseEvent {
+  id                    String                @id @default(cuid())
+  practiceId            String
+  referenceNumber       String                // Auto-generated: AE-2025-001
+
+  // Event Details
+  eventDate             DateTime
+  reportedDate          DateTime              @default(now())
+
+  // Patient (anonymized)
+  patientInitials       String?               // e.g., "JM"
+  patientFileNumber     String?               // Internal reference only
+
+  // Classification
+  category              AdverseEventCategory
+  severity              AdverseEventSeverity
+  description           String                // What happened
+
+  // Investigation
+  investigatedBy        String?
+  investigationDate     DateTime?
+  findings              String?
+  rootCause             String?
+
+  // Corrective Action
+  correctiveAction      String?
+  actionImplementedDate DateTime?
+  actionVerifiedBy      String?
+  preventionPlan        String?
+
+  // Outcome
+  patientOutcome        PatientOutcome?
+  reportedToAuthority   Boolean               @default(false)
+  authorityReportDate   DateTime?
+
+  // Status
+  status                EventStatus           @default(REPORTED)
+
+  // Attachments
+  attachments           String[]              // URLs to supporting documents
+
+  // Audit
+  createdAt             DateTime              @default(now())
+  createdBy             String
+  updatedAt             DateTime              @updatedAt
+
+  Practice              Practice              @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, referenceNumber])
+  @@index([practiceId])
+  @@index([eventDate])
+  @@index([status])
+  @@index([category])
+  @@index([severity])
+}
+
+// Complaint enums
+enum ComplaintCategory {
+  SERVICE         // Quality of care
+  STAFF           // Staff behavior
+  BILLING         // Financial issues
+  FACILITIES      // Premises, equipment
+  WAITING_TIME    // Delays
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ComplaintStatus {
+  RECEIVED        // Just logged
+  ACKNOWLEDGED    // User notified within 5 days
+  INVESTIGATING   // Being looked into
+  RESOLVED        // Action taken
+  CLOSED          // Fully complete
+}
+
+enum ResolutionType {
+  APOLOGY
+  EXPLANATION
+  REMEDIAL_ACTION
+  POLICY_CHANGE
+  TRAINING
+  REFUND
+  OTHER
+}
+
+// Adverse Event enums
+enum AdverseEventCategory {
+  MEDICATION_ERROR        // Wrong drug, dose, patient
+  PROCEDURE_COMPLICATION  // Unexpected outcome from procedure
+  DIAGNOSTIC_ERROR        // Missed or wrong diagnosis
+  EQUIPMENT_FAILURE       // Medical device malfunction
+  FALL                    // Patient fell
+  INFECTION               // Healthcare-associated infection
+  ALLERGIC_REACTION       // Drug reaction
+  NEEDLE_STICK            // Staff injury
+  OTHER
+}
+
+enum AdverseEventSeverity {
+  NEAR_MISS   // Almost happened but caught in time
+  MINOR       // No lasting harm
+  MODERATE    // Required additional treatment
+  SEVERE      // Permanent harm or death
+}
+
+enum PatientOutcome {
+  NO_HARM
+  MINOR_HARM
+  MODERATE_HARM
+  SEVERE_HARM
+  DEATH
+}
+
+enum EventStatus {
+  REPORTED      // Initial report
+  INVESTIGATING // Being investigated
+  ACTION_TAKEN  // Corrective action implemented
+  CLOSED        // Fully resolved
 }

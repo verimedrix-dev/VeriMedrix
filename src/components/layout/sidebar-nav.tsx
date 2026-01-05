@@ -15,6 +15,10 @@ import {
   Stethoscope,
   Bot,
   LucideIcon,
+  MessageSquare,
+  AlertTriangle,
+  ClipboardCheck,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { UserRole, SubscriptionTier } from "@prisma/client";
@@ -34,10 +38,18 @@ interface NavItem {
 
 const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD },
+  { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.DASHBOARD },
   { name: "OHSC Documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENTS },
   { name: "AI Assistant", href: "/ai-assistant", icon: Bot, permission: PERMISSIONS.AI_ASSISTANT, requiredFeature: "aiAssistant" },
   { name: "Tasks", href: "/tasks", icon: CheckSquare, permission: PERMISSIONS.TASKS },
+  { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS },
   { name: "Calendar", href: "/calendar", icon: Calendar, permission: PERMISSIONS.CALENDAR },
+];
+
+// OHSC Registers - for OHSC compliance tracking
+const registersNavigation: NavItem[] = [
+  { name: "Complaints", href: "/complaints", icon: MessageSquare, permission: PERMISSIONS.COMPLAINTS },
+  { name: "Adverse Events", href: "/adverse-events", icon: AlertTriangle, permission: PERMISSIONS.ADVERSE_EVENTS },
 ];
 
 const hrNavigation: NavItem[] = [
@@ -74,6 +86,7 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
   };
 
   const filteredMain = mainNavigation.filter(filterByPermissionAndFeature);
+  const filteredRegisters = registersNavigation.filter(filterByPermissionAndFeature);
   const filteredHr = hrNavigation.filter(filterByPermissionAndFeature);
   const filteredAdmin = adminNavigation.filter(filterByPermissionAndFeature);
 
@@ -82,6 +95,20 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
       {filteredMain.map((item) => (
         <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} badge={item.badge} />
       ))}
+
+      {/* OHSC Registers Section - Complaints & Adverse Events */}
+      {filteredRegisters.length > 0 && (
+        <div className="pt-4">
+          <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            OHSC Registers
+          </p>
+          <div className="mt-2 space-y-1">
+            {filteredRegisters.map((item) => (
+              <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* HR Section - only show if user has access to at least one HR item */}
       {filteredHr.length > 0 && (

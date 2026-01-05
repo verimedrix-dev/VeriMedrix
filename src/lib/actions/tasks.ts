@@ -7,6 +7,9 @@ import { cache } from "react";
 import crypto from "crypto";
 import { sendTaskAssignmentNotification } from "@/lib/email";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
+import { createClient } from "@/lib/supabase/server";
+
+const EVIDENCE_BUCKET = "task-evidence";
 
 // Generate IDs for models that don't have @default(cuid())
 function generateId(): string {
@@ -186,7 +189,7 @@ export async function updateTask(id: string, data: {
   return task;
 }
 
-export async function completeTask(id: string, evidenceNotes?: string) {
+export async function completeTask(id: string, data?: { evidenceNotes?: string; evidenceUrl?: string }) {
   const { user, practice } = await ensureUserAndPractice();
   if (!practice || !user) throw new Error("Not authenticated");
 
@@ -196,7 +199,8 @@ export async function completeTask(id: string, evidenceNotes?: string) {
       status: "COMPLETED",
       completedAt: new Date(),
       completedById: user.id,
-      evidenceNotes,
+      evidenceNotes: data?.evidenceNotes,
+      evidenceUrl: data?.evidenceUrl,
     }
   });
 
@@ -209,7 +213,62 @@ export async function completeTask(id: string, evidenceNotes?: string) {
 
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
+  revalidatePath("/logbook");
   return task;
+}
+
+// Upload evidence photo for task completion
+export async function uploadTaskEvidence(formData: FormData) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Not authenticated");
+
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file provided");
+
+  // Validate file type (images only)
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are allowed");
+  }
+
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    throw new Error("File size must be less than 5MB");
+  }
+
+  const supabase = await createClient();
+
+  // Create unique file path: practiceId/timestamp-filename
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+  const filePath = `${practice.id}/${timestamp}-${safeName}`;
+
+  // Convert file to array buffer
+  const arrayBuffer = await file.arrayBuffer();
+
+  const { data, error } = await supabase.storage
+    .from(EVIDENCE_BUCKET)
+    .upload(filePath, arrayBuffer, {
+      contentType: file.type,
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) {
+    console.error("Upload error:", error);
+    throw new Error(`Failed to upload evidence: ${error.message}`);
+  }
+
+  // Get the public URL
+  const { data: urlData } = supabase.storage
+    .from(EVIDENCE_BUCKET)
+    .getPublicUrl(data.path);
+
+  return {
+    url: urlData.publicUrl,
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type,
+  };
 }
 
 export async function uncompleteTask(id: string) {
@@ -223,6 +282,7 @@ export async function uncompleteTask(id: string) {
       completedAt: null,
       completedById: null,
       evidenceNotes: null,
+      evidenceUrl: null,
     }
   });
 
@@ -418,4 +478,157 @@ export async function assignTask(taskId: string, assignedToId: string | null) {
   revalidatePath("/tasks");
   revalidatePath("/dashboard");
   return task;
+}
+
+// Get today's tasks for logbook view
+export async function getLogbookData(date?: Date) {
+  const { practice, user } = await ensureUserAndPractice();
+  if (!practice) return null;
+
+  const targetDate = date || new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Get tasks for the target date
+  const [tasks, templates] = await Promise.all([
+    prisma.task.findMany({
+      where: {
+        practiceId: practice.id,
+        dueDate: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        dueDate: true,
+        dueTime: true,
+        status: true,
+        completedAt: true,
+        evidenceUrl: true,
+        evidenceNotes: true,
+        User_Task_assignedToIdToUser: { select: { id: true, name: true } },
+        User_Task_completedByIdToUser: { select: { id: true, name: true } },
+        TaskTemplate: { select: { id: true, name: true, requiresEvidence: true, frequency: true, category: true } },
+      },
+      orderBy: [
+        { dueTime: "asc" },
+        { createdAt: "asc" },
+      ],
+    }),
+    prisma.taskTemplate.findMany({
+      where: { practiceId: practice.id, isActive: true },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        frequency: true,
+        requiresEvidence: true,
+        category: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  // Calculate stats for the day
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status === "COMPLETED" || t.status === "VERIFIED").length;
+  const pending = tasks.filter(t => t.status === "PENDING").length;
+  const overdue = tasks.filter(t => t.status === "OVERDUE").length;
+
+  return {
+    tasks,
+    templates,
+    stats: { total, completed, pending, overdue },
+    currentUserId: user?.id,
+  };
+}
+
+// Generate tasks from templates for a specific date
+export async function generateTasksFromTemplates(date?: Date) {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!practice || !user) throw new Error("Not authenticated");
+
+  const targetDate = date || new Date();
+  const startOfDay = new Date(targetDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(targetDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  // Get active templates
+  const templates = await prisma.taskTemplate.findMany({
+    where: { practiceId: practice.id, isActive: true },
+  });
+
+  // Check which templates already have tasks for today
+  const existingTasks = await prisma.task.findMany({
+    where: {
+      practiceId: practice.id,
+      templateId: { in: templates.map(t => t.id) },
+      dueDate: {
+        gte: startOfDay,
+        lte: endOfDay,
+      },
+    },
+    select: { templateId: true },
+  });
+
+  const existingTemplateIds = new Set(existingTasks.map(t => t.templateId));
+
+  // Filter templates that should generate tasks today and don't already have one
+  const templatesToGenerate = templates.filter(template => {
+    if (existingTemplateIds.has(template.id)) return false;
+
+    const dayOfWeek = targetDate.getDay();
+    const dayOfMonth = targetDate.getDate();
+
+    switch (template.frequency) {
+      case "MULTIPLE_DAILY":
+      case "DAILY":
+        return true;
+      case "WEEKLY":
+        // Monday by default, can be configured later
+        return dayOfWeek === 1;
+      case "MONTHLY":
+        // First of month by default
+        return dayOfMonth === 1;
+      default:
+        return false;
+    }
+  });
+
+  // Create tasks from templates
+  const createdTasks = await Promise.all(
+    templatesToGenerate.map(template =>
+      prisma.task.create({
+        data: {
+          id: generateId(),
+          practiceId: practice.id,
+          templateId: template.id,
+          title: template.name,
+          description: template.description,
+          dueDate: targetDate,
+          status: "PENDING",
+          updatedAt: new Date(),
+        },
+      })
+    )
+  );
+
+  // Invalidate caches
+  await Promise.all([
+    invalidateCache(cacheKeys.practiceTasks(practice.id)),
+    invalidateCache(cacheKeys.practiceTaskStats(practice.id)),
+    invalidateCache(cacheKeys.practiceDashboard(practice.id)),
+  ]);
+
+  revalidatePath("/logbook");
+  revalidatePath("/tasks");
+  revalidatePath("/dashboard");
+
+  return createdTasks;
 }
