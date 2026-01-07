@@ -396,6 +396,8 @@ model Practice {
   Task                 Task[]
   TaskTemplate         TaskTemplate[]
   User                 User[]
+  UserCurrentPractice  User[]               @relation("UserCurrentPractice")
+  UserPractices        UserPractice[]       // Users who have access to this practice
   PayrollRun           PayrollRun[]
   PracticeDocument     PracticeDocument[]
   TeamInvitation       TeamInvitation[]
@@ -406,6 +408,25 @@ model Practice {
   @@index([email])
   @@index([subscriptionStatus])
   @@index([scheduledDeletionAt])
+}
+
+// Junction table for User-Practice many-to-many relationship
+// Allows users to have access to multiple practices with different roles
+model UserPractice {
+  id          String    @id @default(cuid())
+  userId      String
+  practiceId  String
+  role        UserRole  @default(STAFF)  // Role in THIS specific practice
+  isOwner     Boolean   @default(false)  // Whether user is the owner of this practice
+  joinedAt    DateTime  @default(now())
+  invitedById String?   // Who invited them (null if they created the practice)
+
+  User        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Practice    Practice  @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, practiceId])
+  @@index([userId])
+  @@index([practiceId])
 }
 
 model PracticeDocument {
@@ -507,11 +528,12 @@ model TaskTemplate {
 model User {
   id                                   String         @id
   clerkId                              String?        @unique
-  practiceId                           String?
+  practiceId                           String?        // Legacy: primary practice (kept for backward compat)
+  currentPracticeId                    String?        // Currently selected practice for this session
   email                                String         @unique
   name                                 String
   phone                                String?
-  role                                 UserRole       @default(STAFF)
+  role                                 UserRole       @default(STAFF)  // Legacy: role in primary practice
   isActive                             Boolean        @default(true)
   twoFactorEnabled                     Boolean        @default(false)
   twoFactorSecret                      String?
@@ -536,12 +558,15 @@ model User {
   Task_Task_verifiedByIdToUser         Task[]         @relation("Task_verifiedByIdToUser")
   TaskTemplate                         TaskTemplate[]
   Practice                             Practice?      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  CurrentPractice                      Practice?      @relation("UserCurrentPractice", fields: [currentPracticeId], references: [id], onDelete: SetNull)
   PracticeDocument                     PracticeDocument[]
   TeamInvitation                       TeamInvitation[]
   Locum                                Locum?
+  UserPractices                        UserPractice[] // All practices this user has access to
 
   @@index([email])
   @@index([practiceId])
+  @@index([currentPracticeId])
   @@index([role])
 }
 

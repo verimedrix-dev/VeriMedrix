@@ -4,11 +4,12 @@ import { VeyroLogoFull } from "@/components/ui/veyro-logo";
 import { Separator } from "@/components/ui/separator";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
+import { PracticeSwitcher } from "@/components/layout/practice-switcher";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DashboardThemeProvider } from "@/components/layout/dashboard-theme-provider";
 import { InactivityHandler } from "@/components/auth/inactivity-handler";
 import DashboardLoading from "./loading";
-import { getCurrentUser, ensureUserAndPractice } from "@/lib/actions/practice";
+import { ensureUserAndPractice, getUserPractices } from "@/lib/actions/practice";
 import { getAccessLevelDisplayName } from "@/lib/permissions";
 import { getUnreadAlertCount } from "@/lib/actions/alerts";
 
@@ -18,19 +19,31 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   // Get the database user with role - this will create user/practice if needed
-  const { user: dbUser, practice } = await ensureUserAndPractice();
+  const result = await ensureUserAndPractice();
 
-  if (!dbUser) {
+  if (!result.user) {
     redirect("/sign-in");
   }
 
+  // Check if user needs to select a practice (has multiple, none selected)
+  if ("needsPracticeSelection" in result && result.needsPracticeSelection) {
+    redirect("/select-practice");
+  }
+
+  const { user: dbUser, practice } = result;
+  const userRole = "role" in result && result.role ? result.role : dbUser.role;
+  const isOwner = "isOwner" in result ? result.isOwner : dbUser.role === "PRACTICE_OWNER";
+
   // Check if onboarding is completed - redirect to onboarding if not
-  if (practice && !practice.onboardingCompleted && dbUser.role === "PRACTICE_OWNER") {
+  if (practice && !practice.onboardingCompleted && isOwner) {
     redirect("/onboarding");
   }
 
   // Get unread notification count for the current user
   const unreadNotifications = await getUnreadAlertCount(dbUser.id);
+
+  // Get all practices for the switcher
+  const userPractices = await getUserPractices();
 
   return (
     <DashboardThemeProvider>
@@ -44,8 +57,14 @@ export default async function DashboardLayout({
               <VeyroLogoFull />
             </div>
 
+            {/* Practice Switcher - only shown for multi-practice users */}
+            <PracticeSwitcher
+              practices={userPractices}
+              currentPracticeName={practice?.name || "My Practice"}
+            />
+
             {/* Navigation - Client Component with role-based filtering */}
-            <SidebarNav userRole={dbUser.role} subscriptionTier={practice?.subscriptionTier} unreadNotifications={unreadNotifications} />
+            <SidebarNav userRole={userRole} subscriptionTier={practice?.subscriptionTier} unreadNotifications={unreadNotifications} />
 
             <Separator />
 
@@ -69,7 +88,7 @@ export default async function DashboardLayout({
                     {dbUser.name || dbUser.email}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {getAccessLevelDisplayName(dbUser.role)}
+                    {getAccessLevelDisplayName(userRole)}
                   </p>
                 </div>
               </div>

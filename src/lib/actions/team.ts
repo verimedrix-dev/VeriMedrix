@@ -386,6 +386,10 @@ export async function validateInvitation(token: string) {
 /**
  * Accept an invitation and create user account
  * This is called after Supabase auth account is created
+ *
+ * Handles two scenarios:
+ * 1. New user - creates User + UserPractice entry
+ * 2. Existing user (multi-practice) - adds UserPractice entry for new practice
  */
 export async function acceptInvitation(token: string, supabaseUserId: string) {
   const validation = await validateInvitation(token);
@@ -418,7 +422,67 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
     }
   }
 
-  // Create user and link to employee in a transaction
+  // Check if user already exists (multi-practice scenario)
+  const existingUser = await withDbConnection(() =>
+    prisma.user.findUnique({
+      where: { email: invitation.email },
+      include: { UserPractices: true }
+    })
+  );
+
+  if (existingUser) {
+    // User exists - add them to this practice (multi-practice support)
+    const result = await withDbConnection(() =>
+      prisma.$transaction(async (tx) => {
+        // Check if they already have access to this practice
+        const existingAccess = existingUser.UserPractices.find(
+          up => up.practiceId === invitation.practiceId
+        );
+
+        if (existingAccess) {
+          throw new Error("You already have access to this practice");
+        }
+
+        // Create UserPractice entry for the new practice
+        await tx.userPractice.create({
+          data: {
+            userId: existingUser.id,
+            practiceId: invitation.practiceId,
+            role: invitation.role,
+            isOwner: false,
+            invitedById: invitation.invitedById,
+          }
+        });
+
+        // Link employee to existing user
+        await tx.employee.update({
+          where: { id: invitation.employeeId },
+          data: { userId: existingUser.id },
+        });
+
+        // Mark invitation as accepted
+        await tx.teamInvitation.update({
+          where: { id: invitation.id },
+          data: {
+            status: "ACCEPTED",
+            acceptedAt: new Date(),
+          },
+        });
+
+        // Switch to the new practice context
+        await tx.user.update({
+          where: { id: existingUser.id },
+          data: { currentPracticeId: invitation.practiceId }
+        });
+
+        return existingUser;
+      })
+    );
+
+    return result;
+  }
+
+  // New user - create User + UserPractice entry
   const result = await withDbConnection(() =>
     prisma.$transaction(async (tx) => {
       // Create the user
@@ -428,10 +492,22 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
           email: invitation.email,
           name: invitation.Employee.fullName,
           practiceId: invitation.practiceId,
+          currentPracticeId: invitation.practiceId,
           role: invitation.role,
           clerkId: supabaseUserId, // Storing Supabase ID in clerkId field
           updatedAt: new Date(),
         },
+      });
+
+      // Create UserPractice entry
+      await tx.userPractice.create({
+        data: {
+          userId: newUser.id,
+          practiceId: invitation.practiceId,
+          role: invitation.role,
+          isOwner: false,
+          invitedById: invitation.invitedById,
+        }
       });
 
       // Link employee to user
@@ -477,30 +553,57 @@ export async function changeTeamMemberRole(userId: string, newRole: UserRole) {
     throw new Error("Invalid role");
   }
 
-  const targetUser = await withDbConnection(() =>
-    prisma.user.findFirst({
+  // Check UserPractice for the target user's role in this practice
+  const userPractice = await withDbConnection(() =>
+    prisma.userPractice.findFirst({
       where: {
-        id: userId,
+        userId: userId,
         practiceId: practice.id,
       },
     })
   );
 
-  if (!targetUser) {
-    throw new Error("User not found");
-  }
+  if (!userPractice) {
+    // Fallback to legacy check
+    const targetUser = await withDbConnection(() =>
+      prisma.user.findFirst({
+        where: {
+          id: userId,
+          practiceId: practice.id,
+        },
+      })
+    );
 
-  // Cannot change role of practice owner
-  if (targetUser.role === "PRACTICE_OWNER" || targetUser.role === "SUPER_ADMIN") {
-    throw new Error("Cannot change role of practice owner");
-  }
+    if (!targetUser) {
+      throw new Error("User not found");
+    }
 
-  await withDbConnection(() =>
-    prisma.user.update({
-      where: { id: userId },
-      data: { role: newRole },
-    })
-  );
+    // Cannot change role of practice owner
+    if (targetUser.role === "PRACTICE_OWNER" || targetUser.role === "SUPER_ADMIN") {
+      throw new Error("Cannot change role of practice owner");
+    }
+
+    // Update legacy role
+    await withDbConnection(() =>
+      prisma.user.update({
+        where: { id: userId },
+        data: { role: newRole },
+      })
+    );
+  } else {
+    // Cannot change role of practice owner
+    if (userPractice.isOwner || userPractice.role === "PRACTICE_OWNER") {
+      throw new Error("Cannot change role of practice owner");
+    }
+
+    // Update role in UserPractice table (multi-practice support)
+    await withDbConnection(() =>
+      prisma.userPractice.update({
+        where: { id: userPractice.id },
+        data: { role: newRole },
+      })
+    );
+  }
 
   revalidatePath("/team");
 }

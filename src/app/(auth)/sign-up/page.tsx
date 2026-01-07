@@ -49,8 +49,8 @@ export default function SignUpPage() {
         return;
       }
 
-      toast.success("Check your email for the confirmation link!");
-      router.push("/sign-in");
+      // Redirect to check-email page with the email address
+      router.push(`/check-email?email=${encodeURIComponent(email)}`);
     } catch {
       toast.error("An unexpected error occurred");
     } finally {

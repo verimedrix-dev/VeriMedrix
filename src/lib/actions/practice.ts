@@ -7,6 +7,7 @@ import { cache } from "react";
 import { revalidatePath } from "next/cache";
 import { createId } from "@paralleldrive/cuid2";
 import { sendWelcomeEmail } from "@/lib/email";
+import type { UserRole } from "@prisma/client";
 
 // Cache the DB user lookup for the duration of the request
 export const getCurrentUser = cache(async () => {
@@ -16,16 +17,108 @@ export const getCurrentUser = cache(async () => {
   return withDbConnection(() =>
     prisma.user.findUnique({
       where: { email: authUser.email! },
-      include: { Practice: true }
+      include: {
+        Practice: true,
+        CurrentPractice: true,
+        UserPractices: {
+          include: {
+            Practice: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                subscriptionTier: true,
+              }
+            }
+          }
+        }
+      }
     })
   );
 });
 
-// Cache the practice lookup
+// Cache the practice lookup - uses currentPracticeId if set, otherwise primary practice
 export const getCurrentPractice = cache(async () => {
   const user = await getCurrentUser();
-  return user?.Practice || null;
+  if (!user) return null;
+
+  // Priority: currentPracticeId > practiceId (legacy)
+  if (user.CurrentPractice) {
+    return user.CurrentPractice;
+  }
+
+  return user.Practice || null;
 });
+
+/**
+ * Get all practices a user has access to
+ */
+export async function getUserPractices() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  return user.UserPractices.map(up => ({
+    id: up.Practice.id,
+    name: up.Practice.name,
+    email: up.Practice.email,
+    role: up.role,
+    isOwner: up.isOwner,
+    isCurrent: up.practiceId === (user.currentPracticeId || user.practiceId),
+    subscriptionTier: up.Practice.subscriptionTier,
+  }));
+}
+
+/**
+ * Switch the user's current practice context
+ */
+export async function switchPractice(practiceId: string) {
+  const authUser = await getAuthUser();
+  if (!authUser) throw new Error("Not authenticated");
+
+  // Verify user has access to this practice
+  const userPractice = await prisma.userPractice.findFirst({
+    where: {
+      User: { email: authUser.email! },
+      practiceId,
+    }
+  });
+
+  if (!userPractice) {
+    throw new Error("You don't have access to this practice");
+  }
+
+  // Update user's current practice
+  await prisma.user.update({
+    where: { email: authUser.email! },
+    data: { currentPracticeId: practiceId }
+  });
+
+  revalidatePath("/");
+  return { success: true };
+}
+
+/**
+ * Get the role for the current user in the current practice context
+ */
+export async function getCurrentUserRole(): Promise<UserRole | null> {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const currentPracticeId = user.currentPracticeId || user.practiceId;
+  if (!currentPracticeId) return null;
+
+  // Check UserPractice for role in current practice
+  const userPractice = user.UserPractices.find(
+    up => up.practiceId === currentPracticeId
+  );
+
+  if (userPractice) {
+    return userPractice.role;
+  }
+
+  // Fallback to legacy role
+  return user.role;
+}
 
 // Optimized: Single query path for existing users (99% of requests)
 export const ensureUserAndPractice = cache(async () => {
@@ -39,12 +132,57 @@ export const ensureUserAndPractice = cache(async () => {
   let dbUser = await withDbConnection(() =>
     prisma.user.findUnique({
       where: { email: authUser.email! },
-      include: { Practice: true }
+      include: {
+        Practice: true,
+        CurrentPractice: true,
+        UserPractices: {
+          include: {
+            Practice: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                subscriptionTier: true,
+              }
+            }
+          }
+        }
+      }
     })
   );
 
   if (dbUser) {
-    return { user: dbUser, practice: dbUser.Practice };
+    // Determine which practice to use
+    const currentPractice = dbUser.CurrentPractice || dbUser.Practice;
+
+    // Check if user has multiple practices and hasn't selected one
+    if (dbUser.UserPractices.length > 1 && !dbUser.currentPracticeId) {
+      // Will redirect to practice selector - set needsPracticeSelection flag
+      return {
+        user: dbUser,
+        practice: currentPractice,
+        needsPracticeSelection: true,
+        practices: dbUser.UserPractices.map(up => ({
+          id: up.Practice.id,
+          name: up.Practice.name,
+          role: up.role,
+          isOwner: up.isOwner,
+        }))
+      };
+    }
+
+    // Get the role for current practice context
+    const currentId = dbUser.currentPracticeId || dbUser.practiceId;
+    const userPractice = dbUser.UserPractices.find(
+      up => up.practiceId === currentId
+    );
+
+    return {
+      user: dbUser,
+      practice: currentPractice,
+      role: userPractice?.role || dbUser.role,
+      isOwner: userPractice?.isOwner ?? (dbUser.role === "PRACTICE_OWNER"),
+    };
   }
 
   // Slow path: New user creation (rare)
@@ -53,35 +191,64 @@ export const ensureUserAndPractice = cache(async () => {
       prisma.$transaction(async (tx) => {
         const existingUser = await tx.user.findUnique({
           where: { email: authUser.email! },
-          include: { Practice: true }
+          include: {
+            Practice: true,
+            UserPractices: true
+          }
         });
 
         if (existingUser) {
-          return { user: existingUser, practice: existingUser.Practice };
+          return {
+            user: existingUser,
+            practice: existingUser.Practice,
+            role: existingUser.role,
+            isOwner: existingUser.role === "PRACTICE_OWNER"
+          };
         }
 
+        // Create a new practice
+        const practiceId = createId();
         const practice = await tx.practice.create({
           data: {
-            id: createId(),
+            id: practiceId,
             name: "My Practice",
             email: authUser.email!,
             updatedAt: new Date()
           }
         });
 
+        // Create the user
+        const userId = createId();
         const newUser = await tx.user.create({
           data: {
-            id: createId(),
+            id: userId,
             email: authUser.email!,
             name: authUser.email!.split("@")[0],
             practiceId: practice.id,
+            currentPracticeId: practice.id,
             role: "PRACTICE_OWNER",
             updatedAt: new Date(),
           },
           include: { Practice: true }
         });
 
-        return { user: newUser, practice: newUser.Practice, isNewUser: true };
+        // Create UserPractice entry for the new owner
+        await tx.userPractice.create({
+          data: {
+            userId: newUser.id,
+            practiceId: practice.id,
+            role: "PRACTICE_OWNER",
+            isOwner: true,
+          }
+        });
+
+        return {
+          user: newUser,
+          practice: newUser.Practice,
+          role: "PRACTICE_OWNER" as const,
+          isOwner: true,
+          isNewUser: true
+        };
       })
     );
 
@@ -98,14 +265,34 @@ export const ensureUserAndPractice = cache(async () => {
   } catch (error: unknown) {
     const prismaError = error as { code?: string };
     if (prismaError.code === "P2002") {
-      dbUser = await withDbConnection(() =>
+      const retryUser = await withDbConnection(() =>
         prisma.user.findUnique({
           where: { email: authUser.email! },
-          include: { Practice: true }
+          include: {
+            Practice: true,
+            CurrentPractice: true,
+            UserPractices: {
+              include: {
+                Practice: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    subscriptionTier: true,
+                  }
+                }
+              }
+            }
+          }
         })
       );
-      if (dbUser) {
-        return { user: dbUser, practice: dbUser.Practice };
+      if (retryUser) {
+        return {
+          user: retryUser,
+          practice: retryUser.CurrentPractice || retryUser.Practice,
+          role: retryUser.role,
+          isOwner: retryUser.role === "PRACTICE_OWNER"
+        };
       }
     }
     throw error;
@@ -563,12 +750,18 @@ async function permanentlyDeletePractice(practiceId: string) {
         where: { practiceId },
       });
 
-      // 10. Delete all users associated with this practice
+      // 10. Delete UserPractice entries (multi-practice support)
+      await tx.userPractice.deleteMany({
+        where: { practiceId },
+      });
+
+      // 11. Delete all users associated with this practice
+      // Note: Users with multi-practice access won't be deleted (they have practiceId set to another practice)
       await tx.user.deleteMany({
         where: { practiceId },
       });
 
-      // 11. Finally, delete the practice itself
+      // 12. Finally, delete the practice itself
       await tx.practice.delete({
         where: { id: practiceId },
       });
