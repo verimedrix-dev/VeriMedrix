@@ -75,29 +75,21 @@ async function resetAllData() {
       const deletedYTD = await tx.employeeYTD.deleteMany({});
       console.log(`Deleted ${deletedYTD.count} employee YTD records`);
 
-      // 12. Delete all fringe benefits
-      const deletedFringeBenefits = await tx.fringeBenefit.deleteMany({});
-      console.log(`Deleted ${deletedFringeBenefits.count} fringe benefits`);
+      // 12. Delete all employee fringe benefits
+      const deletedFringeBenefits = await tx.employeeFringeBenefit.deleteMany({});
+      console.log(`Deleted ${deletedFringeBenefits.count} employee fringe benefits`);
 
-      // 13. Delete all garnishee orders
-      const deletedGarnisheeOrders = await tx.garnisheeOrder.deleteMany({});
-      console.log(`Deleted ${deletedGarnisheeOrders.count} garnishee orders`);
-
-      // 14. Delete all training enrollments
-      const deletedEnrollments = await tx.trainingEnrollment.deleteMany({});
-      console.log(`Deleted ${deletedEnrollments.count} training enrollments`);
+      // 13. Delete all employee trainings
+      const deletedEmployeeTrainings = await tx.employeeTraining.deleteMany({});
+      console.log(`Deleted ${deletedEmployeeTrainings.count} employee trainings`);
 
       // 15. Delete all training modules
       const deletedTrainingModules = await tx.trainingModule.deleteMany({});
       console.log(`Deleted ${deletedTrainingModules.count} training modules`);
 
-      // 16. Delete all leave requests
+      // 14. Delete all leave requests
       const deletedLeaveRequests = await tx.leaveRequest.deleteMany({});
       console.log(`Deleted ${deletedLeaveRequests.count} leave requests`);
-
-      // 17. Delete all leave balances
-      const deletedLeaveBalances = await tx.leaveBalance.deleteMany({});
-      console.log(`Deleted ${deletedLeaveBalances.count} leave balances`);
 
       // 18. Delete all warnings
       const deletedWarnings = await tx.warning.deleteMany({});
@@ -131,9 +123,13 @@ async function resetAllData() {
       const deletedInvitations = await tx.teamInvitation.deleteMany({});
       console.log(`Deleted ${deletedInvitations.count} team invitations`);
 
-      // 26. Delete all locum shifts
-      const deletedLocumShifts = await tx.locumShift.deleteMany({});
-      console.log(`Deleted ${deletedLocumShifts.count} locum shifts`);
+      // 26. Delete all locum timesheets
+      const deletedLocumTimesheets = await tx.locumTimesheet.deleteMany({});
+      console.log(`Deleted ${deletedLocumTimesheets.count} locum timesheets`);
+
+      // Delete locum documents
+      const deletedLocumDocs = await tx.locumDocument.deleteMany({});
+      console.log(`Deleted ${deletedLocumDocs.count} locum documents`);
 
       // 27. Delete all locums
       const deletedLocums = await tx.locum.deleteMany({});
