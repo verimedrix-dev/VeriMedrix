@@ -464,111 +464,118 @@ export async function deletePracticeAccount(confirmationText: string, reason?: s
  * Permanently delete a single practice and all its data.
  */
 async function permanentlyDeletePractice(practiceId: string) {
-  await prisma.$transaction(async (tx) => {
-    // 1. Delete all team invitations
-    await tx.teamInvitation.deleteMany({
-      where: { practiceId },
-    });
+  // Use a longer timeout (2 minutes) for this large deletion operation
+  await prisma.$transaction(
+    async (tx) => {
+      // 1. Delete all team invitations
+      await tx.teamInvitation.deleteMany({
+        where: { practiceId },
+      });
 
-    // 2. Delete all payroll data
-    await tx.payrollAuditLog.deleteMany({
-      where: { PayrollRun: { practiceId } },
-    });
-    await tx.payrollAddition.deleteMany({
-      where: { PayrollEntry: { PayrollRun: { practiceId } } },
-    });
-    await tx.payrollDeduction.deleteMany({
-      where: { PayrollEntry: { PayrollRun: { practiceId } } },
-    });
-    await tx.payrollEntry.deleteMany({
-      where: { PayrollRun: { practiceId } },
-    });
-    await tx.payrollRun.deleteMany({
-      where: { practiceId },
-    });
+      // 2. Delete all payroll data
+      await tx.payrollAuditLog.deleteMany({
+        where: { PayrollRun: { practiceId } },
+      });
+      await tx.payrollAddition.deleteMany({
+        where: { PayrollEntry: { PayrollRun: { practiceId } } },
+      });
+      await tx.payrollDeduction.deleteMany({
+        where: { PayrollEntry: { PayrollRun: { practiceId } } },
+      });
+      await tx.payrollEntry.deleteMany({
+        where: { PayrollRun: { practiceId } },
+      });
+      await tx.payrollRun.deleteMany({
+        where: { practiceId },
+      });
 
-    // 3. Delete all employee-related data
-    await tx.employeeYTD.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.employeeFringeBenefit.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.employeeDeduction.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.employeeTraining.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.professionalRegistration.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.kpiGoal.deleteMany({
-      where: { review: { Employee: { practiceId } } },
-    });
-    await tx.kpiReview.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.warning.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.leaveRequest.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.employeeDocument.deleteMany({
-      where: { Employee: { practiceId } },
-    });
-    await tx.employee.deleteMany({
-      where: { practiceId },
-    });
+      // 3. Delete all employee-related data
+      await tx.employeeYTD.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.employeeFringeBenefit.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.employeeDeduction.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.employeeTraining.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.professionalRegistration.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.kpiGoal.deleteMany({
+        where: { review: { Employee: { practiceId } } },
+      });
+      await tx.kpiReview.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.warning.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.leaveRequest.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.employeeDocument.deleteMany({
+        where: { Employee: { practiceId } },
+      });
+      await tx.employee.deleteMany({
+        where: { practiceId },
+      });
 
-    // 4. Delete locums
-    await tx.locum.deleteMany({
-      where: { practiceId },
-    });
+      // 4. Delete locums
+      await tx.locum.deleteMany({
+        where: { practiceId },
+      });
 
-    // 5. Delete training modules
-    await tx.positionTrainingRequirement.deleteMany({
-      where: { practiceId },
-    });
-    await tx.trainingModule.deleteMany({
-      where: { practiceId },
-    });
+      // 5. Delete training modules
+      await tx.positionTrainingRequirement.deleteMany({
+        where: { practiceId },
+      });
+      await tx.trainingModule.deleteMany({
+        where: { practiceId },
+      });
 
-    // 6. Delete documents
-    await tx.document.deleteMany({
-      where: { practiceId },
-    });
+      // 6. Delete documents
+      await tx.document.deleteMany({
+        where: { practiceId },
+      });
 
-    // 7. Delete tasks
-    await tx.task.deleteMany({
-      where: { practiceId },
-    });
-    await tx.taskTemplate.deleteMany({
-      where: { practiceId },
-    });
+      // 7. Delete tasks
+      await tx.task.deleteMany({
+        where: { practiceId },
+      });
+      await tx.taskTemplate.deleteMany({
+        where: { practiceId },
+      });
 
-    // 8. Delete alerts and audit logs
-    await tx.alert.deleteMany({
-      where: { practiceId },
-    });
-    await tx.auditLog.deleteMany({
-      where: { practiceId },
-    });
+      // 8. Delete alerts and audit logs
+      await tx.alert.deleteMany({
+        where: { practiceId },
+      });
+      await tx.auditLog.deleteMany({
+        where: { practiceId },
+      });
 
-    // 9. Delete practice documents
-    await tx.practiceDocument.deleteMany({
-      where: { practiceId },
-    });
+      // 9. Delete practice documents
+      await tx.practiceDocument.deleteMany({
+        where: { practiceId },
+      });
 
-    // 10. Delete all users associated with this practice
-    await tx.user.deleteMany({
-      where: { practiceId },
-    });
+      // 10. Delete all users associated with this practice
+      await tx.user.deleteMany({
+        where: { practiceId },
+      });
 
-    // 11. Finally, delete the practice itself
-    await tx.practice.delete({
-      where: { id: practiceId },
-    });
-  });
+      // 11. Finally, delete the practice itself
+      await tx.practice.delete({
+        where: { id: practiceId },
+      });
+    },
+    {
+      maxWait: 120000, // 2 minutes max wait to acquire connection
+      timeout: 120000, // 2 minutes timeout for the transaction
+    }
+  );
 }
