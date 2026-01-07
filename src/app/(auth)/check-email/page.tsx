@@ -1,16 +1,82 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { VeyroLogo } from "@/components/ui/veyro-logo";
-import { Mail, ArrowLeft, RefreshCw } from "lucide-react";
+import { Mail, ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+
+const COOLDOWN_SECONDS = 60;
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
+  const [isResending, setIsResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const supabase = createClient();
+
+  // Load cooldown from localStorage on mount
+  useEffect(() => {
+    if (email) {
+      const storedCooldown = localStorage.getItem(`resend_cooldown_${email}`);
+      if (storedCooldown) {
+        const remainingTime = Math.max(0, parseInt(storedCooldown) - Date.now());
+        if (remainingTime > 0) {
+          setCooldown(Math.ceil(remainingTime / 1000));
+        }
+      }
+    }
+  }, [email]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (cooldown > 0) {
+      const timer = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [cooldown]);
+
+  const handleResendEmail = async () => {
+    if (!email || cooldown > 0) return;
+
+    setIsResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      // Set cooldown
+      const cooldownUntil = Date.now() + COOLDOWN_SECONDS * 1000;
+      localStorage.setItem(`resend_cooldown_${email}`, cooldownUntil.toString());
+      setCooldown(COOLDOWN_SECONDS);
+
+      toast.success("Confirmation email sent! Please check your inbox.");
+    } catch {
+      toast.error("Failed to resend confirmation email");
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -49,11 +115,22 @@ function CheckEmailContent() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-3">
-          <Button variant="outline" className="w-full" asChild>
-            <Link href="/sign-up">
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleResendEmail}
+            disabled={!email || isResending || cooldown > 0}
+          >
+            {isResending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
               <RefreshCw className="h-4 w-4 mr-2" />
-              Resend confirmation email
-            </Link>
+            )}
+            {cooldown > 0
+              ? `Resend in ${cooldown}s`
+              : isResending
+              ? "Sending..."
+              : "Resend confirmation email"}
           </Button>
           <Button variant="ghost" className="w-full" asChild>
             <Link href="/sign-in">
