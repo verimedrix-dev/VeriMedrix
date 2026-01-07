@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Loader2 } from "lucide-react";
 import { VeyroLogo } from "@/components/ui/veyro-logo";
 import { toast } from "sonner";
+import { checkEmailExists } from "@/lib/actions/auth";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -36,7 +37,22 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Check if email already exists in our system
+      const { exists, isEmployee } = await checkEmailExists(email);
+
+      if (exists) {
+        toast.error("An account with this email already exists. Please sign in instead.");
+        setLoading(false);
+        return;
+      }
+
+      if (isEmployee) {
+        toast.error("This email is registered as an employee. Please check your email for an invitation link, or contact your practice administrator.");
+        setLoading(false);
+        return;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -46,6 +62,12 @@ export default function SignUpPage() {
 
       if (error) {
         toast.error(error.message);
+        return;
+      }
+
+      // Check if user already existed in Supabase (repeated signup)
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        toast.error("An account with this email already exists. Please sign in instead.");
         return;
       }
 
