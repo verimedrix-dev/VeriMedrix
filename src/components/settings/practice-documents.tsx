@@ -58,7 +58,8 @@ type PracticeDocument = {
   fileSize: number;
   fileUrl: string;
   uploadedAt: Date;
-  User: { name: string; email: string };
+  uploadedByName: string | null;
+  User: { name: string; email: string } | null;
 };
 
 type PracticeDocumentsProps = {
@@ -246,7 +247,7 @@ export function PracticeDocuments({ documents }: PracticeDocumentsProps) {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-slate-500">{doc.User.name}</span>
+                      <span className="text-sm text-slate-500">{doc.User?.name || doc.uploadedByName || "Unknown"}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">

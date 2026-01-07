@@ -33,7 +33,13 @@ export default async function TeamPage() {
               practiceId: practice.id,
               status: "PENDING",
             },
-            include: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              expiresAt: true,
+              createdAt: true,
+              invitedByName: true,
               Employee: {
                 select: {
                   id: true,

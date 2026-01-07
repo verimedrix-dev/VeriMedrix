@@ -14,7 +14,7 @@ model Alert {
   alertType         AlertType
   relatedDocumentId String?
   relatedTaskId     String?
-  recipientId       String
+  recipientId       String?
   channel           AlertChannel @default(EMAIL)
   message           String
   scheduledFor      DateTime
@@ -24,7 +24,7 @@ model Alert {
   externalId        String?
   createdAt         DateTime     @default(now())
   Practice          Practice     @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  User              User         @relation(fields: [recipientId], references: [id])
+  User              User?        @relation(fields: [recipientId], references: [id], onDelete: SetNull)
   Document          Document?    @relation(fields: [relatedDocumentId], references: [id], onDelete: Cascade)
   Task              Task?        @relation(fields: [relatedTaskId], references: [id], onDelete: Cascade)
 
@@ -38,7 +38,8 @@ model Alert {
 model AuditLog {
   id         String      @id
   practiceId String
-  userId     String
+  userId     String?
+  userName   String?     // Store user name for history when user is deleted
   action     AuditAction
   entityType String
   entityId   String?
@@ -47,7 +48,7 @@ model AuditLog {
   userAgent  String?
   createdAt  DateTime    @default(now())
   Practice   Practice    @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  User       User        @relation(fields: [userId], references: [id])
+  User       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([action])
   @@index([createdAt])
@@ -65,7 +66,8 @@ model Document {
   fileName                         String
   fileSize                         Int
   mimeType                         String?
-  uploadedById                     String
+  uploadedById                     String?
+  uploadedByName                   String?           // Store name for history when user is deleted
   approvedById                     String?
   approvedAt                       DateTime?
   effectiveDate                    DateTime?
@@ -77,10 +79,10 @@ model Document {
   createdAt                        DateTime          @default(now())
   updatedAt                        DateTime
   Alert                            Alert[]
-  User_Document_approvedByIdToUser User?             @relation("Document_approvedByIdToUser", fields: [approvedById], references: [id])
+  User_Document_approvedByIdToUser User?             @relation("Document_approvedByIdToUser", fields: [approvedById], references: [id], onDelete: SetNull)
   DocumentType                     DocumentType      @relation(fields: [documentTypeId], references: [id])
   Practice                         Practice          @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  User_Document_uploadedByIdToUser User              @relation("Document_uploadedByIdToUser", fields: [uploadedById], references: [id])
+  User_Document_uploadedByIdToUser User?             @relation("Document_uploadedByIdToUser", fields: [uploadedById], references: [id], onDelete: SetNull)
   DocumentVersion                  DocumentVersion[]
 
   @@index([documentTypeId])
@@ -407,17 +409,18 @@ model Practice {
 }
 
 model PracticeDocument {
-  id          String   @id @default(cuid())
-  practiceId  String
-  name        String   // User-provided name/description
-  fileName    String   // Original file name
-  fileType    String   // MIME type
-  fileSize    Int      // Size in bytes
-  fileUrl     String   // Storage URL or path
-  uploadedBy  String   // User ID who uploaded
-  uploadedAt  DateTime @default(now())
-  Practice    Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  User        User     @relation(fields: [uploadedBy], references: [id])
+  id             String   @id @default(cuid())
+  practiceId     String
+  name           String   // User-provided name/description
+  fileName       String   // Original file name
+  fileType       String   // MIME type
+  fileSize       Int      // Size in bytes
+  fileUrl        String   // Storage URL or path
+  uploadedBy     String?  // User ID who uploaded
+  uploadedByName String?  // Store name for history when user is deleted
+  uploadedAt     DateTime @default(now())
+  Practice       Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  User           User?    @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
 
   @@index([practiceId])
 }
@@ -488,11 +491,12 @@ model TaskTemplate {
   assignedRole             UserRole?
   category                 String?
   isActive                 Boolean       @default(true)
-  createdById              String
+  createdById              String?
+  createdByName            String?       // Store name for history when user is deleted
   createdAt                DateTime      @default(now())
   updatedAt                DateTime
   Task                     Task[]
-  User                     User          @relation(fields: [createdById], references: [id])
+  User                     User?         @relation(fields: [createdById], references: [id], onDelete: SetNull)
   Practice                 Practice      @relation(fields: [practiceId], references: [id], onDelete: Cascade)
 
   @@index([frequency])
@@ -893,7 +897,7 @@ model Locum {
   updatedAt                DateTime         @updatedAt
   // Relations
   Practice                 Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  User                     User?            @relation(fields: [userId], references: [id])
+  User                     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   LocumTimesheet           LocumTimesheet[]
   LocumDocument            LocumDocument[]
 
@@ -985,21 +989,22 @@ enum TrainingStatus {
 
 // Team invitation for inviting employees to create user accounts
 model TeamInvitation {
-  id          String           @id @default(cuid())
-  practiceId  String
-  employeeId  String           @unique
-  email       String
-  role        UserRole
-  token       String           @unique
-  expiresAt   DateTime
-  invitedById String
-  status      InvitationStatus @default(PENDING)
-  createdAt   DateTime         @default(now())
-  acceptedAt  DateTime?
+  id            String           @id @default(cuid())
+  practiceId    String
+  employeeId    String           @unique
+  email         String
+  role          UserRole
+  token         String           @unique
+  expiresAt     DateTime
+  invitedById   String?
+  invitedByName String?          // Store name for history when user is deleted
+  status        InvitationStatus @default(PENDING)
+  createdAt     DateTime         @default(now())
+  acceptedAt    DateTime?
 
   Practice    Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   Employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  InvitedBy   User             @relation(fields: [invitedById], references: [id])
+  InvitedBy   User?            @relation(fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([practiceId])
   @@index([status])

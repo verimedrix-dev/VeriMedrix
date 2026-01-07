@@ -18,6 +18,7 @@ interface Invitation {
   role: UserRole;
   expiresAt: Date;
   createdAt: Date;
+  invitedByName: string | null;
   Employee: {
     id: string;
     fullName: string;
@@ -27,7 +28,7 @@ interface Invitation {
   InvitedBy: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 interface PendingInvitationsProps {

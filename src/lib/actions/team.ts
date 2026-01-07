@@ -633,9 +633,11 @@ export async function deleteTeamMember(userId: string) {
   }
 
   // Delete in transaction
+  // Team member = User (software access), Employee = the person with their work history
+  // Deleting a team member only removes their login access, not the employee's data
   await withDbConnection(() =>
     prisma.$transaction(async (tx) => {
-      // Unlink employee if linked
+      // Unlink employee from user (employee keeps all their data, just loses login access)
       if (linkedEmployee) {
         await tx.employee.update({
           where: { id: linkedEmployee.id },
@@ -651,7 +653,7 @@ export async function deleteTeamMember(userId: string) {
         },
       });
 
-      // Delete the user
+      // Delete the user (removes software access)
       await tx.user.delete({
         where: { id: userId },
       });

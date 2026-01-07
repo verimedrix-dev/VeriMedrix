@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Loader2, AlertTriangle, Clock, Mail, RefreshCw } from "lucide-react";
+import { Trash2, Loader2, AlertTriangle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { deletePracticeAccount } from "@/lib/actions/practice";
 import { createClient } from "@/lib/supabase/client";
@@ -39,22 +39,15 @@ export function DeleteAccountDialog({ practiceName }: DeleteAccountDialogProps) 
 
     setLoading(true);
     try {
-      const result = await deletePracticeAccount(confirmText, reason || undefined);
+      await deletePracticeAccount(confirmText, reason || undefined);
 
       // Sign out the user from Supabase
       const supabase = createClient();
       await supabase.auth.signOut();
 
-      const deletionDate = new Date(result.deletionDate).toLocaleDateString("en-ZA", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-      });
-
       toast.success(
-        `Your account has been scheduled for deletion on ${deletionDate}. Check your email for more details.`,
-        { duration: 8000 }
+        "Your account has been permanently deleted. You will receive a confirmation email shortly.",
+        { duration: 6000 }
       );
 
       // Redirect to home page
@@ -90,36 +83,23 @@ export function DeleteAccountDialog({ practiceName }: DeleteAccountDialogProps) 
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-4">
-              {/* 30-day grace period notice */}
-              <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 space-y-3">
+              {/* Warning notice */}
+              <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4">
                 <div className="flex items-start gap-3">
-                  <Clock className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-medium text-amber-800 dark:text-amber-200">
-                      30-Day Grace Period
+                    <p className="font-medium text-red-800 dark:text-red-200">
+                      This action is permanent and cannot be undone
                     </p>
-                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
-                      Your data will be retained for 30 days before permanent deletion.
-                      You can reactivate your account at any time during this period.
+                    <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                      Your account and all data will be deleted immediately. There is no way to recover your data after deletion.
                     </p>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Mail className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
-                    You&apos;ll receive an email confirmation with instructions on how to recover your account.
-                  </p>
-                </div>
-                <div className="flex items-start gap-3">
-                  <RefreshCw className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                  <p className="text-sm text-amber-700 dark:text-amber-300">
-                    Your subscription will be cancelled immediately, but you won&apos;t be charged again.
-                  </p>
                 </div>
               </div>
 
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                After the 30-day period, the following data will be <strong className="text-red-600">permanently deleted</strong>:
+                The following data will be <strong className="text-red-600">permanently deleted</strong>:
               </p>
               <ul className="list-disc list-inside text-sm space-y-1 text-slate-600 dark:text-slate-400 ml-2">
                 <li>All employees and their records</li>
@@ -172,12 +152,12 @@ export function DeleteAccountDialog({ practiceName }: DeleteAccountDialogProps) 
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing...
+                Deleting...
               </>
             ) : (
               <>
                 <Trash2 className="h-4 w-4 mr-2" />
-                Schedule Deletion
+                Delete Permanently
               </>
             )}
           </Button>

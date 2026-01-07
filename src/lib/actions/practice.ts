@@ -406,17 +406,17 @@ export async function getSubscriptionDetails() {
 
 // ==================== ACCOUNT DELETION ====================
 
-import { sendAccountDeletionEmail, sendAccountReactivatedEmail } from "@/lib/email";
+import { sendAccountDeletedEmail } from "@/lib/email";
 
 /**
- * Schedule the practice account for deletion in 30 days.
+ * Permanently delete the practice account immediately.
  * This action:
- * 1. Cancels any active subscription (sets status to CANCELLED)
- * 2. Marks the account for deletion with a 30-day grace period
- * 3. Sends a confirmation email with reactivation instructions
+ * 1. Deletes all practice data (employees, documents, payroll, etc.)
+ * 2. Deletes all users associated with the practice
+ * 3. Deletes the practice itself
+ * 4. Sends a confirmation email
  *
- * The actual deletion happens via a cron job after 30 days.
- * Users can reactivate their account during this grace period.
+ * THIS ACTION IS IRREVERSIBLE.
  */
 export async function deletePracticeAccount(confirmationText: string, reason?: string) {
   const { user, practice } = await ensureUserAndPractice();
@@ -434,158 +434,34 @@ export async function deletePracticeAccount(confirmationText: string, reason?: s
     throw new Error("Confirmation text does not match practice name");
   }
 
-  // Calculate deletion date (30 days from now)
-  const now = new Date();
-  const scheduledDeletionAt = new Date(now);
-  scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
+  // Store info for email before deletion
+  const practiceEmail = practice.email;
+  const practiceName = practice.name;
+  const userName = user.name;
 
-  // Update practice with deletion schedule
-  await prisma.practice.update({
-    where: { id: practice.id },
-    data: {
-      subscriptionStatus: "CANCELLED",
-      deletedAt: now,
-      scheduledDeletionAt,
-      deletionReason: reason,
-      updatedAt: now,
-    },
-  });
+  // Log the deletion reason if provided
+  if (reason) {
+    console.log(`Account deletion reason for ${practiceName}: ${reason}`);
+  }
 
-  // Deactivate all users in this practice so they can't log in
-  await prisma.user.updateMany({
-    where: { practiceId: practice.id },
-    data: { isActive: false },
-  });
+  // Permanently delete all practice data
+  await permanentlyDeletePractice(practice.id);
 
   // Send confirmation email
   try {
-    await sendAccountDeletionEmail(
-      practice.email,
-      user.name,
-      practice.name,
-      scheduledDeletionAt
-    );
+    await sendAccountDeletedEmail(practiceEmail, userName, practiceName);
   } catch (error) {
-    console.error("Failed to send account deletion email:", error);
-    // Don't fail the deletion if email fails
+    console.error("Failed to send account deleted email:", error);
+    // Don't fail if email fails - data is already deleted
   }
 
-  console.log(`Practice account scheduled for deletion: ${practice.email} (ID: ${practice.id}) on ${scheduledDeletionAt.toISOString()}`);
-
-  return { success: true, deletionDate: scheduledDeletionAt };
-}
-
-/**
- * Reactivate a practice account that was scheduled for deletion.
- * This action:
- * 1. Removes the deletion schedule
- * 2. Reactivates the subscription
- * 3. Reactivates all users
- * 4. Sends a confirmation email
- */
-export async function reactivatePracticeAccount(practiceId: string, userEmail: string) {
-  // Find the practice
-  const practice = await prisma.practice.findUnique({
-    where: { id: practiceId },
-  });
-
-  if (!practice) {
-    throw new Error("Practice not found");
-  }
-
-  // Verify this practice is scheduled for deletion
-  if (!practice.deletedAt || !practice.scheduledDeletionAt) {
-    throw new Error("This account is not scheduled for deletion");
-  }
-
-  // Check if deletion date has passed
-  if (new Date() > practice.scheduledDeletionAt) {
-    throw new Error("The deletion grace period has expired. This account cannot be recovered.");
-  }
-
-  // Find the owner to send email
-  const owner = await prisma.user.findFirst({
-    where: {
-      practiceId,
-      email: userEmail,
-    },
-  });
-
-  if (!owner) {
-    throw new Error("User not found for this practice");
-  }
-
-  // Reactivate the practice
-  await prisma.practice.update({
-    where: { id: practiceId },
-    data: {
-      subscriptionStatus: "ACTIVE",
-      deletedAt: null,
-      scheduledDeletionAt: null,
-      deletionReason: null,
-      updatedAt: new Date(),
-    },
-  });
-
-  // Reactivate all users
-  await prisma.user.updateMany({
-    where: { practiceId },
-    data: { isActive: true },
-  });
-
-  // Send confirmation email
-  try {
-    await sendAccountReactivatedEmail(
-      owner.email,
-      owner.name,
-      practice.name
-    );
-  } catch (error) {
-    console.error("Failed to send account reactivated email:", error);
-    // Don't fail if email fails
-  }
-
-  console.log(`Practice account reactivated: ${practice.email} (ID: ${practiceId})`);
+  console.log(`Practice account permanently deleted: ${practiceEmail} (was ID: ${practice.id})`);
 
   return { success: true };
 }
 
 /**
- * Permanently delete practice accounts that have passed their deletion date.
- * This should be called by a cron job daily.
- */
-export async function permanentlyDeleteExpiredAccounts() {
-  const now = new Date();
-
-  // Find all practices scheduled for deletion that have passed their date
-  const expiredPractices = await prisma.practice.findMany({
-    where: {
-      scheduledDeletionAt: {
-        lte: now,
-      },
-      deletedAt: {
-        not: null,
-      },
-    },
-  });
-
-  console.log(`Found ${expiredPractices.length} practices to permanently delete`);
-
-  for (const practice of expiredPractices) {
-    try {
-      await permanentlyDeletePractice(practice.id);
-      console.log(`Permanently deleted practice: ${practice.email} (ID: ${practice.id})`);
-    } catch (error) {
-      console.error(`Failed to delete practice ${practice.id}:`, error);
-    }
-  }
-
-  return { deleted: expiredPractices.length };
-}
-
-/**
  * Permanently delete a single practice and all its data.
- * Internal function - should only be called after grace period.
  */
 async function permanentlyDeletePractice(practiceId: string) {
   await prisma.$transaction(async (tx) => {
