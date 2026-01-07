@@ -66,7 +66,6 @@ function CheckEmailContent() {
 
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2">
         <Link href="/" className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors">
-          <VeyroLogo className="h-5 w-5" />
           <span className="text-sm font-medium">VeriMedrix</span>
         </Link>
       </div>
