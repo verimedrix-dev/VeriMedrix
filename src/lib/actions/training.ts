@@ -39,9 +39,20 @@ type PositionRequirement = {
 type RecentTraining = {
   id: string;
   employeeId: string;
-  trainingModuleId: string;
+  trainingModuleId: string | null;
+  trainingName: string;
+  provider: string | null;
   completedDate: Date;
   expiryDate: Date | null;
+  status: "COMPLETED" | "FAILED" | "IN_PROGRESS" | "EXPIRED";
+  score: number | null;
+  cpdPoints: number | null;
+  certificateUrl: string | null;
+  certificateNumber: string | null;
+  notes: string | null;
+  year: number;
+  createdAt: Date;
+  updatedAt: Date;
   Employee: { id: string; fullName: string; position: string };
   TrainingModule: { id: string; name: string } | null;
 };
