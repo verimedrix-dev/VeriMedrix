@@ -6,12 +6,51 @@ import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
 
+// Types for empty fallback data
+type TrainingModuleWithCount = {
+  id: string;
+  name: string;
+  description: string | null;
+  provider: string | null;
+  cpdPoints: number | null;
+  validityMonths: number | null;
+  isRequired: boolean;
+  isActive: boolean;
+  practiceId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  _count: {
+    EmployeeTrainings: number;
+    PositionRequirements: number;
+  };
+};
+
+type PositionRequirement = {
+  id: string;
+  trainingModuleId: string;
+  position: string;
+  isRequired: boolean;
+  practiceId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  TrainingModule: { id: string; name: string };
+};
+
+type RecentTraining = {
+  id: string;
+  employeeId: string;
+  trainingModuleId: string;
+  completedDate: Date;
+  Employee: { id: string; fullName: string; position: string };
+  TrainingModule: { id: string; name: string };
+};
+
 // Default empty data for error fallback
 const emptyTrainingPageData = {
-  modules: [] as Awaited<ReturnType<typeof prisma.trainingModule.findMany>>,
+  modules: [] as TrainingModuleWithCount[],
   positions: [] as string[],
-  positionRequirements: {} as Record<string, { id: string; trainingModuleId: string; TrainingModule: { id: string; name: string } }[]>,
-  recentTrainings: [] as Awaited<ReturnType<typeof prisma.employeeTraining.findMany>>,
+  positionRequirements: {} as Record<string, PositionRequirement[]>,
+  recentTrainings: [] as RecentTraining[],
   stats: {
     totalModules: 0,
     activeModules: 0,
