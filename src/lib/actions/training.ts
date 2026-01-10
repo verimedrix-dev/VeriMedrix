@@ -8,10 +8,10 @@ import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/li
 
 // Default empty data for error fallback
 const emptyTrainingPageData = {
-  modules: [],
-  positions: [],
-  positionRequirements: {},
-  recentTrainings: [],
+  modules: [] as Awaited<ReturnType<typeof prisma.trainingModule.findMany>>,
+  positions: [] as string[],
+  positionRequirements: {} as Record<string, { id: string; trainingModuleId: string; TrainingModule: { id: string; name: string } }[]>,
+  recentTrainings: [] as Awaited<ReturnType<typeof prisma.employeeTraining.findMany>>,
   stats: {
     totalModules: 0,
     activeModules: 0,
