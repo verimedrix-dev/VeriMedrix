@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "./practice";
 import { revalidatePath } from "next/cache";
 import { unstable_cache } from "next/cache";
@@ -16,79 +16,93 @@ function generateId(): string {
 
 const BUCKET_NAME = "documents";
 
+// Default empty data for error fallback
+const emptyDocumentsData = {
+  documents: [],
+  categories: [],
+  stats: { total: 0, current: 0, expiringSoon: 0, expired: 0 }
+};
+
 // Optimized: Single auth call + parallel DB queries for documents page with Redis caching
 export async function getDocumentsPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
-    cacheKeys.practiceDocuments(practice.id),
-    async () => {
-      const now = new Date();
-      const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    return getCachedData(
+      cacheKeys.practiceDocuments(practice.id),
+      async () => {
+        const now = new Date();
+        const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-      const [documents, categories, stats] = await Promise.all([
-        prisma.document.findMany({
-          where: { practiceId: practice.id },
-          select: {
-            id: true,
-            title: true,
-            fileName: true,
-            fileUrl: true,
-            fileSize: true,
-            expiryDate: true,
-            status: true,
-            version: true,
-            createdAt: true,
-            notes: true,
-            DocumentType: {
+        return withDbConnection(async () => {
+          const [documents, categories, stats] = await Promise.all([
+            prisma.document.findMany({
+              where: { practiceId: practice.id },
+              select: {
+                id: true,
+                title: true,
+                fileName: true,
+                fileUrl: true,
+                fileSize: true,
+                expiryDate: true,
+                status: true,
+                version: true,
+                createdAt: true,
+                notes: true,
+                DocumentType: {
+                  select: {
+                    id: true,
+                    name: true,
+                    DocumentCategory: { select: { id: true, name: true } }
+                  }
+                },
+                User_Document_uploadedByIdToUser: {
+                  select: { id: true, name: true }
+                },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 100
+            }),
+            prisma.documentCategory.findMany({
               select: {
                 id: true,
                 name: true,
-                DocumentCategory: { select: { id: true, name: true } }
-              }
-            },
-            User_Document_uploadedByIdToUser: {
-              select: { id: true, name: true }
-            },
-          },
-          orderBy: { createdAt: "desc" },
-          take: 100
-        }),
-        prisma.documentCategory.findMany({
-          select: {
-            id: true,
-            name: true,
-            displayOrder: true,
-            DocumentType: { select: { id: true, name: true } }
-          },
-          orderBy: { displayOrder: "asc" }
-        }),
-        prisma.$queryRaw<[{ total: bigint; current: bigint; expiring: bigint; expired: bigint }]>`
-          SELECT
-            COUNT(*) as total,
-            COUNT(*) FILTER (WHERE "expiryDate" IS NULL OR "expiryDate" > ${thirtyDaysFromNow}) as current,
-            COUNT(*) FILTER (WHERE "expiryDate" > ${now} AND "expiryDate" <= ${thirtyDaysFromNow}) as expiring,
-            COUNT(*) FILTER (WHERE "expiryDate" < ${now}) as expired
-          FROM "Document"
-          WHERE "practiceId" = ${practice.id}
-        `
-      ]);
+                displayOrder: true,
+                DocumentType: { select: { id: true, name: true } }
+              },
+              orderBy: { displayOrder: "asc" }
+            }),
+            prisma.$queryRaw<[{ total: bigint; current: bigint; expiring: bigint; expired: bigint }]>`
+              SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE "expiryDate" IS NULL OR "expiryDate" > ${thirtyDaysFromNow}) as current,
+                COUNT(*) FILTER (WHERE "expiryDate" > ${now} AND "expiryDate" <= ${thirtyDaysFromNow}) as expiring,
+                COUNT(*) FILTER (WHERE "expiryDate" < ${now}) as expired
+              FROM "Document"
+              WHERE "practiceId" = ${practice.id}
+            `
+          ]);
 
-      const s = stats[0];
-      return {
-        documents,
-        categories,
-        stats: {
-          total: Number(s?.total || 0),
-          current: Number(s?.current || 0),
-          expiringSoon: Number(s?.expiring || 0),
-          expired: Number(s?.expired || 0)
-        }
-      };
-    },
-    CACHE_DURATIONS.SHORT // 1 minute
-  );
+          const s = stats[0];
+          return {
+            documents,
+            categories,
+            stats: {
+              total: Number(s?.total || 0),
+              current: Number(s?.current || 0),
+              expiringSoon: Number(s?.expiring || 0),
+              expired: Number(s?.expired || 0)
+            }
+          };
+        });
+      },
+      CACHE_DURATIONS.SHORT // 1 minute
+    );
+  } catch (error) {
+    console.error("Documents page data fetch error:", error);
+    return emptyDocumentsData;
+  }
 }
 
 export async function getDocuments() {

@@ -371,6 +371,7 @@ model Practice {
   name                     String
   practiceNumber           String?            // Practice registration/license number
   address                  String?
+  province                 String?            // South African province
   phone                    String?
   email                    String
   subscriptionTier         SubscriptionTier   @default(ESSENTIALS)

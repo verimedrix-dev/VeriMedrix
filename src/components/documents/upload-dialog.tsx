@@ -31,6 +31,11 @@ type DocumentType = {
   DocumentCategory: { id: string; name: string } | null;
 };
 
+type ValidationErrors = {
+  documentType?: string;
+  file?: string;
+};
+
 export function UploadDocumentDialog() {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
@@ -42,6 +47,7 @@ export function UploadDocumentDialog() {
     notes: "",
   });
   const [file, setFile] = useState<File | null>(null);
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   // Prevent hydration mismatch by only rendering Dialog on client
   useEffect(() => {
@@ -60,15 +66,26 @@ export function UploadDocumentDialog() {
     return selectedType?.name || "";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
     if (!formData.documentTypeId) {
-      toast.error("Please select a document type");
-      return;
+      newErrors.documentType = "Please select a document type";
     }
 
     if (!file) {
-      toast.error("Please select a file to upload");
+      newErrors.file = "Please select a file to upload";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) {
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -96,6 +113,7 @@ export function UploadDocumentDialog() {
       setOpen(false);
       setFormData({ documentTypeId: "", expiryDate: "", notes: "" });
       setFile(null);
+      setErrors({});
     } catch (error) {
       console.error("Upload error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to upload document");
@@ -124,8 +142,18 @@ export function UploadDocumentDialog() {
     );
   }
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Clear form and errors when dialog closes
+      setFormData({ documentTypeId: "", expiryDate: "", notes: "" });
+      setFile(null);
+      setErrors({});
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Upload className="h-4 w-4 mr-2" />
@@ -142,12 +170,17 @@ export function UploadDocumentDialog() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="documentType">Document Type *</Label>
+              <Label htmlFor="documentType" className={errors.documentType ? "text-red-600" : ""}>
+                Document Type *
+              </Label>
               <Select
                 value={formData.documentTypeId}
-                onValueChange={(value) => setFormData({ ...formData, documentTypeId: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, documentTypeId: value });
+                  if (errors.documentType) setErrors({ ...errors, documentType: undefined });
+                }}
               >
-                <SelectTrigger>
+                <SelectTrigger className={errors.documentType ? "border-red-500 ring-red-500" : ""}>
                   <SelectValue placeholder="Select document type" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px]">
@@ -165,17 +198,29 @@ export function UploadDocumentDialog() {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.documentType && (
+                <p className="text-sm text-red-600">{errors.documentType}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="file">File *</Label>
-              <div className="border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-6 text-center hover:border-slate-300 dark:hover:border-slate-600 transition-colors">
+              <Label htmlFor="file" className={errors.file ? "text-red-600" : ""}>
+                File *
+              </Label>
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                errors.file
+                  ? "border-red-500 bg-red-50 dark:bg-red-950/20"
+                  : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+              }`}>
                 <input
                   type="file"
                   id="file"
                   className="hidden"
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    setFile(e.target.files?.[0] || null);
+                    if (errors.file) setErrors({ ...errors, file: undefined });
+                  }}
                 />
                 <label htmlFor="file" className="cursor-pointer">
                   {file ? (
@@ -190,13 +235,18 @@ export function UploadDocumentDialog() {
                     </div>
                   ) : (
                     <>
-                      <Upload className="h-8 w-8 mx-auto text-slate-400 mb-2" />
-                      <p className="text-sm text-slate-600 dark:text-slate-400">Click to upload or drag and drop</p>
+                      <Upload className={`h-8 w-8 mx-auto mb-2 ${errors.file ? "text-red-400" : "text-slate-400"}`} />
+                      <p className={`text-sm ${errors.file ? "text-red-600" : "text-slate-600 dark:text-slate-400"}`}>
+                        Click to upload or drag and drop
+                      </p>
                       <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">PDF, DOC, DOCX, JPG, PNG up to 10MB</p>
                     </>
                   )}
                 </label>
               </div>
+              {errors.file && (
+                <p className="text-sm text-red-600">{errors.file}</p>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -16,72 +16,85 @@ function generateId(): string {
   return crypto.randomUUID().replace(/-/g, "").substring(0, 25);
 }
 
+// Default empty data for error fallback
+const emptyTasksData = {
+  tasks: [],
+  stats: { total: 0, pending: 0, completed: 0, overdue: 0 }
+};
+
 // Optimized: Single auth call + parallel DB queries for tasks page with Redis caching
 export async function getTasksPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
-    cacheKeys.practiceTasks(practice.id),
-    async () => {
-      const now = new Date();
+    return getCachedData(
+      cacheKeys.practiceTasks(practice.id),
+      async () => {
+        const now = new Date();
 
-      // Run all queries in parallel - use single raw SQL for stats
-      const [tasks, stats] = await Promise.all([
-        prisma.task.findMany({
-          where: { practiceId: practice.id },
-          select: {
-            id: true,
-            title: true,
-            description: true,
-            dueDate: true,
-            dueTime: true,
-            status: true,
-            completedAt: true,
-            evidenceUrl: true,
-            createdAt: true,
-            User_Task_assignedToIdToUser: { select: { id: true, name: true } },
-            User_Task_completedByIdToUser: { select: { id: true, name: true } },
-            TaskTemplate: { select: { id: true, name: true, requiresEvidence: true } },
-          },
-          orderBy: { dueDate: "asc" },
-          take: 100 // Pagination
-        }),
-        // Single aggregated query for all stats (4x faster)
-        prisma.$queryRaw<[{ total: bigint; pending: bigint; completed: bigint; overdue: bigint }]>`
-          SELECT
-            COUNT(*) as total,
-            COUNT(*) FILTER (WHERE status = 'PENDING' AND "dueDate" >= ${now}) as pending,
-            COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed,
-            COUNT(*) FILTER (WHERE status = 'OVERDUE' OR (status = 'PENDING' AND "dueDate" < ${now})) as overdue
-          FROM "Task"
-          WHERE "practiceId" = ${practice.id}
-        `
-      ]);
+        return withDbConnection(async () => {
+          // Run all queries in parallel - use single raw SQL for stats
+          const [tasks, stats] = await Promise.all([
+            prisma.task.findMany({
+              where: { practiceId: practice.id },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                dueDate: true,
+                dueTime: true,
+                status: true,
+                completedAt: true,
+                evidenceUrl: true,
+                createdAt: true,
+                User_Task_assignedToIdToUser: { select: { id: true, name: true } },
+                User_Task_completedByIdToUser: { select: { id: true, name: true } },
+                TaskTemplate: { select: { id: true, name: true, requiresEvidence: true } },
+              },
+              orderBy: { dueDate: "asc" },
+              take: 100 // Pagination
+            }),
+            // Single aggregated query for all stats (4x faster)
+            prisma.$queryRaw<[{ total: bigint; pending: bigint; completed: bigint; overdue: bigint }]>`
+              SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'PENDING' AND "dueDate" >= ${now}) as pending,
+                COUNT(*) FILTER (WHERE status = 'COMPLETED') as completed,
+                COUNT(*) FILTER (WHERE status = 'OVERDUE' OR (status = 'PENDING' AND "dueDate" < ${now})) as overdue
+              FROM "Task"
+              WHERE "practiceId" = ${practice.id}
+            `
+          ]);
 
-      // Update overdue tasks in background (don't await)
-      prisma.task.updateMany({
-        where: {
-          practiceId: practice.id,
-          status: "PENDING",
-          dueDate: { lt: now }
-        },
-        data: { status: "OVERDUE" }
-      }).catch(() => {});
+          // Update overdue tasks in background (don't await)
+          prisma.task.updateMany({
+            where: {
+              practiceId: practice.id,
+              status: "PENDING",
+              dueDate: { lt: now }
+            },
+            data: { status: "OVERDUE" }
+          }).catch(() => {});
 
-      const s = stats[0];
-      return {
-        tasks,
-        stats: {
-          total: Number(s?.total || 0),
-          pending: Number(s?.pending || 0),
-          completed: Number(s?.completed || 0),
-          overdue: Number(s?.overdue || 0)
-        }
-      };
-    },
-    CACHE_DURATIONS.SHORT // 1 minute
-  );
+          const s = stats[0];
+          return {
+            tasks,
+            stats: {
+              total: Number(s?.total || 0),
+              pending: Number(s?.pending || 0),
+              completed: Number(s?.completed || 0),
+              overdue: Number(s?.overdue || 0)
+            }
+          };
+        });
+      },
+      CACHE_DURATIONS.SHORT // 1 minute
+    );
+  } catch (error) {
+    console.error("Tasks page data fetch error:", error);
+    return emptyTasksData;
+  }
 }
 
 export async function getTasks(filter?: {

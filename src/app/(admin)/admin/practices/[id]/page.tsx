@@ -13,11 +13,24 @@ import {
   Calendar,
   Clock,
   Shield,
+  Globe,
 } from "lucide-react";
 import { getAdminPracticeById } from "@/lib/actions/admin/practices";
 import { format } from "date-fns";
 import Link from "next/link";
 import { PracticeActions } from "@/components/admin/practice-actions";
+
+const PROVINCE_LABELS: Record<string, string> = {
+  eastern_cape: "Eastern Cape",
+  free_state: "Free State",
+  gauteng: "Gauteng",
+  kwazulu_natal: "KwaZulu-Natal",
+  limpopo: "Limpopo",
+  mpumalanga: "Mpumalanga",
+  northern_cape: "Northern Cape",
+  north_west: "North West",
+  western_cape: "Western Cape",
+};
 
 export default async function AdminPracticeDetailPage({
   params,
@@ -175,6 +188,15 @@ export default async function AdminPracticeDetailPage({
                       <div>
                         <p className="text-sm text-slate-500">Address</p>
                         <p className="font-medium">{practice.address}</p>
+                      </div>
+                    </div>
+                  )}
+                  {practice.province && (
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-5 w-5 text-slate-400" />
+                      <div>
+                        <p className="text-sm text-slate-500">Province</p>
+                        <p className="font-medium">{PROVINCE_LABELS[practice.province] || practice.province}</p>
                       </div>
                     </div>
                   )}

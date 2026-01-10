@@ -3,27 +3,21 @@
 import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "@/lib/actions/practice";
 import { revalidatePath } from "next/cache";
-import { createId } from "@paralleldrive/cuid2";
-
-type TeamMember = {
-  fullName: string;
-  email: string;
-  position: string;
-};
+import type { SubscriptionTier } from "@prisma/client";
 
 type OnboardingData = {
   practiceName: string;
   practiceNumber?: string;
   practicePhone?: string;
   practiceAddress?: string;
-  practiceSize: string;
-  teamMembers: TeamMember[];
+  province: string;
+  subscriptionTier: "ESSENTIALS" | "PROFESSIONAL";
 };
 
 /**
  * Complete the onboarding process for a new practice
- * - Updates practice details
- * - Creates employee records for team members
+ * - Updates practice details including province
+ * - Sets subscription tier
  * - Marks onboarding as complete
  */
 export async function completeOnboarding(data: OnboardingData) {
@@ -52,7 +46,9 @@ export async function completeOnboarding(data: OnboardingData) {
           practiceNumber: data.practiceNumber,
           phone: data.practicePhone,
           address: data.practiceAddress,
-          practiceSize: data.practiceSize,
+          province: data.province,
+          subscriptionTier: data.subscriptionTier as SubscriptionTier,
+          subscriptionStatus: "TRIAL",
           onboardingCompleted: true,
           trialEndsAt,
         },
@@ -67,27 +63,10 @@ export async function completeOnboarding(data: OnboardingData) {
           },
         });
       }
-
-      // 3. Create employee records for team members
-      for (const member of data.teamMembers) {
-        await tx.employee.create({
-          data: {
-            id: createId(),
-            practiceId: practice.id,
-            fullName: member.fullName,
-            email: member.email,
-            position: member.position,
-            isActive: true,
-            updatedAt: new Date(),
-          },
-        });
-      }
     })
   );
 
   revalidatePath("/dashboard");
-  revalidatePath("/team");
-  revalidatePath("/employees");
 }
 
 /**

@@ -504,12 +504,16 @@ export default function HomePage() {
           </FeatureSection>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Starter */}
+            {/* Essentials */}
             <FeatureSection delay={100}>
               <Card className="relative border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                 <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Starter</h3>
-                  <p className="text-slate-500 mb-6">Perfect for small practices</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Essentials</h3>
+                  <p className="text-slate-500 mb-2">Perfect for small practices</p>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
+                    <Clock className="h-3 w-3" />
+                    14-day free trial
+                  </div>
                   <div className="mb-8">
                     <span className="text-4xl font-bold text-slate-900">R1,999</span>
                     <span className="text-slate-500">/month</span>
@@ -534,7 +538,7 @@ export default function HomePage() {
                   </ul>
                   <Link href="/sign-up" className="block">
                     <Button variant="outline" className="w-full h-12 text-base border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all">
-                      Start Free Trial
+                      Start 14-Day Free Trial
                     </Button>
                   </Link>
                 </CardContent>
@@ -552,7 +556,11 @@ export default function HomePage() {
                 </div>
                 <CardContent className="p-8 relative pt-6">
                   <h3 className="text-xl font-bold text-slate-900 mb-2">Professional</h3>
-                  <p className="text-slate-500 mb-6">For growing practices</p>
+                  <p className="text-slate-500 mb-2">For growing practices</p>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
+                    <Clock className="h-3 w-3" />
+                    14-day free trial
+                  </div>
                   <div className="mb-8">
                     <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R3,999</span>
                     <span className="text-slate-500">/month</span>
@@ -560,7 +568,7 @@ export default function HomePage() {
                   <ul className="space-y-4 mb-8">
                     {[
                       "Unlimited users",
-                      "Everything in Starter",
+                      "Everything in Essentials",
                       "Leave Management",
                       "Unlimited Payroll",
                       "Locum Management",
@@ -577,7 +585,7 @@ export default function HomePage() {
                   </ul>
                   <Link href="/sign-up" className="block">
                     <Button className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40 group">
-                      Start Free Trial
+                      Start 14-Day Free Trial
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
                   </Link>

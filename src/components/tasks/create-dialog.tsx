@@ -21,7 +21,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Loader2, UserPlus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createTask, getPracticeTeamMembers } from "@/lib/actions/tasks";
 
@@ -30,6 +30,11 @@ type TeamMember = {
   name: string | null;
   email: string;
   role: string;
+};
+
+type ValidationErrors = {
+  title?: string;
+  dueDate?: string;
 };
 
 export function CreateTaskDialog() {
@@ -43,6 +48,7 @@ export function CreateTaskDialog() {
     dueTime: "",
     assignedToId: "",
   });
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   // Load team members when dialog opens
   useEffect(() => {
@@ -51,9 +57,25 @@ export function CreateTaskDialog() {
     }
   }, [open]);
 
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = "Task title is required";
+    }
+
+    if (!formData.dueDate) {
+      newErrors.dueDate = "Due date is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.dueDate) {
+
+    if (!validateForm()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -72,6 +94,7 @@ export function CreateTaskDialog() {
       toast.success("Task created successfully!");
       setOpen(false);
       setFormData({ title: "", description: "", dueDate: "", dueTime: "", assignedToId: "" });
+      setErrors({});
     } catch (error) {
       toast.error("Failed to create task");
       console.error(error);
@@ -80,11 +103,20 @@ export function CreateTaskDialog() {
     }
   };
 
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Clear form and errors when dialog closes
+      setFormData({ title: "", description: "", dueDate: "", dueTime: "", assignedToId: "" });
+      setErrors({});
+    }
+  };
+
   // Set default date to today
   const today = new Date().toISOString().split("T")[0];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
@@ -101,14 +133,22 @@ export function CreateTaskDialog() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Task Title *</Label>
+              <Label htmlFor="title" className={errors.title ? "text-red-600" : ""}>
+                Task Title *
+              </Label>
               <Input
                 id="title"
                 placeholder="e.g., Temperature Monitoring"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
+                onChange={(e) => {
+                  setFormData({ ...formData, title: e.target.value });
+                  if (errors.title) setErrors({ ...errors, title: undefined });
+                }}
+                className={errors.title ? "border-red-500 focus-visible:ring-red-500" : ""}
               />
+              {errors.title && (
+                <p className="text-sm text-red-600">{errors.title}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -124,15 +164,23 @@ export function CreateTaskDialog() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date *</Label>
+                <Label htmlFor="dueDate" className={errors.dueDate ? "text-red-600" : ""}>
+                  Due Date *
+                </Label>
                 <Input
                   id="dueDate"
                   type="date"
                   value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, dueDate: e.target.value });
+                    if (errors.dueDate) setErrors({ ...errors, dueDate: undefined });
+                  }}
                   min={today}
-                  required
+                  className={errors.dueDate ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {errors.dueDate && (
+                  <p className="text-sm text-red-600">{errors.dueDate}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="dueTime">Due Time (optional)</Label>
@@ -166,7 +214,7 @@ export function CreateTaskDialog() {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
