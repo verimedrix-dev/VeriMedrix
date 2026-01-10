@@ -41,8 +41,9 @@ type RecentTraining = {
   employeeId: string;
   trainingModuleId: string;
   completedDate: Date;
+  expiryDate: Date | null;
   Employee: { id: string; fullName: string; position: string };
-  TrainingModule: { id: string; name: string };
+  TrainingModule: { id: string; name: string } | null;
 };
 
 // Default empty data for error fallback
