@@ -89,6 +89,12 @@ export function UploadDocumentDialog() {
       return;
     }
 
+    // Type guard - file is guaranteed to exist after validateForm passes
+    if (!file) {
+      toast.error("Please select a file to upload");
+      return;
+    }
+
     setLoading(true);
 
     try {
