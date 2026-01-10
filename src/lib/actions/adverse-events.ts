@@ -1,10 +1,24 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "./practice";
 import { revalidatePath } from "next/cache";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
 import { AdverseEventCategory, AdverseEventSeverity, PatientOutcome, EventStatus } from "@prisma/client";
+
+// Default empty data for error fallback
+const emptyAdverseEventsData = {
+  events: [],
+  stats: {
+    total: 0,
+    reported: 0,
+    investigating: 0,
+    actionTaken: 0,
+    closed: 0,
+    severe: 0,
+    nearMiss: 0,
+  }
+};
 
 // Cache key for adverse events
 const adverseEventsCacheKey = (practiceId: string) => `practice:${practiceId}:adverse-events`;
@@ -23,57 +37,64 @@ async function generateReferenceNumber(practiceId: string): Promise<string> {
 
 // Get all adverse events with stats
 export async function getAdverseEventsPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
-    adverseEventsCacheKey(practice.id),
-    async () => {
-      const [events, stats] = await Promise.all([
-        prisma.adverseEvent.findMany({
-          where: { practiceId: practice.id },
-          orderBy: { eventDate: "desc" },
-          take: 100,
-        }),
-        // Aggregated stats query
-        prisma.$queryRaw<[{
-          total: bigint;
-          reported: bigint;
-          investigating: bigint;
-          action_taken: bigint;
-          closed: bigint;
-          severe: bigint;
-          near_miss: bigint;
-        }]>`
-          SELECT
-            COUNT(*) as total,
-            COUNT(*) FILTER (WHERE status = 'REPORTED') as reported,
-            COUNT(*) FILTER (WHERE status = 'INVESTIGATING') as investigating,
-            COUNT(*) FILTER (WHERE status = 'ACTION_TAKEN') as action_taken,
-            COUNT(*) FILTER (WHERE status = 'CLOSED') as closed,
-            COUNT(*) FILTER (WHERE severity = 'SEVERE') as severe,
-            COUNT(*) FILTER (WHERE severity = 'NEAR_MISS') as near_miss
-          FROM "AdverseEvent"
-          WHERE "practiceId" = ${practice.id}
-        `
-      ]);
+    return getCachedData(
+      adverseEventsCacheKey(practice.id),
+      async () => {
+        return withDbConnection(async () => {
+          const [events, stats] = await Promise.all([
+            prisma.adverseEvent.findMany({
+              where: { practiceId: practice.id },
+              orderBy: { eventDate: "desc" },
+              take: 100,
+            }),
+            // Aggregated stats query
+            prisma.$queryRaw<[{
+              total: bigint;
+              reported: bigint;
+              investigating: bigint;
+              action_taken: bigint;
+              closed: bigint;
+              severe: bigint;
+              near_miss: bigint;
+            }]>`
+              SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'REPORTED') as reported,
+                COUNT(*) FILTER (WHERE status = 'INVESTIGATING') as investigating,
+                COUNT(*) FILTER (WHERE status = 'ACTION_TAKEN') as action_taken,
+                COUNT(*) FILTER (WHERE status = 'CLOSED') as closed,
+                COUNT(*) FILTER (WHERE severity = 'SEVERE') as severe,
+                COUNT(*) FILTER (WHERE severity = 'NEAR_MISS') as near_miss
+              FROM "AdverseEvent"
+              WHERE "practiceId" = ${practice.id}
+            `
+          ]);
 
-      const s = stats[0];
-      return {
-        events,
-        stats: {
-          total: Number(s?.total || 0),
-          reported: Number(s?.reported || 0),
-          investigating: Number(s?.investigating || 0),
-          actionTaken: Number(s?.action_taken || 0),
-          closed: Number(s?.closed || 0),
-          severe: Number(s?.severe || 0),
-          nearMiss: Number(s?.near_miss || 0),
-        }
-      };
-    },
-    CACHE_DURATIONS.SHORT
-  );
+          const s = stats[0];
+          return {
+            events,
+            stats: {
+              total: Number(s?.total || 0),
+              reported: Number(s?.reported || 0),
+              investigating: Number(s?.investigating || 0),
+              actionTaken: Number(s?.action_taken || 0),
+              closed: Number(s?.closed || 0),
+              severe: Number(s?.severe || 0),
+              nearMiss: Number(s?.near_miss || 0),
+            }
+          };
+        });
+      },
+      CACHE_DURATIONS.SHORT
+    );
+  } catch (error) {
+    console.error("Adverse events page data fetch error:", error);
+    return emptyAdverseEventsData;
+  }
 }
 
 // Get single adverse event by ID

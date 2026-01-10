@@ -1,10 +1,24 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "./practice";
 import { revalidatePath } from "next/cache";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
 import { ComplaintCategory, Severity, ComplaintStatus, ResolutionType } from "@prisma/client";
+
+// Default empty data for error fallback
+const emptyComplaintsData = {
+  complaints: [],
+  stats: {
+    total: 0,
+    received: 0,
+    acknowledged: 0,
+    investigating: 0,
+    resolved: 0,
+    closed: 0,
+    overdueAcknowledgement: 0,
+  }
+};
 
 // Extend cache keys for complaints
 const complaintsCacheKey = (practiceId: string) => `practice:${practiceId}:complaints`;
@@ -23,57 +37,64 @@ async function generateReferenceNumber(practiceId: string): Promise<string> {
 
 // Get all complaints with stats
 export async function getComplaintsPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
-    complaintsCacheKey(practice.id),
-    async () => {
-      const [complaints, stats] = await Promise.all([
-        prisma.complaint.findMany({
-          where: { practiceId: practice.id },
-          orderBy: { dateReceived: "desc" },
-          take: 100,
-        }),
-        // Single aggregated query for stats
-        prisma.$queryRaw<[{
-          total: bigint;
-          received: bigint;
-          acknowledged: bigint;
-          investigating: bigint;
-          resolved: bigint;
-          closed: bigint;
-          overdue_ack: bigint;
-        }]>`
-          SELECT
-            COUNT(*) as total,
-            COUNT(*) FILTER (WHERE status = 'RECEIVED') as received,
-            COUNT(*) FILTER (WHERE status = 'ACKNOWLEDGED') as acknowledged,
-            COUNT(*) FILTER (WHERE status = 'INVESTIGATING') as investigating,
-            COUNT(*) FILTER (WHERE status = 'RESOLVED') as resolved,
-            COUNT(*) FILTER (WHERE status = 'CLOSED') as closed,
-            COUNT(*) FILTER (WHERE status = 'RECEIVED' AND "dateReceived" < NOW() - INTERVAL '5 days') as overdue_ack
-          FROM "Complaint"
-          WHERE "practiceId" = ${practice.id}
-        `
-      ]);
+    return getCachedData(
+      complaintsCacheKey(practice.id),
+      async () => {
+        return withDbConnection(async () => {
+          const [complaints, stats] = await Promise.all([
+            prisma.complaint.findMany({
+              where: { practiceId: practice.id },
+              orderBy: { dateReceived: "desc" },
+              take: 100,
+            }),
+            // Single aggregated query for stats
+            prisma.$queryRaw<[{
+              total: bigint;
+              received: bigint;
+              acknowledged: bigint;
+              investigating: bigint;
+              resolved: bigint;
+              closed: bigint;
+              overdue_ack: bigint;
+            }]>`
+              SELECT
+                COUNT(*) as total,
+                COUNT(*) FILTER (WHERE status = 'RECEIVED') as received,
+                COUNT(*) FILTER (WHERE status = 'ACKNOWLEDGED') as acknowledged,
+                COUNT(*) FILTER (WHERE status = 'INVESTIGATING') as investigating,
+                COUNT(*) FILTER (WHERE status = 'RESOLVED') as resolved,
+                COUNT(*) FILTER (WHERE status = 'CLOSED') as closed,
+                COUNT(*) FILTER (WHERE status = 'RECEIVED' AND "dateReceived" < NOW() - INTERVAL '5 days') as overdue_ack
+              FROM "Complaint"
+              WHERE "practiceId" = ${practice.id}
+            `
+          ]);
 
-      const s = stats[0];
-      return {
-        complaints,
-        stats: {
-          total: Number(s?.total || 0),
-          received: Number(s?.received || 0),
-          acknowledged: Number(s?.acknowledged || 0),
-          investigating: Number(s?.investigating || 0),
-          resolved: Number(s?.resolved || 0),
-          closed: Number(s?.closed || 0),
-          overdueAcknowledgement: Number(s?.overdue_ack || 0), // OHSC requires acknowledgement within 5 working days
-        }
-      };
-    },
-    CACHE_DURATIONS.SHORT
-  );
+          const s = stats[0];
+          return {
+            complaints,
+            stats: {
+              total: Number(s?.total || 0),
+              received: Number(s?.received || 0),
+              acknowledged: Number(s?.acknowledged || 0),
+              investigating: Number(s?.investigating || 0),
+              resolved: Number(s?.resolved || 0),
+              closed: Number(s?.closed || 0),
+              overdueAcknowledgement: Number(s?.overdue_ack || 0), // OHSC requires acknowledgement within 5 working days
+            }
+          };
+        });
+      },
+      CACHE_DURATIONS.SHORT
+    );
+  } catch (error) {
+    console.error("Complaints page data fetch error:", error);
+    return emptyComplaintsData;
+  }
 }
 
 // Get single complaint by ID

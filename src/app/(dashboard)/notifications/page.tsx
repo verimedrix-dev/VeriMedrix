@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "@/lib/actions/practice";
 import {
   Bell,
@@ -18,19 +18,31 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 
-export default async function NotificationsPage() {
-  const { user, practice } = await ensureUserAndPractice();
+async function getNotificationsData() {
+  try {
+    const { user, practice } = await ensureUserAndPractice();
 
-  // Get alerts for the current user (not all practice alerts)
-  const alerts = user ? await prisma.alert.findMany({
-    where: { recipientId: user.id },
-    include: {
-      Document: true,
-      Task: true,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50
-  }) : [];
+    const alerts = user ? await withDbConnection(() =>
+      prisma.alert.findMany({
+        where: { recipientId: user.id },
+        include: {
+          Document: true,
+          Task: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50
+      })
+    ) : [];
+
+    return { user, alerts };
+  } catch (error) {
+    console.error("Notifications data fetch error:", error);
+    return { user: null, alerts: [] };
+  }
+}
+
+export default async function NotificationsPage() {
+  const { user, alerts } = await getNotificationsData();
 
   const unreadCount = alerts.filter(a => a.status === "PENDING").length;
 

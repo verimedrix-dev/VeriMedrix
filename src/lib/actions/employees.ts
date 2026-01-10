@@ -14,16 +14,23 @@ function generateId(): string {
   return crypto.randomUUID().replace(/-/g, "").substring(0, 25);
 }
 
+// Default empty data for error fallback
+const emptyEmployeesData = {
+  employees: [],
+  stats: { total: 0, active: 0, pendingLeave: 0, activeWarnings: 0 }
+};
+
 // =============================================================================
 // EMPLOYEE CRUD
 // =============================================================================
 
 // Optimized employee list for the main page - minimal data with Redis caching
 export async function getEmployeesListData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return { employees: [], stats: null };
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return { employees: [], stats: null };
 
-  return getCachedData(
+    return getCachedData(
     cacheKeys.practiceEmployees(practice.id),
     async () => {
       const now = new Date();
@@ -69,7 +76,11 @@ export async function getEmployeesListData() {
       };
     },
     CACHE_DURATIONS.SHORT // 1 minute
-  );
+    );
+  } catch (error) {
+    console.error("Employees list data fetch error:", error);
+    return emptyEmployeesData;
+  }
 }
 
 export async function getEmployees(filter?: { isActive?: boolean }) {

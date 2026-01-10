@@ -1,11 +1,18 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ensureUserAndPractice } from "./practice";
 import type { PayFrequency, UifExemptReason, DeductionType, PayrollStatus, PaymentType } from "@prisma/client";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
 import { calculatePAYE, getCurrentTaxYear } from "@/lib/tax-calculator";
+
+// Default empty data for error fallback
+const emptyPayrollData = {
+  employees: [],
+  currentPayrollRun: null,
+  recentPayrollRuns: [],
+};
 
 // UIF Constants (South Africa)
 const UIF_RATE = 0.01; // 1%
@@ -25,10 +32,11 @@ function calculateUif(grossSalary: number, isExempt: boolean): number {
 
 // Optimized: Get payroll page data with Redis caching
 export async function getPayrollPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
+    return getCachedData(
     cacheKeys.practicePayroll(practice.id),
     async () => {
       const currentDate = new Date();
@@ -95,7 +103,11 @@ export async function getPayrollPageData() {
       };
     },
     CACHE_DURATIONS.SHORT // 1 minute
-  );
+    );
+  } catch (error) {
+    console.error("Payroll page data fetch error:", error);
+    return emptyPayrollData;
+  }
 }
 
 export async function getEmployeesWithCompensation() {

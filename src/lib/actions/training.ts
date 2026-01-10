@@ -1,10 +1,26 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "./practice";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
+
+// Default empty data for error fallback
+const emptyTrainingPageData = {
+  modules: [],
+  positions: [],
+  positionRequirements: {},
+  recentTrainings: [],
+  stats: {
+    totalModules: 0,
+    activeModules: 0,
+    totalRecords: 0,
+    completedThisYear: 0,
+    expiringRecords: 0,
+    totalCpdPointsThisYear: 0,
+  }
+};
 
 // ============= Training Modules =============
 
@@ -424,10 +440,11 @@ export async function deleteEmployeeTraining(id: string) {
 
 // Optimized: Single auth call + parallel queries for training page with Redis caching
 export async function getTrainingPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
+    return getCachedData(
     cacheKeys.practiceTraining(practice.id),
     async () => {
       const currentYear = new Date().getFullYear();
@@ -513,7 +530,11 @@ export async function getTrainingPageData() {
       };
     },
     CACHE_DURATIONS.SHORT // 1 minute
-  );
+    );
+  } catch (error) {
+    console.error("Training page data fetch error:", error);
+    return emptyTrainingPageData;
+  }
 }
 
 // Get all employees with their training compliance - optimized with parallel queries

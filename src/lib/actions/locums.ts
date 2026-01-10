@@ -1,11 +1,25 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "./practice";
 import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { LocumSourceType, TimesheetStatus, PaymentStatus } from "@prisma/client";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
+
+// Default empty data for error fallback
+const emptyLocumsData = {
+  locums: [],
+  stats: {
+    totalLocums: 0,
+    activeLocums: 0,
+    currentlyWorking: 0,
+    expiringCredentials: 0,
+    monthlyHours: 0,
+    monthlyPayable: 0,
+    pendingApproval: 0,
+  },
+};
 
 // =============================================================================
 // LOCUM CRUD
@@ -13,10 +27,11 @@ import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/li
 
 // Optimized: Get locums page data with Redis caching
 export async function getLocumsPageData() {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  return getCachedData(
+    return getCachedData(
     cacheKeys.practiceLocums(practice.id),
     async () => {
       const now = new Date();
@@ -94,7 +109,11 @@ export async function getLocumsPageData() {
       };
     },
     CACHE_DURATIONS.SHORT // 1 minute
-  );
+    );
+  } catch (error) {
+    console.error("Locums page data fetch error:", error);
+    return emptyLocumsData;
+  }
 }
 
 // Get all locums for the practice (kept for backward compatibility)
