@@ -332,9 +332,9 @@ export function getWelcomeEmail({
   </div>
 
   <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
-    <p style="font-size: 16px;">Hi ${userName || "there"},</p>
+    <p style="font-size: 16px;">Hi there,</p>
 
-    <p style="font-size: 16px;">Thank you for signing up for VeriMedrix${practiceName ? ` with <strong>${practiceName}</strong>` : ""}. We're excited to help you streamline your OHSC compliance management!</p>
+    <p style="font-size: 16px;">Thank you for signing up for VeriMedrix! We're excited to help you streamline your OHSC compliance management${practiceName ? ` for <strong>${practiceName}</strong>` : ""}.</p>
 
     <div style="background: #F0F9FF; padding: 20px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #2563eb;">
       <h3 style="margin: 0 0 12px 0; color: #1e40af;">With VeriMedrix, you can:</h3>
