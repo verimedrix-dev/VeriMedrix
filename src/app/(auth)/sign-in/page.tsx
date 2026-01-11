@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ export default function SignInPage() {
   const [verifying2FA, setVerifying2FA] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  const router = useRouter();
   const supabase = createClient();
 
   // Focus first OTP input when 2FA is required
@@ -68,7 +70,8 @@ export default function SignInPage() {
 
       // No 2FA required, proceed to dashboard
       toast.success("Signed in successfully!");
-      window.location.href = "/dashboard";
+      router.refresh();
+      router.push("/dashboard");
     } catch (err) {
       console.error("Sign in error:", err);
       toast.error("An unexpected error occurred");
@@ -129,7 +132,8 @@ export default function SignInPage() {
       }
 
       toast.success("Signed in successfully!");
-      window.location.href = "/dashboard";
+      router.refresh();
+      router.push("/dashboard");
     } catch (err) {
       console.error("2FA verification error:", err);
       toast.error("Verification failed");
