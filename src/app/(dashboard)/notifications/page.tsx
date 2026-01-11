@@ -18,6 +18,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
 
+export const dynamic = "force-dynamic";
+
 async function getNotificationsData() {
   try {
     const { user, practice } = await ensureUserAndPractice();

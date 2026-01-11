@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,7 +15,9 @@ import {
 import { getAdverseEventsPageData } from "@/lib/actions/adverse-events";
 import { EventCard } from "@/components/adverse-events/event-card";
 
-const CreateEventDialog = dynamic(
+export const dynamic = "force-dynamic";
+
+const CreateEventDialog = nextDynamic(
   () => import("@/components/adverse-events/create-event-dialog").then((mod) => mod.CreateEventDialog),
   { loading: () => <Skeleton className="h-10 w-32" /> }
 );

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { NewTicketDialog } from "@/components/support/new-ticket-dialog";
 import { TicketCategory, TicketStatus, TicketPriority } from "@prisma/client";
 
+export const dynamic = "force-dynamic";
+
 async function getSupportData() {
   try {
     await ensureUserAndPractice();

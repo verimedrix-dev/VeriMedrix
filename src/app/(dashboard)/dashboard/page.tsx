@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,10 @@ import Link from "next/link";
 import { getDashboardData } from "@/lib/actions/dashboard";
 import { format, differenceInDays } from "date-fns";
 
+export const dynamic = "force-dynamic";
+
 // Dynamic import for dialog - not needed on initial render
-const UploadDocumentDialog = dynamic(
+const UploadDocumentDialog = nextDynamic(
   () => import("@/components/documents/upload-dialog").then((mod) => mod.UploadDocumentDialog),
   {
     loading: () => <Skeleton className="h-10 w-40" />,

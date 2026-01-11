@@ -22,6 +22,8 @@ import {
 import { getInspectionReadinessData, NonNegotiableStatus } from "@/lib/actions/inspection-readiness";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 const iconMap: Record<string, React.ElementType> = {
   Award,
   UserCheck,

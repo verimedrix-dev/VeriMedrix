@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,7 +14,9 @@ import {
 import { getComplaintsPageData } from "@/lib/actions/complaints";
 import { ComplaintCard } from "@/components/complaints/complaint-card";
 
-const CreateComplaintDialog = dynamic(
+export const dynamic = "force-dynamic";
+
+const CreateComplaintDialog = nextDynamic(
   () => import("@/components/complaints/create-complaint-dialog").then((mod) => mod.CreateComplaintDialog),
   { loading: () => <Skeleton className="h-10 w-32" /> }
 );

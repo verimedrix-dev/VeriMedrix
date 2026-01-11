@@ -1,4 +1,4 @@
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,10 @@ import {
 import { getTasksPageData } from "@/lib/actions/tasks";
 import { TaskCard } from "@/components/tasks/task-card";
 
+export const dynamic = "force-dynamic";
+
 // Dynamic import for dialog - not needed on initial render
-const CreateTaskDialog = dynamic(
+const CreateTaskDialog = nextDynamic(
   () => import("@/components/tasks/create-dialog").then((mod) => mod.CreateTaskDialog),
   {
     loading: () => <Skeleton className="h-10 w-32" />,
