@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import { redirect, isRedirectError } from "next/navigation";
 import { VeyroLogoFull } from "@/components/ui/veyro-logo";
 import { Separator } from "@/components/ui/separator";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -23,6 +23,10 @@ export default async function DashboardLayout({
   try {
     result = await ensureUserAndPractice();
   } catch (error) {
+    // Re-throw redirect errors so Next.js can handle them properly
+    if (isRedirectError(error)) {
+      throw error;
+    }
     console.error("Failed to load user data:", error);
     redirect("/sign-in?error=session");
   }
