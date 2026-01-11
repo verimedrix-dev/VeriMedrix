@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   ClipboardCheck,
   Shield,
+  HelpCircle,
 } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { UserRole, SubscriptionTier } from "@prisma/client";
@@ -66,6 +67,11 @@ const adminNavigation: NavItem[] = [
   { name: "Settings", href: "/settings", icon: Settings, permission: PERMISSIONS.SETTINGS },
 ];
 
+// Support - available to all users
+const supportNavigation: NavItem[] = [
+  { name: "Support", href: "/support", icon: HelpCircle, permission: PERMISSIONS.DASHBOARD },
+];
+
 interface SidebarNavProps {
   userRole: UserRole;
   subscriptionTier?: SubscriptionTier;
@@ -89,6 +95,7 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
   const filteredRegisters = registersNavigation.filter(filterByPermissionAndFeature);
   const filteredHr = hrNavigation.filter(filterByPermissionAndFeature);
   const filteredAdmin = adminNavigation.filter(filterByPermissionAndFeature);
+  const filteredSupport = supportNavigation.filter(filterByPermissionAndFeature);
 
   return (
     <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -139,6 +146,20 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
                 icon={item.icon}
                 showDot={item.name === "Notifications" && unreadNotifications > 0}
               />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Support Section */}
+      {filteredSupport.length > 0 && (
+        <div className="pt-4">
+          <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Help
+          </p>
+          <div className="mt-2 space-y-1">
+            {filteredSupport.map((item) => (
+              <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} />
             ))}
           </div>
         </div>
