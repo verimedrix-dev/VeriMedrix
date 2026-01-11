@@ -70,7 +70,7 @@ export default function HomePage() {
   // Use CSS animations for initial load - no mounted state needed
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden">
+    <div id="top" className="min-h-screen bg-white overflow-x-hidden">
       {/* Animated Background Gradient */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />
@@ -83,13 +83,15 @@ export default function HomePage() {
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Image
-              src="/VeriMedrix Logo.png"
-              alt="VeriMedrix"
-              width={160}
-              height={36}
-              className="h-9 w-auto"
-            />
+            <a href="#top" className="cursor-pointer">
+              <Image
+                src="/VeriMedrix Logo.png"
+                alt="VeriMedrix"
+                width={160}
+                height={36}
+                className="h-9 w-auto"
+              />
+            </a>
             <nav className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm text-slate-600 hover:text-blue-600 transition-colors">
                 Features
@@ -110,11 +112,11 @@ export default function HomePage() {
                   Sign In
                 </Button>
               </Link>
-              <Link href="/sign-up">
+              <a href="#pricing">
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40 hover:scale-105">
                   Get Started
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -147,12 +149,12 @@ export default function HomePage() {
             <div
               className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in-up animation-delay-300"
             >
-              <Link href="/sign-up">
+              <a href="#pricing">
                 <Button size="lg" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 h-12 px-8 text-base shadow-lg shadow-blue-500/25 transition-all hover:shadow-xl hover:shadow-blue-500/30 hover:scale-105 group">
                   Start Free Trial
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Button>
-              </Link>
+              </a>
               <a href="#features">
                 <Button size="lg" variant="outline" className="w-full sm:w-auto h-12 px-8 text-base border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all hover:scale-105 group">
                   See Features
@@ -666,12 +668,12 @@ export default function HomePage() {
                 <p className="text-lg text-blue-100 mb-10 leading-relaxed">
                   Join healthcare practices across South Africa who trust VeriMedrix to keep them inspection-ready.
                 </p>
-                <Link href="/sign-up">
+                <a href="#pricing">
                   <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 h-12 px-8 text-base font-semibold shadow-xl transition-all hover:scale-105 group">
                     Start Your Free Trial
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
-                </Link>
+                </a>
                 <p className="text-sm text-blue-200 mt-6">
                   14-day free trial • No credit card required
                 </p>

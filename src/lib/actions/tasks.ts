@@ -439,7 +439,7 @@ export async function assignTask(taskId: string, assignedToId: string | null) {
       updatedAt: new Date(),
     },
     include: {
-      User_Task_assignedToIdToUser: { select: { id: true, name: true, email: true } },
+      User_Task_assignedToIdToUser: { select: { id: true, name: true, email: true, notifyTaskAssignment: true } },
     }
   });
 
@@ -462,8 +462,8 @@ export async function assignTask(taskId: string, assignedToId: string | null) {
       }
     });
 
-    // Send email notification (don't await to avoid blocking)
-    if (assignedUser.email) {
+    // Send email notification only if user has enabled task assignment notifications
+    if (assignedUser.email && assignedUser.notifyTaskAssignment) {
       sendTaskAssignmentNotification(
         assignedUser.email,
         assignedUser.name || assignedUser.email.split("@")[0],

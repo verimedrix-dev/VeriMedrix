@@ -3,6 +3,7 @@
 import { prisma, withDbConnection } from "@/lib/prisma";
 import { ensureUserAndPractice } from "@/lib/actions/practice";
 import { revalidatePath } from "next/cache";
+import { recordTrialUsage } from "@/lib/actions/auth";
 import type { SubscriptionTier } from "@prisma/client";
 
 type OnboardingData = {
@@ -63,6 +64,13 @@ export async function completeOnboarding(data: OnboardingData) {
           },
         });
       }
+
+      // 3. Record that this email has used a free trial
+      await tx.usedTrialEmail.upsert({
+        where: { email: user.email.toLowerCase() },
+        update: {},
+        create: { email: user.email.toLowerCase() },
+      });
     })
   );
 
@@ -92,12 +100,21 @@ export async function skipOnboarding() {
   trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
   await withDbConnection(() =>
-    prisma.practice.update({
-      where: { id: practice.id },
-      data: {
-        onboardingCompleted: true,
-        trialEndsAt,
-      },
+    prisma.$transaction(async (tx) => {
+      await tx.practice.update({
+        where: { id: practice.id },
+        data: {
+          onboardingCompleted: true,
+          trialEndsAt,
+        },
+      });
+
+      // Record that this email has used a free trial
+      await tx.usedTrialEmail.upsert({
+        where: { email: user.email.toLowerCase() },
+        update: {},
+        create: { email: user.email.toLowerCase() },
+      });
     })
   );
 

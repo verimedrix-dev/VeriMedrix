@@ -9,6 +9,15 @@ import { randomUUID } from "crypto";
 
 const REMINDER_DAYS = [90, 60, 30, 14, 7, 0];
 
+// Helper to check if user wants notification for specific days until expiry
+function shouldNotifyUser(user: { notifyExpiry90Days: boolean; notifyExpiry60Days: boolean; notifyExpiry30Days: boolean; notifyExpiryCritical: boolean }, daysUntilExpiry: number): boolean {
+  if (daysUntilExpiry === 90) return user.notifyExpiry90Days;
+  if (daysUntilExpiry === 60) return user.notifyExpiry60Days;
+  if (daysUntilExpiry === 30) return user.notifyExpiry30Days;
+  if (daysUntilExpiry <= 14) return user.notifyExpiryCritical; // 14, 7, 0 days
+  return false;
+}
+
 export async function GET(request: Request) {
   // Verify cron secret for security
   const authHeader = request.headers.get("authorization");
@@ -47,7 +56,7 @@ export async function GET(request: Request) {
 
       // Check if we should send a reminder today
       if (REMINDER_DAYS.includes(daysUntilExpiry)) {
-        // Get practice owner/admin email
+        // Get practice owner/admin email with notification preferences
         const practiceUsers = await prisma.user.findMany({
           where: {
             practiceId: doc.practiceId,
@@ -56,9 +65,21 @@ export async function GET(request: Request) {
             },
             isActive: true,
           },
+          select: {
+            id: true,
+            email: true,
+            notifyExpiry90Days: true,
+            notifyExpiry60Days: true,
+            notifyExpiry30Days: true,
+            notifyExpiryCritical: true,
+          },
         });
 
         for (const user of practiceUsers) {
+          // Check if user wants this notification based on their preferences
+          if (!shouldNotifyUser(user, daysUntilExpiry)) {
+            continue; // Skip this user - they've disabled this notification type
+          }
           // Check if we already sent this reminder
           const existingAlert = await prisma.alert.findFirst({
             where: {

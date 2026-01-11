@@ -571,6 +571,15 @@ model User {
   @@index([role])
 }
 
+// Track emails that have used a free trial (prevents duplicate trials)
+model UsedTrialEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  usedAt    DateTime @default(now())
+
+  @@index([email])
+}
+
 model Warning {
   id              String          @id
   employeeId      String

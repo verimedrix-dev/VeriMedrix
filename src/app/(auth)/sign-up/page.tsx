@@ -29,8 +29,23 @@ export default function SignUpPage() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Password validation: at least 6 letters, 1 number, and 1 symbol
+    const letterCount = (password.match(/[a-zA-Z]/g) || []).length;
+    const hasNumber = /\d/.test(password);
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
+
+    if (letterCount < 6) {
+      toast.error("Password must contain at least 6 letters");
+      return;
+    }
+
+    if (!hasNumber) {
+      toast.error("Password must contain at least 1 number");
+      return;
+    }
+
+    if (!hasSymbol) {
+      toast.error("Password must contain at least 1 symbol (e.g., !@#$%^&*)");
       return;
     }
 
@@ -38,16 +53,22 @@ export default function SignUpPage() {
 
     try {
       // Check if email already exists in our system
-      const { exists, isEmployee } = await checkEmailExists(email);
+      const { exists, isEmployee, hasUsedTrial } = await checkEmailExists(email);
 
       if (exists) {
-        toast.error("An account with this email already exists. Please sign in instead.");
+        toast.error("This email address has already been taken. Please sign in or use a different email.");
         setLoading(false);
         return;
       }
 
       if (isEmployee) {
         toast.error("This email is registered as an employee. Please check your email for an invitation link, or contact your practice administrator.");
+        setLoading(false);
+        return;
+      }
+
+      if (hasUsedTrial) {
+        toast.error("This email address has already been taken for a free trial. Please use a different email or contact support.");
         setLoading(false);
         return;
       }
@@ -67,7 +88,7 @@ export default function SignUpPage() {
 
       // Check if user already existed in Supabase (repeated signup)
       if (data.user && data.user.identities && data.user.identities.length === 0) {
-        toast.error("An account with this email already exists. Please sign in instead.");
+        toast.error("This email address has already been taken. Please sign in or use a different email.");
         return;
       }
 
@@ -127,8 +148,11 @@ export default function SignUpPage() {
                 required
               />
             </div>
+            <p className="text-xs text-slate-500">
+              Password must contain at least 6 letters, 1 number, and 1 symbol (e.g., !@#$%^&*)
+            </p>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
+          <CardFooter className="flex flex-col space-y-4 pt-6">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account

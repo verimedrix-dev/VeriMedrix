@@ -478,3 +478,129 @@ export async function sendAccountDeletedEmail(
 
   return sendEmail({ to, subject, html });
 }
+
+// Weekly Digest Email Template
+export function getWeeklyDigestEmail({
+  userName,
+  practiceName,
+  dashboardUrl,
+  expiringDocuments,
+  pendingTasks,
+  overdueTasks,
+  complianceScore,
+}: {
+  userName: string;
+  practiceName: string;
+  dashboardUrl: string;
+  expiringDocuments: { name: string; daysUntil: number }[];
+  pendingTasks: number;
+  overdueTasks: number;
+  complianceScore: number;
+}) {
+  const hasAlerts = expiringDocuments.length > 0 || overdueTasks > 0;
+  const scoreColor = complianceScore >= 80 ? "#059669" : complianceScore >= 60 ? "#D97706" : "#DC2626";
+
+  const documentsList = expiringDocuments.length > 0
+    ? expiringDocuments.map(doc => `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">${doc.name}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; color: ${doc.daysUntil <= 7 ? '#DC2626' : doc.daysUntil <= 30 ? '#D97706' : '#059669'}; font-weight: bold;">${doc.daysUntil} days</td>
+        </tr>
+      `).join("")
+    : "";
+
+  return {
+    subject: `Weekly Compliance Digest - ${practiceName}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">VeriMedrix</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Weekly Compliance Digest</p>
+  </div>
+
+  <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+    <p>Hello ${userName},</p>
+    <p>Here's your weekly compliance summary for <strong>${practiceName}</strong>:</p>
+
+    <!-- Compliance Score -->
+    <div style="background: #F8FAFC; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0 0 10px 0; color: #64748B; font-size: 14px;">Overall Compliance Score</p>
+      <div style="font-size: 48px; font-weight: bold; color: ${scoreColor};">${complianceScore}%</div>
+    </div>
+
+    <!-- Quick Stats -->
+    <table style="width: 100%; margin: 20px 0;" cellpadding="0" cellspacing="10">
+      <tr>
+        <td style="background: ${pendingTasks > 0 ? '#FEF3C7' : '#D1FAE5'}; padding: 15px; border-radius: 8px; text-align: center; width: 33%;">
+          <div style="font-size: 28px; font-weight: bold; color: ${pendingTasks > 0 ? '#D97706' : '#059669'};">${pendingTasks}</div>
+          <div style="font-size: 12px; color: #64748B;">Pending Tasks</div>
+        </td>
+        <td style="background: ${overdueTasks > 0 ? '#FEE2E2' : '#D1FAE5'}; padding: 15px; border-radius: 8px; text-align: center; width: 33%;">
+          <div style="font-size: 28px; font-weight: bold; color: ${overdueTasks > 0 ? '#DC2626' : '#059669'};">${overdueTasks}</div>
+          <div style="font-size: 12px; color: #64748B;">Overdue Tasks</div>
+        </td>
+        <td style="background: ${expiringDocuments.length > 0 ? '#FEF3C7' : '#D1FAE5'}; padding: 15px; border-radius: 8px; text-align: center; width: 33%;">
+          <div style="font-size: 28px; font-weight: bold; color: ${expiringDocuments.length > 0 ? '#D97706' : '#059669'};">${expiringDocuments.length}</div>
+          <div style="font-size: 12px; color: #64748B;">Expiring Docs</div>
+        </td>
+      </tr>
+    </table>
+
+    ${expiringDocuments.length > 0 ? `
+    <!-- Expiring Documents -->
+    <div style="margin: 25px 0;">
+      <h3 style="margin: 0 0 15px 0; color: #1E40AF;">Documents Expiring Soon</h3>
+      <table style="width: 100%; border-collapse: collapse; background: #F8FAFC; border-radius: 8px;">
+        <thead>
+          <tr style="background: #E5E7EB;">
+            <th style="padding: 10px; text-align: left; font-weight: 600;">Document</th>
+            <th style="padding: 10px; text-align: left; font-weight: 600;">Expires In</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${documentsList}
+        </tbody>
+      </table>
+    </div>
+    ` : ""}
+
+    ${hasAlerts ? `
+    <div style="background: #FEF3C7; border-left: 4px solid #D97706; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0; color: #92400E; font-weight: bold;">Action Required</p>
+      <p style="margin: 5px 0 0 0; color: #78350F;">Please review and address the items above to maintain compliance.</p>
+    </div>
+    ` : `
+    <div style="background: #D1FAE5; border-left: 4px solid #059669; padding: 15px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+      <p style="margin: 0; color: #065F46; font-weight: bold;">Great Work!</p>
+      <p style="margin: 5px 0 0 0; color: #047857;">Your practice is in good compliance standing. Keep it up!</p>
+    </div>
+    `}
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${dashboardUrl}" style="display: inline-block; background: #1E40AF; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px;">View Dashboard</a>
+    </div>
+
+    <p style="margin-top: 30px; font-size: 14px; color: #64748B;">
+      This is your weekly compliance digest from VeriMedrix, sent every Monday.
+    </p>
+  </div>
+
+  <div style="background: #F8FAFC; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #64748B;">
+      &copy; ${new Date().getFullYear()} VeriMedrix. All rights reserved.
+    </p>
+    <p style="margin: 8px 0 0 0; font-size: 12px; color: #94a3b8;">
+      You can manage your notification preferences in Settings.
+    </p>
+  </div>
+</body>
+</html>
+    `,
+  };
+}
