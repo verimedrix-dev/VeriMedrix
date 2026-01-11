@@ -496,91 +496,91 @@ export async function getTrainingPageData() {
     if (!practice) return null;
 
     return getCachedData(
-    cacheKeys.practiceTraining(practice.id),
-    async () => {
-      const currentYear = new Date().getFullYear();
-      const now = new Date();
+      cacheKeys.practiceTraining(practice.id),
+      async () => {
+        const currentYear = new Date().getFullYear();
+        const now = new Date();
 
-  const [
-    modules,
-    positions,
-    positionRequirements,
-    recentTrainings,
-    stats
-  ] = await Promise.all([
-    // Training modules
-    prisma.trainingModule.findMany({
-      where: { practiceId: practice.id },
-      include: {
-        _count: { select: { EmployeeTrainings: true, PositionRequirements: true } }
+        const [
+          modules,
+          positions,
+          positionRequirements,
+          recentTrainings,
+          stats
+        ] = await Promise.all([
+          // Training modules
+          prisma.trainingModule.findMany({
+            where: { practiceId: practice.id },
+            include: {
+              _count: { select: { EmployeeTrainings: true, PositionRequirements: true } }
+            },
+            orderBy: { name: "asc" }
+          }),
+          // Unique positions
+          prisma.employee.findMany({
+            where: { practiceId: practice.id, isActive: true },
+            select: { position: true },
+            distinct: ["position"]
+          }),
+          // Position requirements
+          prisma.positionTrainingRequirement.findMany({
+            where: { practiceId: practice.id },
+            include: { TrainingModule: { select: { id: true, name: true } } },
+            orderBy: { position: "asc" }
+          }),
+          // Recent trainings (last 20)
+          prisma.employeeTraining.findMany({
+            where: { Employee: { practiceId: practice.id } },
+            include: {
+              Employee: { select: { id: true, fullName: true, position: true } },
+              TrainingModule: { select: { id: true, name: true } }
+            },
+            orderBy: { completedDate: "desc" },
+            take: 20
+          }),
+          // Aggregated stats
+          prisma.$queryRaw<[{
+            totalModules: bigint;
+            activeModules: bigint;
+            totalRecords: bigint;
+            completedThisYear: bigint;
+            expiringRecords: bigint;
+            totalCpdPoints: bigint | null;
+          }]>`
+            SELECT
+              (SELECT COUNT(*) FROM "TrainingModule" WHERE "practiceId" = ${practice.id}) as "totalModules",
+              (SELECT COUNT(*) FROM "TrainingModule" WHERE "practiceId" = ${practice.id} AND "isActive" = true) as "activeModules",
+              (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id}) as "totalRecords",
+              (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et.year = ${currentYear} AND et.status = 'COMPLETED') as "completedThisYear",
+              (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et."expiryDate" IS NOT NULL AND et."expiryDate" > ${now} AND et."expiryDate" <= ${new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)}) as "expiringRecords",
+              (SELECT SUM(et."cpdPoints") FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et.year = ${currentYear}) as "totalCpdPoints"
+          `
+        ]);
+
+        // Group position requirements
+        const groupedRequirements = positionRequirements.reduce((acc, req) => {
+          if (!acc[req.position]) acc[req.position] = [];
+          acc[req.position].push(req);
+          return acc;
+        }, {} as Record<string, typeof positionRequirements>);
+
+        const s = stats[0];
+        return {
+          modules,
+          positions: positions.map(p => p.position),
+          positionRequirements: groupedRequirements,
+          recentTrainings,
+          stats: {
+            totalModules: Number(s?.totalModules || 0),
+            activeModules: Number(s?.activeModules || 0),
+            totalRecords: Number(s?.totalRecords || 0),
+            completedThisYear: Number(s?.completedThisYear || 0),
+            expiringRecords: Number(s?.expiringRecords || 0),
+            totalCpdPointsThisYear: Number(s?.totalCpdPoints || 0)
+          }
+        };
       },
-      orderBy: { name: "asc" }
-    }),
-    // Unique positions
-    prisma.employee.findMany({
-      where: { practiceId: practice.id, isActive: true },
-      select: { position: true },
-      distinct: ["position"]
-    }),
-    // Position requirements
-    prisma.positionTrainingRequirement.findMany({
-      where: { practiceId: practice.id },
-      include: { TrainingModule: { select: { id: true, name: true } } },
-      orderBy: { position: "asc" }
-    }),
-    // Recent trainings (last 20)
-    prisma.employeeTraining.findMany({
-      where: { Employee: { practiceId: practice.id } },
-      include: {
-        Employee: { select: { id: true, fullName: true, position: true } },
-        TrainingModule: { select: { id: true, name: true } }
-      },
-      orderBy: { completedDate: "desc" },
-      take: 20
-    }),
-    // Aggregated stats
-    prisma.$queryRaw<[{
-      totalModules: bigint;
-      activeModules: bigint;
-      totalRecords: bigint;
-      completedThisYear: bigint;
-      expiringRecords: bigint;
-      totalCpdPoints: bigint | null;
-    }]>`
-      SELECT
-        (SELECT COUNT(*) FROM "TrainingModule" WHERE "practiceId" = ${practice.id}) as "totalModules",
-        (SELECT COUNT(*) FROM "TrainingModule" WHERE "practiceId" = ${practice.id} AND "isActive" = true) as "activeModules",
-        (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id}) as "totalRecords",
-        (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et.year = ${currentYear} AND et.status = 'COMPLETED') as "completedThisYear",
-        (SELECT COUNT(*) FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et."expiryDate" IS NOT NULL AND et."expiryDate" > ${now} AND et."expiryDate" <= ${new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)}) as "expiringRecords",
-        (SELECT SUM(et."cpdPoints") FROM "EmployeeTraining" et JOIN "Employee" e ON et."employeeId" = e.id WHERE e."practiceId" = ${practice.id} AND et.year = ${currentYear}) as "totalCpdPoints"
-    `
-  ]);
-
-  // Group position requirements
-  const groupedRequirements = positionRequirements.reduce((acc, req) => {
-    if (!acc[req.position]) acc[req.position] = [];
-    acc[req.position].push(req);
-    return acc;
-  }, {} as Record<string, typeof positionRequirements>);
-
-      const s = stats[0];
-      return {
-        modules,
-        positions: positions.map(p => p.position),
-        positionRequirements: groupedRequirements,
-        recentTrainings,
-        stats: {
-          totalModules: Number(s?.totalModules || 0),
-          activeModules: Number(s?.activeModules || 0),
-          totalRecords: Number(s?.totalRecords || 0),
-          completedThisYear: Number(s?.completedThisYear || 0),
-          expiringRecords: Number(s?.expiringRecords || 0),
-          totalCpdPointsThisYear: Number(s?.totalCpdPoints || 0)
-        }
-      };
-    },
-    CACHE_DURATIONS.SHORT // 1 minute
+      CACHE_DURATIONS.SHORT // 1 minute
     );
   } catch (error) {
     console.error("Training page data fetch error:", error);

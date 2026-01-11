@@ -19,7 +19,13 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   // Get the database user with role - this will create user/practice if needed
-  const result = await ensureUserAndPractice();
+  let result;
+  try {
+    result = await ensureUserAndPractice();
+  } catch (error) {
+    console.error("Failed to load user data:", error);
+    redirect("/sign-in?error=session");
+  }
 
   if (!result.user) {
     redirect("/sign-in");
@@ -39,11 +45,21 @@ export default async function DashboardLayout({
     redirect("/onboarding");
   }
 
-  // Get unread notification count for the current user
-  const unreadNotifications = await getUnreadAlertCount(dbUser.id);
+  // Get unread notification count - with fallback to 0 on error
+  let unreadNotifications = 0;
+  try {
+    unreadNotifications = await getUnreadAlertCount(dbUser.id);
+  } catch (error) {
+    console.error("Failed to load notification count:", error);
+  }
 
-  // Get all practices for the switcher
-  const userPractices = await getUserPractices();
+  // Get all practices for the switcher - with fallback to empty array
+  let userPractices: Awaited<ReturnType<typeof getUserPractices>> = [];
+  try {
+    userPractices = await getUserPractices();
+  } catch (error) {
+    console.error("Failed to load user practices:", error);
+  }
 
   return (
     <DashboardThemeProvider>

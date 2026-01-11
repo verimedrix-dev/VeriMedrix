@@ -131,14 +131,21 @@ export async function markAllAlertsAsRead(userId: string) {
  * Get unread alert count for a user
  */
 export async function getUnreadAlertCount(userId: string) {
-  const count = await prisma.alert.count({
-    where: {
-      recipientId: userId,
-      status: "PENDING",
-    },
-  });
-
-  return count;
+  try {
+    const { withDbConnection } = await import("@/lib/prisma");
+    const count = await withDbConnection(() =>
+      prisma.alert.count({
+        where: {
+          recipientId: userId,
+          status: "PENDING",
+        },
+      })
+    );
+    return count;
+  } catch (error) {
+    console.error("getUnreadAlertCount error:", error);
+    return 0;
+  }
 }
 
 /**

@@ -118,99 +118,113 @@ export async function getLocumsPageData() {
 
 // Get all locums for the practice (kept for backward compatibility)
 export const getLocums = cache(async () => {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return [];
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return [];
 
-  return await prisma.locum.findMany({
-    where: { practiceId: practice.id },
-    select: {
-      id: true,
-      fullName: true,
-      email: true,
-      phone: true,
-      sourceType: true,
-      agencyName: true,
-      hourlyRate: true,
-      hpcsaNumber: true,
-      hpcsaExpiry: true,
-      indemnityInsuranceExpiry: true,
-      isActive: true,
-      LocumTimesheet: {
-        where: { status: "CLOCKED_IN" },
-        select: { id: true, clockIn: true },
-        take: 1,
-      },
-    },
-    orderBy: { fullName: "asc" },
-  });
+    return await withDbConnection(() =>
+      prisma.locum.findMany({
+        where: { practiceId: practice.id },
+        select: {
+          id: true,
+          fullName: true,
+          email: true,
+          phone: true,
+          sourceType: true,
+          agencyName: true,
+          hourlyRate: true,
+          hpcsaNumber: true,
+          hpcsaExpiry: true,
+          indemnityInsuranceExpiry: true,
+          isActive: true,
+          LocumTimesheet: {
+            where: { status: "CLOCKED_IN" },
+            select: { id: true, clockIn: true },
+            take: 1,
+          },
+        },
+        orderBy: { fullName: "asc" },
+      })
+    );
+  } catch (error) {
+    console.error("getLocums error:", error);
+    return [];
+  }
 });
 
 // Get locum stats for dashboard (kept for backward compatibility)
 export const getLocumStats = cache(async () => {
-  const { practice } = await ensureUserAndPractice();
-  if (!practice) return null;
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return null;
 
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thirtyDaysFromNow = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const [
-    totalLocums,
-    activeLocums,
-    currentlyWorking,
-    expiringCredentials,
-    monthlyStats,
-    pendingApproval,
-  ] = await Promise.all([
-    prisma.locum.count({
-      where: { practiceId: practice.id },
-    }),
-    prisma.locum.count({
-      where: { practiceId: practice.id, isActive: true },
-    }),
-    prisma.locumTimesheet.count({
-      where: {
-        practiceId: practice.id,
-        status: "CLOCKED_IN",
-      },
-    }),
-    prisma.locum.count({
-      where: {
-        practiceId: practice.id,
-        isActive: true,
-        OR: [
-          { hpcsaExpiry: { lte: thirtyDaysFromNow, gte: now } },
-          { indemnityInsuranceExpiry: { lte: thirtyDaysFromNow, gte: now } },
-        ],
-      },
-    }),
-    prisma.locumTimesheet.aggregate({
-      where: {
-        practiceId: practice.id,
-        date: { gte: startOfMonth, lte: endOfMonth },
-        status: { in: ["CLOCKED_OUT", "APPROVED"] },
-      },
-      _sum: { hoursWorked: true, totalPayable: true },
-    }),
-    prisma.locumTimesheet.count({
-      where: {
-        practiceId: practice.id,
-        status: "CLOCKED_OUT",
-      },
-    }),
-  ]);
+    return await withDbConnection(async () => {
+      const [
+        totalLocums,
+        activeLocums,
+        currentlyWorking,
+        expiringCredentials,
+        monthlyStats,
+        pendingApproval,
+      ] = await Promise.all([
+        prisma.locum.count({
+          where: { practiceId: practice.id },
+        }),
+        prisma.locum.count({
+          where: { practiceId: practice.id, isActive: true },
+        }),
+        prisma.locumTimesheet.count({
+          where: {
+            practiceId: practice.id,
+            status: "CLOCKED_IN",
+          },
+        }),
+        prisma.locum.count({
+          where: {
+            practiceId: practice.id,
+            isActive: true,
+            OR: [
+              { hpcsaExpiry: { lte: thirtyDaysFromNow, gte: now } },
+              { indemnityInsuranceExpiry: { lte: thirtyDaysFromNow, gte: now } },
+            ],
+          },
+        }),
+        prisma.locumTimesheet.aggregate({
+          where: {
+            practiceId: practice.id,
+            date: { gte: startOfMonth, lte: endOfMonth },
+            status: { in: ["CLOCKED_OUT", "APPROVED"] },
+          },
+          _sum: { hoursWorked: true, totalPayable: true },
+        }),
+        prisma.locumTimesheet.count({
+          where: {
+            practiceId: practice.id,
+            status: "CLOCKED_OUT",
+          },
+        }),
+      ]);
 
-  return {
-    totalLocums,
-    activeLocums,
-    currentlyWorking,
-    expiringCredentials,
-    monthlyHours: monthlyStats._sum.hoursWorked || 0,
-    monthlyPayable: monthlyStats._sum.totalPayable || 0,
-    pendingApproval,
-  };
+      return {
+        totalLocums,
+        activeLocums,
+        currentlyWorking,
+        expiringCredentials,
+        monthlyHours: monthlyStats._sum.hoursWorked || 0,
+        monthlyPayable: monthlyStats._sum.totalPayable || 0,
+        pendingApproval,
+      };
+    });
+  } catch (error) {
+    console.error("getLocumStats error:", error);
+    return null;
+  }
 });
 
 // Create a new locum
