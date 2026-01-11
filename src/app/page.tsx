@@ -538,7 +538,7 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/sign-up" className="block">
+                  <Link href="/sign-up?plan=ESSENTIALS" className="block">
                     <Button variant="outline" className="w-full h-12 text-base border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all">
                       Start 14-Day Free Trial
                     </Button>
@@ -585,7 +585,7 @@ export default function HomePage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/sign-up" className="block">
+                  <Link href="/sign-up?plan=PROFESSIONAL" className="block">
                     <Button className="w-full h-12 text-base bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all hover:shadow-blue-500/40 group">
                       Start 14-Day Free Trial
                       <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +28,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [planFromSignup, setPlanFromSignup] = useState<"ESSENTIALS" | "PROFESSIONAL" | null>(null);
 
   // Step 1: Practice Details
   const [practiceName, setPracticeName] = useState("");
@@ -39,7 +40,19 @@ export default function OnboardingPage() {
   // Step 2: Plan Selection
   const [selectedPlan, setSelectedPlan] = useState<"ESSENTIALS" | "PROFESSIONAL" | "">("");
 
-  const totalSteps = 2;
+  // Check if plan was selected during sign-up
+  useEffect(() => {
+    const storedPlan = localStorage.getItem("selectedPlan");
+    if (storedPlan === "ESSENTIALS" || storedPlan === "PROFESSIONAL") {
+      setPlanFromSignup(storedPlan);
+      setSelectedPlan(storedPlan);
+      // Clear it so it doesn't persist for future sign-ups
+      localStorage.removeItem("selectedPlan");
+    }
+  }, []);
+
+  // If plan was pre-selected, only show 1 step
+  const totalSteps = planFromSignup ? 1 : 2;
 
   const handleNext = () => {
     if (step === 1) {
@@ -100,31 +113,33 @@ export default function OnboardingPage() {
             Let&apos;s get your practice set up in just a few steps
           </CardDescription>
 
-          {/* Progress indicator */}
-          <div className="flex items-center justify-center gap-2 mt-6">
-            {[1, 2].map((s) => (
-              <div key={s} className="flex items-center">
-                <div
-                  className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                    s < step
-                      ? "bg-green-500 text-white"
-                      : s === step
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-200 text-slate-500"
-                  }`}
-                >
-                  {s < step ? <Check className="h-4 w-4" /> : s}
-                </div>
-                {s < totalSteps && (
+          {/* Progress indicator - only show if more than 1 step */}
+          {totalSteps > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-6">
+              {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => (
+                <div key={s} className="flex items-center">
                   <div
-                    className={`w-12 h-1 mx-1 rounded ${
-                      s < step ? "bg-green-500" : "bg-slate-200"
+                    className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                      s < step
+                        ? "bg-green-500 text-white"
+                        : s === step
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-200 text-slate-500"
                     }`}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
+                  >
+                    {s < step ? <Check className="h-4 w-4" /> : s}
+                  </div>
+                  {s < totalSteps && (
+                    <div
+                      className={`w-12 h-1 mx-1 rounded ${
+                        s < step ? "bg-green-500" : "bg-slate-200"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </CardHeader>
 
         <CardContent className="pt-6">
@@ -199,11 +214,20 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Show selected plan when pre-selected from sign-up */}
+              {planFromSignup && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
+                  <p className="text-sm text-blue-800 text-center">
+                    <strong>Selected Plan:</strong> {planFromSignup === "PROFESSIONAL" ? "Professional" : "Essentials"} - 14-day free trial
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Step 2: Plan Selection */}
-          {step === 2 && (
+          {/* Step 2: Plan Selection - only show if plan wasn't pre-selected */}
+          {step === 2 && !planFromSignup && (
             <div className="space-y-6">
               <div className="flex items-center gap-3 mb-4">
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">

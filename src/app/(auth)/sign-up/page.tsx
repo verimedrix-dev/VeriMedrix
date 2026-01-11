@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,16 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
+
+  // Store the selected plan in localStorage when coming from landing page
+  useEffect(() => {
+    const plan = searchParams.get("plan");
+    if (plan === "ESSENTIALS" || plan === "PROFESSIONAL") {
+      localStorage.setItem("selectedPlan", plan);
+    }
+  }, [searchParams]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
