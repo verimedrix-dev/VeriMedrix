@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ export default function SignInPage() {
   const [verifying2FA, setVerifying2FA] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const router = useRouter();
   const supabase = createClient();
 
   // Focus first OTP input when 2FA is required
@@ -69,11 +67,19 @@ export default function SignInPage() {
       }
 
       // No 2FA required, proceed to dashboard
-      // Wait a moment to ensure session cookies are fully set
+      // Wait for session to be confirmed before redirect
       toast.success("Signed in successfully!");
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      router.refresh();
-      router.push("/dashboard");
+
+      // Verify session is actually set before redirecting
+      const { data: sessionCheck } = await supabase.auth.getSession();
+      if (!sessionCheck.session) {
+        toast.error("Session not established. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      // Use window.location for a full page load to ensure cookies are sent
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Sign in error:", err);
       toast.error("An unexpected error occurred");
@@ -134,9 +140,17 @@ export default function SignInPage() {
       }
 
       toast.success("Signed in successfully!");
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      router.refresh();
-      router.push("/dashboard");
+
+      // Verify session is actually set before redirecting
+      const { data: sessionCheck } = await supabase.auth.getSession();
+      if (!sessionCheck.session) {
+        toast.error("Session not established. Please try again.");
+        setVerifying2FA(false);
+        return;
+      }
+
+      // Use window.location for a full page load to ensure cookies are sent
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("2FA verification error:", err);
       toast.error("Verification failed");
