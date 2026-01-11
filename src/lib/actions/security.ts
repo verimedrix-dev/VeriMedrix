@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { prisma, withDbConnection } from "@/lib/prisma";
 import { authenticator } from "otplib";
 import * as QRCode from "qrcode";
 
@@ -250,65 +250,82 @@ export async function disable2FA(code: string) {
 
 // Check if user has 2FA enabled (for login flow)
 export async function check2FARequired(email: string) {
-  const user = await prisma.user.findFirst({
-    where: { email },
-    select: {
-      twoFactorEnabled: true,
-      role: true,
-    },
-  });
+  try {
+    const user = await withDbConnection(() =>
+      prisma.user.findFirst({
+        where: { email },
+        select: {
+          twoFactorEnabled: true,
+          role: true,
+        },
+      })
+    );
 
-  if (!user) {
+    if (!user) {
+      return { required: false, error: null };
+    }
+
+    return {
+      required: user.twoFactorEnabled,
+      isOwner: user.role === "PRACTICE_OWNER" || user.role === "SUPER_ADMIN",
+      error: null,
+    };
+  } catch (error) {
+    console.error("check2FARequired error:", error);
+    // On database error, assume 2FA not required to allow login attempt
     return { required: false, error: null };
   }
-
-  return {
-    required: user.twoFactorEnabled,
-    isOwner: user.role === "PRACTICE_OWNER" || user.role === "SUPER_ADMIN",
-    error: null,
-  };
 }
 
 // Verify 2FA code during login
 export async function verify2FALogin(email: string, code: string) {
-  const user = await prisma.user.findFirst({
-    where: { email },
-  });
-
-  if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
-    return { success: false, error: "2FA not enabled for this user" };
-  }
-
-  // Verify the code
-  const isValidTotp = authenticator.verify({
-    token: code,
-    secret: user.twoFactorSecret,
-  });
-
-  // Check backup codes if TOTP fails
-  if (!isValidTotp && user.twoFactorBackupCodes) {
-    const backupCodes = JSON.parse(user.twoFactorBackupCodes) as string[];
-    const codeIndex = backupCodes.findIndex(
-      (bc) => bc.toUpperCase() === code.toUpperCase()
+  try {
+    const user = await withDbConnection(() =>
+      prisma.user.findFirst({
+        where: { email },
+      })
     );
 
-    if (codeIndex !== -1) {
-      // Remove used backup code
-      const remainingCodes = backupCodes.filter((_, i) => i !== codeIndex);
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          twoFactorBackupCodes: JSON.stringify(remainingCodes),
-          updatedAt: new Date(),
-        },
-      });
-      return { success: true };
+    if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+      return { success: false, error: "2FA not enabled for this user" };
     }
-  }
 
-  if (!isValidTotp) {
-    return { success: false, error: "Invalid verification code" };
-  }
+    // Verify the code
+    const isValidTotp = authenticator.verify({
+      token: code,
+      secret: user.twoFactorSecret,
+    });
 
-  return { success: true };
+    // Check backup codes if TOTP fails
+    if (!isValidTotp && user.twoFactorBackupCodes) {
+      const backupCodes = JSON.parse(user.twoFactorBackupCodes) as string[];
+      const codeIndex = backupCodes.findIndex(
+        (bc) => bc.toUpperCase() === code.toUpperCase()
+      );
+
+      if (codeIndex !== -1) {
+        // Remove used backup code
+        const remainingCodes = backupCodes.filter((_, i) => i !== codeIndex);
+        await withDbConnection(() =>
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              twoFactorBackupCodes: JSON.stringify(remainingCodes),
+              updatedAt: new Date(),
+            },
+          })
+        );
+        return { success: true };
+      }
+    }
+
+    if (!isValidTotp) {
+      return { success: false, error: "Invalid verification code" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("verify2FALogin error:", error);
+    return { success: false, error: "Verification service unavailable. Please try again." };
+  }
 }
