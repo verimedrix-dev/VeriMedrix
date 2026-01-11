@@ -36,7 +36,11 @@ export async function withDbConnection<T>(
           error.message.includes("ECONNREFUSED") ||
           error.message.includes("prepared statement") ||
           error.message.includes("PrismaClientInitializationError") ||
-          error.message.includes("Server has closed the connection"));
+          error.message.includes("Server has closed the connection") ||
+          error.message.includes("MaxClientsInSessionMode") ||
+          error.message.includes("max clients reached") ||
+          error.message.includes("too many connections") ||
+          error.message.includes("remaining connection slots"));
 
       if (isConnectionError && attempt < retries) {
         // Exponential backoff: 500ms, 1000ms, 2000ms
