@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { redirect, isRedirectError } from "next/navigation";
+import { redirect } from "next/navigation";
 import { VeyroLogoFull } from "@/components/ui/veyro-logo";
 import { Separator } from "@/components/ui/separator";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -24,7 +24,13 @@ export default async function DashboardLayout({
     result = await ensureUserAndPractice();
   } catch (error) {
     // Re-throw redirect errors so Next.js can handle them properly
-    if (isRedirectError(error)) {
+    // Next.js redirect() throws an error with digest starting with "NEXT_REDIRECT"
+    if (
+      error instanceof Error &&
+      "digest" in error &&
+      typeof (error as Error & { digest?: string }).digest === "string" &&
+      (error as Error & { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
       throw error;
     }
     console.error("Failed to load user data:", error);
