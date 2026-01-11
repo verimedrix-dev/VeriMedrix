@@ -32,6 +32,11 @@ export async function createClient() {
 // Cache the auth user for the entire request to avoid multiple Supabase API calls
 export const getAuthUser = cache(async () => {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error) {
+    console.error("getAuthUser error:", error.message);
+  }
+
   return user;
 });

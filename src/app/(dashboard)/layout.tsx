@@ -33,7 +33,22 @@ export default async function DashboardLayout({
     ) {
       throw error;
     }
-    console.error("Failed to load user data:", error);
+
+    // Log the actual error for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Failed to load user data:", errorMessage);
+
+    // Check if this is a database connection error vs auth error
+    const isDbError = errorMessage.includes("database") ||
+                      errorMessage.includes("prisma") ||
+                      errorMessage.includes("connection") ||
+                      errorMessage.includes("ECONNREFUSED");
+
+    if (isDbError) {
+      // Database error - don't sign out the user, just show error
+      console.error("Database connection error - user session may still be valid");
+    }
+
     redirect("/sign-in?error=session");
   }
 

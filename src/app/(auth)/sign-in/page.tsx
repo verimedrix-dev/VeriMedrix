@@ -69,7 +69,9 @@ export default function SignInPage() {
       }
 
       // No 2FA required, proceed to dashboard
+      // Wait a moment to ensure session cookies are fully set
       toast.success("Signed in successfully!");
+      await new Promise((resolve) => setTimeout(resolve, 100));
       router.refresh();
       router.push("/dashboard");
     } catch (err) {
@@ -132,6 +134,7 @@ export default function SignInPage() {
       }
 
       toast.success("Signed in successfully!");
+      await new Promise((resolve) => setTimeout(resolve, 100));
       router.refresh();
       router.push("/dashboard");
     } catch (err) {
