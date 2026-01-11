@@ -171,28 +171,3 @@ export async function getSupportTicketCounts() {
 
   return { total, open, awaitingResponse };
 }
-
-// Helper to format status for display
-export function getStatusLabel(status: TicketStatus): string {
-  const labels: Record<TicketStatus, string> = {
-    OPEN: "Open",
-    IN_PROGRESS: "In Progress",
-    WAITING_RESPONSE: "Awaiting Your Response",
-    RESOLVED: "Resolved",
-    CLOSED: "Closed",
-  };
-  return labels[status];
-}
-
-// Helper to format category for display
-export function getCategoryLabel(category: TicketCategory): string {
-  const labels: Record<TicketCategory, string> = {
-    BILLING: "Billing",
-    TECHNICAL: "Technical Issue",
-    FEATURE_REQUEST: "Feature Request",
-    BUG_REPORT: "Bug Report",
-    ACCOUNT: "Account",
-    OTHER: "Other",
-  };
-  return labels[category];
-}
