@@ -37,7 +37,7 @@ export function InactivityHandler() {
       const supabase = createClient();
       await supabase.auth.signOut();
       localStorage.removeItem(LAST_ACTIVITY_KEY);
-      router.push("/sign-in");
+      router.push("/");
     }
   }, [router, updateLastActivity, setTheme]);
 

@@ -57,7 +57,7 @@ export function ActiveSessionsDialog() {
       if (result.success) {
         toast.success("Signed out from all devices");
         setOpen(false);
-        router.push("/sign-in");
+        router.push("/");
       } else {
         toast.error(result.error || "Failed to sign out");
       }
