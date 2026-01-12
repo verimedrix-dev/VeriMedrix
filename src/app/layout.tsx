@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "VeriMedrix",
   description: "Compliance made easy - Healthcare compliance management platform",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
