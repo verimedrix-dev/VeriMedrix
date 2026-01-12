@@ -80,7 +80,7 @@ export default function HomePage() {
       </div>
 
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100/50">
+      <header className="fixed top-0 left-0 right-0 z-[100] bg-white/90 backdrop-blur-xl border-b border-slate-100/50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <a href="#top" className="cursor-pointer">
@@ -489,7 +489,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-20 lg:py-32">
+      <section id="pricing" className="py-20 lg:py-32 relative z-10">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <FeatureSection>
             <div className="text-center mb-16">
