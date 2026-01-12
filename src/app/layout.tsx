@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "VeriMedrix",
   description: "Compliance made easy - Healthcare compliance management platform",
   icons: {
-    icon: "/favicon.png",
+    icon: "/site icon.png",
   },
 };
 
