@@ -75,8 +75,23 @@ function AcceptInvitationContent() {
       return;
     }
 
-    if (password.length < 6) {
-      toast.error("Password must be at least 6 characters");
+    // Password validation: at least 6 letters, 1 number, and 1 symbol
+    const letterCount = (password.match(/[a-zA-Z]/g) || []).length;
+    const hasNumber = /\d/.test(password);
+    const hasSymbol = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
+
+    if (letterCount < 6) {
+      toast.error("Password must contain at least 6 letters");
+      return;
+    }
+
+    if (!hasNumber) {
+      toast.error("Password must contain at least 1 number");
+      return;
+    }
+
+    if (!hasSymbol) {
+      toast.error("Password must contain at least 1 symbol (e.g., !@#$%^&*)");
       return;
     }
 
@@ -221,12 +236,14 @@ function AcceptInvitationContent() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Create a password (min. 6 characters)"
+                placeholder="Create a secure password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
               />
+              <p className="text-xs text-slate-500">
+                Password must contain at least 6 letters, 1 number, and 1 symbol
+              </p>
             </div>
 
             <div className="space-y-2">
