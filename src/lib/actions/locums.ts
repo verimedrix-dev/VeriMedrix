@@ -6,6 +6,8 @@ import { revalidatePath } from "next/cache";
 import { cache } from "react";
 import { LocumSourceType, TimesheetStatus, PaymentStatus } from "@prisma/client";
 import { getCachedData, cacheKeys, CACHE_DURATIONS, invalidateCache } from "@/lib/redis";
+import { sendEmail, getLocumPaymentReportEmail } from "@/lib/email";
+import { format } from "date-fns";
 
 // Default empty data for error fallback
 const emptyLocumsData = {
@@ -767,3 +769,132 @@ export async function deleteLocumDocument(documentId: string, locumId: string) {
 
   revalidatePath(`/locums/${locumId}`);
 }
+
+// =============================================================================
+// LOCUM PAYMENT REPORTS (EMAIL-ONLY)
+// =============================================================================
+
+/**
+ * Send a payment report to a locum via email
+ * This is the only way locums receive their payment details (not shown on screen)
+ */
+export async function sendLocumPaymentReport(
+  locumId: string,
+  timesheetIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { practice } = await ensureUserAndPractice();
+    if (!practice) return { success: false, error: "Not authenticated" };
+
+    // Get locum details
+    const locum = await prisma.locum.findFirst({
+      where: { id: locumId, practiceId: practice.id },
+    });
+
+    if (!locum) {
+      return { success: false, error: "Locum not found" };
+    }
+
+    if (!locum.email) {
+      return { success: false, error: "Locum does not have an email address" };
+    }
+
+    // Get the timesheets
+    const timesheets = await prisma.locumTimesheet.findMany({
+      where: {
+        id: { in: timesheetIds },
+        locumId: locumId,
+        practiceId: practice.id,
+      },
+      orderBy: { date: "asc" },
+    });
+
+    if (timesheets.length === 0) {
+      return { success: false, error: "No timesheets found" };
+    }
+
+    // Calculate totals
+    const totalHours = timesheets.reduce((sum, ts) => sum + (ts.hoursWorked || 0), 0);
+    const totalPayable = timesheets.reduce((sum, ts) => sum + (ts.totalPayable || 0), 0);
+
+    // Format timesheets for email
+    const formattedTimesheets = timesheets.map(ts => ({
+      date: format(new Date(ts.date), "dd MMM yyyy"),
+      clockIn: ts.clockIn ? format(new Date(ts.clockIn), "HH:mm") : "-",
+      clockOut: ts.clockOut ? format(new Date(ts.clockOut), "HH:mm") : "-",
+      hoursWorked: ts.hoursWorked || 0,
+      payable: ts.totalPayable || 0,
+    }));
+
+    // Generate and send email
+    const emailContent = getLocumPaymentReportEmail({
+      locumName: locum.fullName,
+      practiceName: practice.name,
+      timesheets: formattedTimesheets,
+      totalHours,
+      totalPayable,
+      hourlyRate: locum.hourlyRate,
+    });
+
+    await sendEmail({
+      to: locum.email,
+      subject: emailContent.subject,
+      html: emailContent.html,
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error sending payment report:", error);
+    return { success: false, error: "Failed to send payment report" };
+  }
+}
+
+/**
+ * Get locum payment data without showing amounts (for privacy)
+ * Only returns name, dates, and hours - not monetary values
+ */
+export async function getLocumPaymentSummary(locumId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) return null;
+
+  const locum = await prisma.locum.findFirst({
+    where: { id: locumId, practiceId: practice.id },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      sourceType: true,
+      agencyName: true,
+    },
+  });
+
+  if (!locum) return null;
+
+  const unpaidTimesheets = await prisma.locumTimesheet.findMany({
+    where: {
+      locumId: locumId,
+      practiceId: practice.id,
+      status: "APPROVED",
+      paymentStatus: "UNPAID",
+    },
+    select: {
+      id: true,
+      date: true,
+      clockIn: true,
+      clockOut: true,
+      hoursWorked: true,
+      // Note: NOT including totalPayable or hourlyRate for privacy
+    },
+    orderBy: { date: "asc" },
+  });
+
+  const totalHours = unpaidTimesheets.reduce((sum, ts) => sum + (ts.hoursWorked || 0), 0);
+
+  return {
+    locum,
+    timesheets: unpaidTimesheets,
+    totalHours,
+    timesheetCount: unpaidTimesheets.length,
+  };
+}
+

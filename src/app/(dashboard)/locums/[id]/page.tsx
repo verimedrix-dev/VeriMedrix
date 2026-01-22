@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getLocum } from "@/lib/actions/locums";
-import { requirePermission, checkPermission } from "@/lib/auth";
+import { requirePermission, checkPermission, isOwner as checkIsOwner } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { notFound } from "next/navigation";
 import {
@@ -33,6 +33,7 @@ interface Props {
 export default async function LocumProfilePage({ params }: Props) {
   await requirePermission(PERMISSIONS.EMPLOYEES);
   const canManage = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  const ownerAccess = await checkIsOwner();
 
   const { id } = await params;
   const locum = await getLocum(id);
@@ -118,17 +119,19 @@ export default async function LocumProfilePage({ params }: Props) {
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-xs text-slate-500">Total Earnings</p>
-                <p className="text-lg font-semibold">R{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+        {ownerAccess && (
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <DollarSign className="h-5 w-5 text-green-500" />
+                <div>
+                  <p className="text-xs text-slate-500">Total Earnings</p>
+                  <p className="text-lg font-semibold">R{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -187,13 +190,15 @@ export default async function LocumProfilePage({ params }: Props) {
                 </div>
               </div>
             )}
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-5 w-5 text-slate-400" />
-              <div>
-                <p className="text-xs text-slate-500">Hourly Rate</p>
-                <p className="font-medium">R{locum.hourlyRate.toFixed(2)}/hr</p>
+            {ownerAccess && (
+              <div className="flex items-center gap-3">
+                <DollarSign className="h-5 w-5 text-slate-400" />
+                <div>
+                  <p className="text-xs text-slate-500">Hourly Rate</p>
+                  <p className="font-medium">R{locum.hourlyRate.toFixed(2)}/hr</p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -275,7 +280,7 @@ export default async function LocumProfilePage({ params }: Props) {
               </p>
             </div>
           ) : (
-            <LocumTimesheetHistory timesheets={locum.LocumTimesheet} />
+            <LocumTimesheetHistory timesheets={locum.LocumTimesheet} showFinancials={ownerAccess} />
           )}
         </CardContent>
       </Card>

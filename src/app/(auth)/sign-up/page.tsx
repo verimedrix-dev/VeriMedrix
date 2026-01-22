@@ -25,7 +25,7 @@ function SignUpForm() {
   // Store the selected plan in localStorage when coming from landing page
   useEffect(() => {
     const plan = searchParams.get("plan");
-    if (plan === "ESSENTIALS" || plan === "PROFESSIONAL") {
+    if (plan === "ESSENTIALS" || plan === "HR_MANAGEMENT" || plan === "PROFESSIONAL") {
       localStorage.setItem("selectedPlan", plan);
     }
   }, [searchParams]);

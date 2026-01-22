@@ -21,12 +21,17 @@ export const PERMISSIONS = {
   EMPLOYEES_CRUD: "employees_crud", // Create, edit, delete employees
   PAYROLL: "payroll",
 
+  // Logbook & Custom Forms
+  LOGBOOK: "logbook",
+  LOGBOOK_CRUD: "logbook_crud",
+
   // Premium features (Professional plan only)
   AI_ASSISTANT: "ai_assistant",
 
   // Admin features
   TEAM: "team",
   SETTINGS: "settings",
+
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -40,7 +45,6 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
   ADMIN: 80,
   STAFF: 50,
   VIEWER: 10,
-  LOCUM: 5,
 };
 
 /**
@@ -53,7 +57,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
  * - VIEWER (Minimum): Personal access only - own tasks, leave, view documents
  */
 const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
-  // Core features - all roles can access
+  // Core features - all roles except LOCUM can access
   [PERMISSIONS.DASHBOARD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.DOCUMENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.TASKS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
@@ -64,6 +68,10 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
   // OHSC Registers - Admin and above can access
   [PERMISSIONS.COMPLAINTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
   [PERMISSIONS.ADVERSE_EVENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
+
+  // Logbook & Custom Forms
+  [PERMISSIONS.LOGBOOK]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
+  [PERMISSIONS.LOGBOOK_CRUD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
 
   // HR Management - limited access
   [PERMISSIONS.EMPLOYEES]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
@@ -76,6 +84,7 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
   // Admin features - owner only
   [PERMISSIONS.TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
   [PERMISSIONS.SETTINGS]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+
 };
 
 /**
@@ -93,6 +102,8 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
+  "/logbook": PERMISSIONS.LOGBOOK,
+  "/forms": PERMISSIONS.LOGBOOK,
   "/team": PERMISSIONS.TEAM,
   "/settings": PERMISSIONS.SETTINGS,
 };

@@ -18,6 +18,7 @@ import {
   MessageSquare,
   AlertTriangle,
   ClipboardCheck,
+  ClipboardList,
   Shield,
   HelpCircle,
 } from "lucide-react";
@@ -39,25 +40,26 @@ interface NavItem {
 
 const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD },
-  { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.DASHBOARD },
-  { name: "OHSC Documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENTS },
+  { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.DASHBOARD, requiredFeature: "inspectionReadiness" },
+  { name: "OHSC Documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENTS, requiredFeature: "documents" },
   { name: "AI Assistant", href: "/ai-assistant", icon: Bot, permission: PERMISSIONS.AI_ASSISTANT, requiredFeature: "aiAssistant" },
-  { name: "Tasks", href: "/tasks", icon: CheckSquare, permission: PERMISSIONS.TASKS },
-  { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS },
+  { name: "Tasks", href: "/tasks", icon: CheckSquare, permission: PERMISSIONS.TASKS, requiredFeature: "tasks" },
+  { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS, requiredFeature: "logbook" },
+  { name: "Custom Forms", href: "/forms", icon: ClipboardList, permission: PERMISSIONS.LOGBOOK, requiredFeature: "logbook" },
   { name: "Calendar", href: "/calendar", icon: Calendar, permission: PERMISSIONS.CALENDAR },
 ];
 
 // OHSC Registers - for OHSC compliance tracking
 const registersNavigation: NavItem[] = [
-  { name: "Complaints", href: "/complaints", icon: MessageSquare, permission: PERMISSIONS.COMPLAINTS },
-  { name: "Adverse Events", href: "/adverse-events", icon: AlertTriangle, permission: PERMISSIONS.ADVERSE_EVENTS },
+  { name: "Complaints", href: "/complaints", icon: MessageSquare, permission: PERMISSIONS.COMPLAINTS, requiredFeature: "complaints" },
+  { name: "Adverse Events", href: "/adverse-events", icon: AlertTriangle, permission: PERMISSIONS.ADVERSE_EVENTS, requiredFeature: "adverseEvents" },
 ];
 
 const hrNavigation: NavItem[] = [
   { name: "Employees", href: "/employees", icon: UserCircle, permission: PERMISSIONS.EMPLOYEES },
   { name: "Locums", href: "/locums", icon: Stethoscope, permission: PERMISSIONS.EMPLOYEES, requiredFeature: "locums" },
   { name: "Payroll", href: "/payroll", icon: Wallet, permission: PERMISSIONS.PAYROLL, requiredFeature: "payroll" },
-  { name: "Leave", href: "/leave", icon: CalendarOff, permission: PERMISSIONS.LEAVE },
+  { name: "Leave", href: "/leave", icon: CalendarOff, permission: PERMISSIONS.LEAVE, requiredFeature: "leaveManagement" },
   { name: "Training", href: "/training", icon: GraduationCap, permission: PERMISSIONS.TRAINING, requiredFeature: "training" },
 ];
 
@@ -71,6 +73,7 @@ const adminNavigation: NavItem[] = [
 const supportNavigation: NavItem[] = [
   { name: "Support", href: "/support", icon: HelpCircle, permission: PERMISSIONS.DASHBOARD },
 ];
+
 
 interface SidebarNavProps {
   userRole: UserRole;

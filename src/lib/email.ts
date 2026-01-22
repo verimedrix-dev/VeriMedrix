@@ -479,6 +479,119 @@ export async function sendAccountDeletedEmail(
   return sendEmail({ to, subject, html });
 }
 
+// Locum Payment Report Email Template
+export function getLocumPaymentReportEmail({
+  locumName,
+  practiceName,
+  timesheets,
+  totalHours,
+  totalPayable,
+  hourlyRate,
+}: {
+  locumName: string;
+  practiceName: string;
+  timesheets: Array<{
+    date: string;
+    clockIn: string;
+    clockOut: string;
+    hoursWorked: number;
+    payable: number;
+  }>;
+  totalHours: number;
+  totalPayable: number;
+  hourlyRate: number;
+}) {
+  const timesheetRows = timesheets.map(ts => `
+    <tr>
+      <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">${ts.date}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">${ts.clockIn}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #E5E7EB;">${ts.clockOut}</td>
+      <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; text-align: right;">${ts.hoursWorked.toFixed(1)}h</td>
+      <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; text-align: right; font-weight: bold;">R${ts.payable.toFixed(2)}</td>
+    </tr>
+  `).join("");
+
+  return {
+    subject: `Payment Report from ${practiceName}`,
+    html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); padding: 30px; border-radius: 12px 12px 0 0;">
+    <h1 style="color: white; margin: 0; font-size: 24px;">VeriMedrix</h1>
+    <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0 0;">Payment Report</p>
+  </div>
+
+  <div style="background: white; padding: 30px; border: 1px solid #e5e7eb; border-top: none;">
+    <p>Hello ${locumName},</p>
+    <p>Here is your payment report from <strong>${practiceName}</strong>:</p>
+
+    <!-- Summary -->
+    <div style="background: #ECFDF5; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #A7F3D0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #64748B;">Hourly Rate:</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">R${hourlyRate.toFixed(2)}/hr</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #64748B;">Total Hours:</td>
+          <td style="padding: 8px 0; font-weight: bold; text-align: right;">${totalHours.toFixed(1)} hours</td>
+        </tr>
+        <tr style="border-top: 2px solid #059669;">
+          <td style="padding: 12px 0 8px 0; color: #059669; font-weight: bold; font-size: 18px;">Total Payable:</td>
+          <td style="padding: 12px 0 8px 0; font-weight: bold; text-align: right; color: #059669; font-size: 18px;">R${totalPayable.toFixed(2)}</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Timesheet Details -->
+    <h3 style="margin: 25px 0 15px 0; color: #1E40AF;">Timesheet Details</h3>
+    <table style="width: 100%; border-collapse: collapse; background: #F8FAFC; border-radius: 8px; font-size: 14px;">
+      <thead>
+        <tr style="background: #E5E7EB;">
+          <th style="padding: 10px; text-align: left; font-weight: 600;">Date</th>
+          <th style="padding: 10px; text-align: left; font-weight: 600;">In</th>
+          <th style="padding: 10px; text-align: left; font-weight: 600;">Out</th>
+          <th style="padding: 10px; text-align: right; font-weight: 600;">Hours</th>
+          <th style="padding: 10px; text-align: right; font-weight: 600;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${timesheetRows}
+      </tbody>
+      <tfoot>
+        <tr style="background: #059669; color: white;">
+          <td colspan="3" style="padding: 12px; font-weight: bold;">Total</td>
+          <td style="padding: 12px; text-align: right; font-weight: bold;">${totalHours.toFixed(1)}h</td>
+          <td style="padding: 12px; text-align: right; font-weight: bold;">R${totalPayable.toFixed(2)}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <p style="margin-top: 30px; font-size: 14px; color: #64748B;">
+      If you have any questions about this report, please contact the practice administrator.
+    </p>
+
+    <p style="margin-top: 10px; font-size: 12px; color: #94A3B8;">
+      This is a confidential payment report. Please keep it for your records.
+    </p>
+  </div>
+
+  <div style="background: #F8FAFC; padding: 20px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb; border-top: none; text-align: center;">
+    <p style="margin: 0; font-size: 12px; color: #64748B;">
+      &copy; ${new Date().getFullYear()} VeriMedrix
+    </p>
+  </div>
+</body>
+</html>
+    `,
+  };
+}
+
 // Weekly Digest Email Template
 export function getWeeklyDigestEmail({
   userName,

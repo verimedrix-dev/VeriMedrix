@@ -505,22 +505,62 @@ export default function HomePage() {
             </div>
           </FeatureSection>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Essentials */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* HR Management */}
             <FeatureSection delay={100}>
               <Card className="relative border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Essentials</h3>
-                  <p className="text-slate-500 mb-2">Perfect for small practices</p>
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">HR Management</h3>
+                  <p className="text-slate-500 mb-2">HR & Payroll focused</p>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
                     <Clock className="h-3 w-3" />
                     14-day free trial
                   </div>
-                  <div className="mb-8">
+                  <div className="mb-6">
+                    <span className="text-4xl font-bold text-slate-900">R999</span>
+                    <span className="text-slate-500">/month</span>
+                  </div>
+                  <ul className="space-y-3 mb-6">
+                    {[
+                      "Up to 3 users",
+                      "Task Management",
+                      "Training Tracking",
+                      "Leave Management",
+                      "Payroll",
+                      "Locum Management",
+                      "Team Invitations",
+                      "Email Support",
+                    ].map((feature) => (
+                      <li key={feature} className="flex items-start gap-3 group">
+                        <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5 transition-transform duration-300 group-hover:scale-125" />
+                        <span className="text-slate-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link href="/sign-up?plan=HR_MANAGEMENT" className="block">
+                    <Button variant="outline" className="w-full h-12 text-base border-slate-300 hover:border-blue-300 hover:bg-blue-50 transition-all">
+                      Start 14-Day Free Trial
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            </FeatureSection>
+
+            {/* Essentials (OHSC Essential) */}
+            <FeatureSection delay={150}>
+              <Card className="relative border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">OHSC Essential</h3>
+                  <p className="text-slate-500 mb-2">OHSC compliance focused</p>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
+                    <Clock className="h-3 w-3" />
+                    14-day free trial
+                  </div>
+                  <div className="mb-6">
                     <span className="text-4xl font-bold text-slate-900">R1,999</span>
                     <span className="text-slate-500">/month</span>
                   </div>
-                  <ul className="space-y-4 mb-8">
+                  <ul className="space-y-3 mb-6">
                     {[
                       "Up to 3 users",
                       "Unlimited Documents",
@@ -528,13 +568,13 @@ export default function HomePage() {
                       "Complaints Register",
                       "Adverse Events Register",
                       "Daily Logbook",
-                      "Inspection Readiness Dashboard",
+                      "Inspection Readiness",
                       "Training Tracking",
                       "Email Support",
                     ].map((feature) => (
                       <li key={feature} className="flex items-start gap-3 group">
                         <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5 transition-transform duration-300 group-hover:scale-125" />
-                        <span className="text-slate-700">{feature}</span>
+                        <span className="text-slate-700 text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -547,7 +587,7 @@ export default function HomePage() {
               </Card>
             </FeatureSection>
 
-            {/* Professional */}
+            {/* OHSC Professional */}
             <FeatureSection delay={200}>
               <Card className="relative border-2 border-blue-500 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full overflow-visible">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-500 opacity-10 blur-2xl" />
@@ -556,32 +596,32 @@ export default function HomePage() {
                     Most Popular
                   </span>
                 </div>
-                <CardContent className="p-8 relative pt-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">Professional</h3>
-                  <p className="text-slate-500 mb-2">For growing practices</p>
+                <CardContent className="p-6 relative pt-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">OHSC Professional</h3>
+                  <p className="text-slate-500 mb-2">Complete solution</p>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
                     <Clock className="h-3 w-3" />
                     14-day free trial
                   </div>
-                  <div className="mb-8">
+                  <div className="mb-6">
                     <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R3,999</span>
                     <span className="text-slate-500">/month</span>
                   </div>
-                  <ul className="space-y-4 mb-8">
+                  <ul className="space-y-3 mb-6">
                     {[
                       "Unlimited users",
-                      "Everything in Essentials",
+                      "Everything in both plans",
                       "Leave Management",
                       "Unlimited Payroll",
                       "Locum Management",
-                      "SARS Reporting (IRP5, EMP201)",
+                      "SARS Reporting",
                       "Team Invitations",
-                      "AI Compliance Assistant",
+                      "AI Assistant",
                       "Priority Support",
                     ].map((feature) => (
                       <li key={feature} className="flex items-start gap-3 group">
                         <Check className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5 transition-transform duration-300 group-hover:scale-125" />
-                        <span className="text-slate-700">{feature}</span>
+                        <span className="text-slate-700 text-sm">{feature}</span>
                       </li>
                     ))}
                   </ul>

@@ -230,7 +230,24 @@ export async function completeTask(id: string, data?: { evidenceNotes?: string; 
   return task;
 }
 
-// Upload evidence photo for task completion
+// Allowed file types for evidence uploads
+const ALLOWED_EVIDENCE_TYPES = [
+  // Images
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  // PDF
+  "application/pdf",
+  // Word documents
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  // Excel spreadsheets
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
+// Upload evidence file (photo or document) for task completion
 export async function uploadTaskEvidence(formData: FormData) {
   const { practice } = await ensureUserAndPractice();
   if (!practice) throw new Error("Not authenticated");
@@ -238,14 +255,16 @@ export async function uploadTaskEvidence(formData: FormData) {
   const file = formData.get("file") as File;
   if (!file) throw new Error("No file provided");
 
-  // Validate file type (images only)
-  if (!file.type.startsWith("image/")) {
-    throw new Error("Only image files are allowed");
+  // Validate file type (images and documents)
+  if (!ALLOWED_EVIDENCE_TYPES.includes(file.type)) {
+    throw new Error("File type not allowed. Please upload an image, PDF, Word document, or Excel spreadsheet.");
   }
 
-  // Validate file size (max 5MB)
-  if (file.size > 5 * 1024 * 1024) {
-    throw new Error("File size must be less than 5MB");
+  // Validate file size (max 10MB for documents, 5MB for images)
+  const maxSize = file.type.startsWith("image/") ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    const maxMB = maxSize / (1024 * 1024);
+    throw new Error(`File size must be less than ${maxMB}MB`);
   }
 
   const supabase = await createClient();

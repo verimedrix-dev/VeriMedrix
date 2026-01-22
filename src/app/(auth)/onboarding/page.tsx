@@ -28,7 +28,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [planFromSignup, setPlanFromSignup] = useState<"ESSENTIALS" | "PROFESSIONAL" | null>(null);
+  const [planFromSignup, setPlanFromSignup] = useState<"ESSENTIALS" | "HR_MANAGEMENT" | "PROFESSIONAL" | null>(null);
 
   // Step 1: Practice Details
   const [practiceName, setPracticeName] = useState("");
@@ -38,12 +38,12 @@ export default function OnboardingPage() {
   const [province, setProvince] = useState("");
 
   // Step 2: Plan Selection
-  const [selectedPlan, setSelectedPlan] = useState<"ESSENTIALS" | "PROFESSIONAL" | "">("");
+  const [selectedPlan, setSelectedPlan] = useState<"ESSENTIALS" | "HR_MANAGEMENT" | "PROFESSIONAL" | "">("");
 
   // Check if plan was selected during sign-up
   useEffect(() => {
     const storedPlan = localStorage.getItem("selectedPlan");
-    if (storedPlan === "ESSENTIALS" || storedPlan === "PROFESSIONAL") {
+    if (storedPlan === "ESSENTIALS" || storedPlan === "HR_MANAGEMENT" || storedPlan === "PROFESSIONAL") {
       setPlanFromSignup(storedPlan);
       setSelectedPlan(storedPlan);
       // Clear it so it doesn't persist for future sign-ups
@@ -219,7 +219,7 @@ export default function OnboardingPage() {
               {planFromSignup && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
                   <p className="text-sm text-blue-800 text-center">
-                    <strong>Selected Plan:</strong> {planFromSignup === "PROFESSIONAL" ? "Professional" : "Essentials"} - 14-day free trial
+                    <strong>Selected Plan:</strong> {planFromSignup === "PROFESSIONAL" ? "OHSC Professional" : planFromSignup === "HR_MANAGEMENT" ? "HR Management" : "OHSC Essential"} - 14-day free trial
                   </p>
                 </div>
               )}
@@ -235,65 +235,122 @@ export default function OnboardingPage() {
                 </div>
                 <div>
                   <h3 className="font-semibold">Choose Your Plan</h3>
-                  <p className="text-sm text-slate-500">Both plans include a 14-day free trial</p>
+                  <p className="text-sm text-slate-500">All plans include a 14-day free trial</p>
                 </div>
               </div>
 
               <div className="space-y-4">
-                {/* Essentials Plan */}
+                {/* HR Management Plan */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan("HR_MANAGEMENT")}
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                    selectedPlan === "HR_MANAGEMENT"
+                      ? "border-purple-500 bg-purple-50 ring-2 ring-purple-200"
+                      : "border-slate-200 hover:border-slate-300 bg-white"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 className="font-semibold text-lg">HR Management</h4>
+                      <p className="text-sm text-slate-500">HR & Payroll focused</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">R999</div>
+                      <div className="text-sm text-slate-500">/month</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Up to 3 users</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Task management</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Leave management</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Payroll</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Locum management</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Training tracking</span>
+                    </div>
+                  </div>
+                  {selectedPlan === "HR_MANAGEMENT" && (
+                    <div className="mt-2 pt-2 border-t border-purple-200">
+                      <span className="text-sm font-medium text-purple-600">Selected</span>
+                    </div>
+                  )}
+                </button>
+
+                {/* OHSC Essential Plan */}
                 <button
                   type="button"
                   onClick={() => setSelectedPlan("ESSENTIALS")}
-                  className={`w-full p-5 rounded-xl border-2 text-left transition-all ${
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
                     selectedPlan === "ESSENTIALS"
                       ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
                       : "border-slate-200 hover:border-slate-300 bg-white"
                   }`}
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className="font-semibold text-lg">Essentials</h4>
-                      <p className="text-sm text-slate-500">Perfect for small practices</p>
+                      <h4 className="font-semibold text-lg">OHSC Essential</h4>
+                      <p className="text-sm text-slate-500">OHSC compliance focused</p>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold">R1,999</div>
                       <div className="text-sm text-slate-500">/month</div>
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm text-slate-600">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span>Up to 3 users</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Document management & expiry tracking</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Document management</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Task management & daily logbook</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Task management</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Complaints & adverse events register</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Complaints register</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Inspection readiness dashboard</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Adverse events</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Inspection readiness</span>
                     </div>
                   </div>
                   {selectedPlan === "ESSENTIALS" && (
-                    <div className="mt-3 pt-3 border-t border-blue-200">
+                    <div className="mt-2 pt-2 border-t border-blue-200">
                       <span className="text-sm font-medium text-blue-600">Selected</span>
                     </div>
                   )}
                 </button>
 
-                {/* Professional Plan */}
+                {/* OHSC Professional Plan */}
                 <button
                   type="button"
                   onClick={() => setSelectedPlan("PROFESSIONAL")}
-                  className={`w-full p-5 rounded-xl border-2 text-left transition-all relative ${
+                  className={`w-full p-4 rounded-xl border-2 text-left transition-all relative ${
                     selectedPlan === "PROFESSIONAL"
                       ? "border-indigo-500 bg-indigo-50 ring-2 ring-indigo-200"
                       : "border-slate-200 hover:border-slate-300 bg-white"
@@ -304,44 +361,44 @@ export default function OnboardingPage() {
                       Most Popular
                     </span>
                   </div>
-                  <div className="flex justify-between items-start mb-3 pt-1">
+                  <div className="flex justify-between items-start mb-2 pt-1">
                     <div>
-                      <h4 className="font-semibold text-lg">Professional</h4>
-                      <p className="text-sm text-slate-500">For growing practices</p>
+                      <h4 className="font-semibold text-lg">OHSC Professional</h4>
+                      <p className="text-sm text-slate-500">Complete solution</p>
                     </div>
                     <div className="text-right">
                       <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R3,999</div>
                       <div className="text-sm text-slate-500">/month</div>
                     </div>
                   </div>
-                  <div className="space-y-2 text-sm text-slate-600">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span>Unlimited users</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Everything in Essentials</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Everything in both plans</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Leave management & payroll</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>SARS reporting</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>Locum management</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>AI Assistant</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>SARS reporting (IRP5, EMP201)</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Priority support</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500" />
-                      <span>AI Compliance Assistant</span>
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Team invitations</span>
                     </div>
                   </div>
                   {selectedPlan === "PROFESSIONAL" && (
-                    <div className="mt-3 pt-3 border-t border-indigo-200">
+                    <div className="mt-2 pt-2 border-t border-indigo-200">
                       <span className="text-sm font-medium text-indigo-600">Selected</span>
                     </div>
                   )}
@@ -350,7 +407,7 @@ export default function OnboardingPage() {
 
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800 text-center">
-                  <strong>14-day free trial</strong> on both plans. No credit card required. Cancel anytime.
+                  <strong>14-day free trial</strong> on all plans. No credit card required. Cancel anytime.
                 </p>
               </div>
             </div>

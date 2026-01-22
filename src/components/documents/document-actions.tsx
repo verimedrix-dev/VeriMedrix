@@ -28,9 +28,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, Upload, MoreHorizontal, Loader2, FileText, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Upload, MoreHorizontal, Loader2, FileText, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
-import { uploadNewVersion, deleteDocument, getDocumentDownloadUrl, uploadDocumentFile } from "@/lib/actions/documents";
+import { uploadNewVersion, deleteDocument, getDocumentDownloadUrl, uploadDocumentFile, updateDocument } from "@/lib/actions/documents";
 
 type Document = {
   id: string;
@@ -43,10 +44,13 @@ type Document = {
 export function DocumentActions({ document }: { document: Document }) {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  const [newTitle, setNewTitle] = useState(document.title);
 
   const handleDownload = async () => {
     // Check if it's a placeholder URL (not stored in actual storage)
@@ -121,6 +125,34 @@ export function DocumentActions({ document }: { document: Document }) {
     }
   };
 
+  const handleEditName = async () => {
+    if (!newTitle.trim()) {
+      toast.error("Document name cannot be empty");
+      return;
+    }
+
+    if (newTitle.trim() === document.title) {
+      setEditDialogOpen(false);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateDocument(document.id, { title: newTitle.trim() });
+      toast.success("Document name updated successfully");
+      setEditDialogOpen(false);
+    } catch {
+      toast.error("Failed to update document name");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEditDialog = () => {
+    setNewTitle(document.title);
+    setEditDialogOpen(true);
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -130,6 +162,10 @@ export function DocumentActions({ document }: { document: Document }) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={openEditDialog}>
+            <Pencil className="h-4 w-4 mr-2" />
+            Edit Name
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleDownload} disabled={downloading}>
             {downloading ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -201,6 +237,44 @@ export function DocumentActions({ document }: { document: Document }) {
             <Button onClick={handleUploadNewVersion} disabled={loading || !file}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Upload Version {document.version + 1}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Name Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Document Name</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="documentTitle">Document Name</Label>
+              <Input
+                id="documentTitle"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Enter document name"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleEditName();
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditName} disabled={saving || !newTitle.trim()}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -80,8 +80,21 @@ export default async function EmployeeProfilePage({
           <Badge variant="outline">{employee.employmentType}</Badge>
           <EditEmployeeDialog
             employeeId={employee.id}
-            currentEmail={employee.email}
-            currentPhone={employee.phone}
+            employee={{
+              fullName: employee.fullName,
+              position: employee.position,
+              email: employee.email,
+              phone: employee.phone,
+              idNumber: employee.idNumber,
+              address: employee.address,
+              dateOfBirth: employee.dateOfBirth,
+              employeeNumber: employee.employeeNumber,
+              department: employee.department,
+              hireDate: employee.hireDate,
+              terminationDate: employee.terminationDate,
+              employmentType: employee.employmentType,
+              isActive: employee.isActive,
+            }}
           />
           <DeleteEmployeeDialog
             employeeId={employee.id}

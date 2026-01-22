@@ -18,11 +18,16 @@ interface InvitationData {
   id: string;
   email: string;
   role: UserRole;
+  isLocum: boolean;
   employee: {
     id: string;
     fullName: string;
     position: string;
-  };
+  } | null;
+  person: {
+    fullName: string;
+    position: string;
+  } | null;
   practice: {
     id: string;
     name: string;
@@ -194,7 +199,7 @@ function AcceptInvitationContent() {
               </div>
               <div>
                 <p className="font-medium text-slate-900">{invitation.practice.name}</p>
-                <p className="text-sm text-slate-600">{invitation.employee.position}</p>
+                <p className="text-sm text-slate-600">{invitation.person?.position || ""}</p>
               </div>
             </div>
             <div className="flex items-center gap-2 text-sm">
@@ -225,7 +230,7 @@ function AcceptInvitationContent() {
               <Input
                 id="name"
                 type="text"
-                value={invitation.employee.fullName}
+                value={invitation.person?.fullName || ""}
                 disabled
                 className="bg-slate-50"
               />

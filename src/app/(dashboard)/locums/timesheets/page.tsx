@@ -1,15 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPendingTimesheets } from "@/lib/actions/locums";
-import { requirePermission, checkPermission } from "@/lib/auth";
-import { PERMISSIONS } from "@/lib/permissions";
+import { requireOwner } from "@/lib/auth";
 import { TimesheetApprovalTable } from "@/components/locums/timesheet-approval-table";
 import { ClipboardCheck, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function TimesheetsPage() {
-  await requirePermission(PERMISSIONS.EMPLOYEES);
-  const canApprove = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  // Only practice owners can view/approve timesheets (contains financial data)
+  await requireOwner();
+  const canApprove = true; // Owner always has approval rights
 
   const timesheets = await getPendingTimesheets();
 

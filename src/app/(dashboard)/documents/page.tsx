@@ -1,5 +1,5 @@
 import nextDynamic from "next/dynamic";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { getDocumentsPageData } from "@/lib/actions/documents";
 import { DocumentActions } from "@/components/documents/document-actions";
+import { CategorySidebar } from "@/components/documents/category-sidebar";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -84,21 +85,52 @@ function getStatusBadge(status: string) {
   }
 }
 
-export default async function DocumentsPage() {
+interface PageProps {
+  searchParams: Promise<{ category?: string }>;
+}
+
+export default async function DocumentsPage({ searchParams }: PageProps) {
   // Optimized: Single auth call + parallel DB queries
   const data = await getDocumentsPageData();
-  const documents = data?.documents || [];
+  const params = await searchParams;
+  const selectedCategoryId = params.category;
+
+  const allDocuments = data?.documents || [];
   const categories = data?.categories || [];
   const stats = data?.stats;
+
+  // Filter documents by category if selected
+  const documents = selectedCategoryId
+    ? allDocuments.filter(doc => doc.DocumentType?.DocumentCategory?.id === selectedCategoryId)
+    : allDocuments;
+
+  // Calculate document count per category
+  const documentCountByCategory: Record<string, number> = {};
+  allDocuments.forEach(doc => {
+    const catId = doc.DocumentType?.DocumentCategory?.id;
+    if (catId) {
+      documentCountByCategory[catId] = (documentCountByCategory[catId] || 0) + 1;
+    }
+  });
+
+  // Get selected category name for header
+  const selectedCategory = selectedCategoryId
+    ? categories.find(c => c.id === selectedCategoryId)
+    : null;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">OHSC Documents</h1>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            {selectedCategory ? selectedCategory.name : "OHSC Documents"}
+          </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Manage all your OHSC compliance documents in one place
+            {selectedCategory
+              ? `Viewing ${documents.length} document${documents.length !== 1 ? "s" : ""} in ${selectedCategory.name}`
+              : "Manage all your OHSC compliance documents in one place"
+            }
           </p>
         </div>
         <UploadDocumentDialog />
@@ -166,32 +198,11 @@ export default async function DocumentsPage() {
       {/* Main Content */}
       <div className="flex gap-6">
         {/* Category Sidebar */}
-        <Card className="w-64 shrink-0 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="space-y-1 p-2">
-              <button className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg bg-slate-100 dark:bg-slate-800 font-medium">
-                <span className="text-slate-700 dark:text-slate-200">All Documents</span>
-                <Badge variant="secondary" className="text-xs">
-                  {stats?.total || 0}
-                </Badge>
-              </button>
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <span className="text-slate-700 dark:text-slate-300">{category.name}</span>
-                  <Badge variant="secondary" className="text-xs">
-                    {category.DocumentType.length}
-                  </Badge>
-                </button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <CategorySidebar
+          categories={categories}
+          totalDocuments={stats?.total || 0}
+          documentCountByCategory={documentCountByCategory}
+        />
 
         {/* Documents Table */}
         <Card className="flex-1">
@@ -242,8 +253,18 @@ export default async function DocumentsPage() {
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-12">
                       <FileText className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                      <p className="text-slate-600 dark:text-slate-400 mb-2">No documents uploaded yet</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-500">Click &quot;Upload Document&quot; to add your first document</p>
+                      <p className="text-slate-600 dark:text-slate-400 mb-2">
+                        {selectedCategory
+                          ? `No documents in ${selectedCategory.name}`
+                          : "No documents uploaded yet"
+                        }
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-500">
+                        {selectedCategory
+                          ? "Upload a document and select this category to see it here"
+                          : "Click \"Upload Document\" to add your first document"
+                        }
+                      </p>
                     </TableCell>
                   </TableRow>
                 ) : (

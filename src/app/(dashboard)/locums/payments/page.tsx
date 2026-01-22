@@ -1,15 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getUnpaidTimesheets } from "@/lib/actions/locums";
-import { requirePermission, checkPermission } from "@/lib/auth";
-import { PERMISSIONS } from "@/lib/permissions";
+import { requireOwner } from "@/lib/auth";
 import { PaymentTable } from "@/components/locums/payment-table";
 import { DollarSign, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function PaymentsPage() {
-  await requirePermission(PERMISSIONS.EMPLOYEES);
-  const canManage = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  // Only practice owners can view payment/financial information
+  await requireOwner();
+  const canManage = true; // Owner always has management rights
 
   const unpaidTimesheets = await getUnpaidTimesheets();
 
@@ -31,7 +31,6 @@ export default async function PaymentsPage() {
   }, {} as Record<string, { locum: typeof unpaidTimesheets[0]["Locum"]; timesheets: typeof unpaidTimesheets; totalHours: number; totalPayable: number }>);
 
   const locumPayments = Object.values(byLocum);
-  const totalPayable = locumPayments.reduce((sum, l) => sum + l.totalPayable, 0);
   const totalHours = locumPayments.reduce((sum, l) => sum + l.totalHours, 0);
 
   return (
@@ -51,8 +50,8 @@ export default async function PaymentsPage() {
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Summary - No monetary totals shown for privacy */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardDescription>Locums to Pay</CardDescription>
@@ -63,16 +62,6 @@ export default async function PaymentsPage() {
           <CardHeader className="pb-2">
             <CardDescription>Total Hours</CardDescription>
             <CardTitle className="text-3xl">{totalHours.toFixed(1)}h</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-green-700 dark:text-green-400">
-              Total Payable
-            </CardDescription>
-            <CardTitle className="text-3xl text-green-700 dark:text-green-400">
-              R{totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </CardTitle>
           </CardHeader>
         </Card>
       </div>

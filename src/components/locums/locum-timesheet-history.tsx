@@ -33,9 +33,10 @@ type Timesheet = {
 
 interface LocumTimesheetHistoryProps {
   timesheets: Timesheet[];
+  showFinancials?: boolean;
 }
 
-export function LocumTimesheetHistory({ timesheets }: LocumTimesheetHistoryProps) {
+export function LocumTimesheetHistory({ timesheets, showFinancials = false }: LocumTimesheetHistoryProps) {
   const getStatusBadge = (timesheet: Timesheet) => {
     if (timesheet.paymentStatus === "PAID") {
       return (
@@ -94,7 +95,7 @@ export function LocumTimesheetHistory({ timesheets }: LocumTimesheetHistoryProps
           <TableHead>Clock Out</TableHead>
           <TableHead>Break</TableHead>
           <TableHead className="text-right">Hours</TableHead>
-          <TableHead className="text-right">Total</TableHead>
+          {showFinancials && <TableHead className="text-right">Total</TableHead>}
           <TableHead>Status</TableHead>
         </TableRow>
       </TableHeader>
@@ -133,11 +134,13 @@ export function LocumTimesheetHistory({ timesheets }: LocumTimesheetHistoryProps
             <TableCell className="text-right">
               {ts.hoursWorked?.toFixed(1) || "-"}h
             </TableCell>
-            <TableCell className="text-right font-medium">
-              {ts.totalPayable
-                ? `R${ts.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                : "-"}
-            </TableCell>
+            {showFinancials && (
+              <TableCell className="text-right font-medium">
+                {ts.totalPayable
+                  ? `R${ts.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                  : "-"}
+              </TableCell>
+            )}
             <TableCell>
               <div className="space-y-1">
                 {getStatusBadge(ts)}
@@ -146,7 +149,7 @@ export function LocumTimesheetHistory({ timesheets }: LocumTimesheetHistoryProps
                     {ts.rejectionNote}
                   </p>
                 )}
-                {ts.paymentStatus === "PAID" && ts.paymentRef && (
+                {showFinancials && ts.paymentStatus === "PAID" && ts.paymentRef && (
                   <p className="text-xs text-slate-500">
                     Ref: {ts.paymentRef}
                   </p>

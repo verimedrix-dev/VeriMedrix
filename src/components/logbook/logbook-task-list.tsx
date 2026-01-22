@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import {
   CheckCircle,
@@ -23,10 +48,24 @@ import {
   ImageIcon,
   X,
   AlertCircle,
+  MoreHorizontal,
+  Pencil,
+  UserPlus,
+  Trash2,
+  User,
+  FileText,
+  Upload,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { completeTask, uploadTaskEvidence } from "@/lib/actions/tasks";
+import { completeTask, uploadTaskEvidence, updateTask, assignTask, deleteTask, getPracticeTeamMembers } from "@/lib/actions/tasks";
+
+type TeamMember = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+};
 
 type LogbookTask = {
   id: string;
@@ -64,42 +103,76 @@ function getFrequencyLabel(frequency: string) {
   }
 }
 
-function LogbookTaskCard({ task }: { task: LogbookTask }) {
+function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers: TeamMember[] }) {
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
+  const [isImageFile, setIsImageFile] = useState(true);
   const [evidenceNotes, setEvidenceNotes] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Edit form state
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editDescription, setEditDescription] = useState(task.description || "");
+  const [editDueTime, setEditDueTime] = useState(task.dueTime || "");
+
+  // Assign state
+  const [selectedAssignee, setSelectedAssignee] = useState<string>(
+    task.User_Task_assignedToIdToUser?.id || "unassigned"
+  );
 
   const isCompleted = task.status === "COMPLETED" || task.status === "VERIFIED";
   const isOverdue = task.status === "OVERDUE";
   const requiresEvidence = task.TaskTemplate?.requiresEvidence ?? false;
 
+  // Allowed file types for evidence
+  const ALLOWED_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "application/pdf",
+    "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ];
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Please select an image file");
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast.error("Please select an image, PDF, Word, or Excel file");
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Image must be less than 5MB");
+      const isImage = file.type.startsWith("image/");
+      const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error(`File must be less than ${maxSize / (1024 * 1024)}MB`);
         return;
       }
       setEvidenceFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setEvidencePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      setIsImageFile(isImage);
+
+      if (isImage) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEvidencePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // For documents, just store the file name
+        setEvidencePreview(file.name);
+      }
     }
   };
 
   const clearEvidence = () => {
     setEvidenceFile(null);
     setEvidencePreview(null);
+    setIsImageFile(true);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -131,6 +204,70 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleEdit = async () => {
+    if (!editTitle.trim()) {
+      toast.error("Title cannot be empty");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await updateTask(task.id, {
+        title: editTitle.trim(),
+        description: editDescription.trim() || undefined,
+        dueTime: editDueTime || undefined,
+      });
+      toast.success("Task updated!");
+      setEditDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update task");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAssign = async () => {
+    setSaving(true);
+    try {
+      const assigneeId = selectedAssignee === "unassigned" ? null : selectedAssignee;
+      await assignTask(task.id, assigneeId);
+      const assigneeName = assigneeId
+        ? teamMembers.find(m => m.id === assigneeId)?.name || "team member"
+        : "no one";
+      toast.success(`Task assigned to ${assigneeName}`);
+      setAssignDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to assign task");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteTask(task.id);
+      toast.success("Task deleted");
+      setDeleteDialogOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete task");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const openEditDialog = () => {
+    setEditTitle(task.title);
+    setEditDescription(task.description || "");
+    setEditDueTime(task.dueTime || "");
+    setEditDialogOpen(true);
+  };
+
+  const openAssignDialog = () => {
+    setSelectedAssignee(task.User_Task_assignedToIdToUser?.id || "unassigned");
+    setAssignDialogOpen(true);
   };
 
   return (
@@ -180,8 +317,8 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
                   </h3>
                   {requiresEvidence && (
                     <Badge variant="outline" className="text-xs">
-                      <Camera className="h-3 w-3 mr-1" />
-                      Photo
+                      <Upload className="h-3 w-3 mr-1" />
+                      Evidence
                     </Badge>
                   )}
                   {task.TaskTemplate?.category && (
@@ -200,6 +337,12 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {task.dueTime}
+                    </span>
+                  )}
+                  {task.User_Task_assignedToIdToUser?.name && (
+                    <span className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {task.User_Task_assignedToIdToUser.name}
                     </span>
                   )}
                   {task.TaskTemplate && (
@@ -221,9 +364,14 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setEvidenceDialogOpen(true)}
+                  title="View Evidence"
                   className="text-green-600 hover:text-green-700 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900/50"
                 >
-                  <ImageIcon className="h-4 w-4" />
+                  {/\.(jpg|jpeg|png|gif|webp)$/i.test(task.evidenceUrl) ? (
+                    <ImageIcon className="h-4 w-4" />
+                  ) : (
+                    <FileText className="h-4 w-4" />
+                  )}
                 </Button>
               )}
               {!isCompleted && (
@@ -236,6 +384,33 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
                   Log
                 </Button>
               )}
+
+              {/* More Actions Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={openEditDialog}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={openAssignDialog}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Assign to
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setDeleteDialogOpen(true)}
+                    className="text-red-600 focus:text-red-600"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardContent>
@@ -257,33 +432,42 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
             <DialogTitle>Log Task Completion</DialogTitle>
             <DialogDescription>
               {requiresEvidence
-                ? "Take a photo as proof of completion"
-                : "Optionally add a photo as evidence"}
+                ? "Upload a photo or document as proof of completion"
+                : "Optionally add a photo or document as evidence"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>
-                Evidence Photo{" "}
+                Evidence{" "}
                 {requiresEvidence && <span className="text-red-500">*</span>}
               </Label>
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
                 capture="environment"
                 onChange={handleFileSelect}
                 className="hidden"
               />
               {evidencePreview ? (
                 <div className="relative">
-                  <Image
-                    src={evidencePreview}
-                    alt="Evidence preview"
-                    width={400}
-                    height={300}
-                    className="w-full h-48 object-cover rounded-lg border"
-                  />
+                  {isImageFile ? (
+                    <Image
+                      src={evidencePreview}
+                      alt="Evidence preview"
+                      width={400}
+                      height={300}
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-slate-100 dark:bg-slate-800 rounded-lg border flex flex-col items-center justify-center gap-2">
+                      <FileText className="h-12 w-12 text-blue-600 dark:text-blue-400" />
+                      <span className="text-sm text-slate-600 dark:text-slate-400 px-4 text-center truncate max-w-full">
+                        {evidencePreview}
+                      </span>
+                    </div>
+                  )}
                   <button
                     onClick={clearEvidence}
                     className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
@@ -297,10 +481,13 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
                   className="w-full h-40 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-3 hover:border-blue-500 dark:hover:border-blue-400 transition-colors bg-slate-50 dark:bg-slate-900"
                 >
                   <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                    <Camera className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                    <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Tap to take photo
+                  <span className="text-sm text-slate-600 dark:text-slate-400 text-center">
+                    Upload photo or document
+                  </span>
+                  <span className="text-xs text-slate-400">
+                    Images, PDF, Word, Excel (max 10MB)
                   </span>
                 </button>
               )}
@@ -338,6 +525,119 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Task</DialogTitle>
+            <DialogDescription>
+              Update the task details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="editTitle">Title</Label>
+              <Input
+                id="editTitle"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Task title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editDescription">Description (optional)</Label>
+              <Textarea
+                id="editDescription"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Task description..."
+                rows={2}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="editDueTime">Due Time (optional)</Label>
+              <Input
+                id="editDueTime"
+                type="time"
+                value={editDueTime}
+                onChange={(e) => setEditDueTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEdit} disabled={saving || !editTitle.trim()}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assign Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Task</DialogTitle>
+            <DialogDescription>
+              Select a team member to assign this task to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Assign to</Label>
+              <Select value={selectedAssignee} onValueChange={setSelectedAssignee}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {teamMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name || member.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssign} disabled={saving}>
+              {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Assign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{task.title}&quot;? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* View Evidence Dialog */}
       <Dialog open={evidenceDialogOpen} onOpenChange={setEvidenceDialogOpen}>
         <DialogContent className="max-w-lg">
@@ -347,13 +647,40 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
           </DialogHeader>
           <div className="py-4">
             {task.evidenceUrl && (
-              <Image
-                src={task.evidenceUrl}
-                alt="Task evidence"
-                width={600}
-                height={400}
-                className="w-full rounded-lg"
-              />
+              (() => {
+                // Check if it's an image based on URL extension
+                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(task.evidenceUrl);
+                if (isImage) {
+                  return (
+                    <Image
+                      src={task.evidenceUrl}
+                      alt="Task evidence"
+                      width={600}
+                      height={400}
+                      className="w-full rounded-lg"
+                    />
+                  );
+                } else {
+                  // Document file - show icon and download link
+                  const fileName = task.evidenceUrl.split("/").pop() || "Document";
+                  return (
+                    <div className="flex flex-col items-center gap-4 py-6 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                      <FileText className="h-16 w-16 text-blue-600 dark:text-blue-400" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400 text-center px-4 break-all">
+                        {fileName}
+                      </p>
+                      <a
+                        href={task.evidenceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      >
+                        View / Download Document
+                      </a>
+                    </div>
+                  );
+                }
+              })()
             )}
             {task.evidenceNotes && (
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">
@@ -382,6 +709,13 @@ function LogbookTaskCard({ task }: { task: LogbookTask }) {
 }
 
 export function LogbookTaskList({ tasks }: { tasks: LogbookTask[] }) {
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+  useEffect(() => {
+    // Fetch team members for assignment dropdown
+    getPracticeTeamMembers().then(setTeamMembers).catch(console.error);
+  }, []);
+
   if (tasks.length === 0) {
     return (
       <Card>
@@ -433,7 +767,7 @@ export function LogbookTaskList({ tasks }: { tasks: LogbookTask[] }) {
           </div>
           <div className="space-y-3">
             {groupedTasks[category].map((task) => (
-              <LogbookTaskCard key={task.id} task={task} />
+              <LogbookTaskCard key={task.id} task={task} teamMembers={teamMembers} />
             ))}
           </div>
         </div>

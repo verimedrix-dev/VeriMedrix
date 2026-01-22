@@ -22,8 +22,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Building2, User, ChevronDown, ChevronRight, Clock, Calendar, Banknote } from "lucide-react";
-import { markTimesheetsPaid } from "@/lib/actions/locums";
+import { CheckCircle, Building2, User, ChevronDown, ChevronRight, Clock, Calendar, Banknote, Mail, Loader2 } from "lucide-react";
+import { markTimesheetsPaid, sendLocumPaymentReport } from "@/lib/actions/locums";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -62,6 +62,7 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentRef, setPaymentRef] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
 
   // Get all timesheet IDs
   const allTimesheetIds = locumPayments.flatMap(lp => lp.timesheets.map(ts => ts.id));
@@ -107,18 +108,6 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
     }
   };
 
-  const getSelectedTotal = () => {
-    let total = 0;
-    locumPayments.forEach(lp => {
-      lp.timesheets.forEach(ts => {
-        if (selectedTimesheets.has(ts.id)) {
-          total += ts.totalPayable || 0;
-        }
-      });
-    });
-    return total;
-  };
-
   const handleMarkAsPaid = async () => {
     if (selectedTimesheets.size === 0) return;
 
@@ -140,6 +129,23 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
     }
   };
 
+  const handleSendPaymentReport = async (locumPayment: LocumPayment) => {
+    setSendingEmail(locumPayment.locum.id);
+    try {
+      const timesheetIds = locumPayment.timesheets.map(ts => ts.id);
+      const result = await sendLocumPaymentReport(locumPayment.locum.id, timesheetIds);
+      if (result.success) {
+        toast.success(`Payment report sent to ${locumPayment.locum.fullName}`);
+      } else {
+        toast.error(result.error || "Failed to send payment report");
+      }
+    } catch {
+      toast.error("Failed to send payment report");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Actions Bar */}
@@ -152,7 +158,7 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
             />
             <span className="text-sm text-slate-600 dark:text-slate-400">
               {selectedTimesheets.size > 0
-                ? `${selectedTimesheets.size} selected (R${getSelectedTotal().toLocaleString(undefined, { minimumFractionDigits: 2 })})`
+                ? `${selectedTimesheets.size} selected`
                 : "Select all"}
             </span>
           </div>
@@ -168,6 +174,12 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
         </div>
       )}
 
+      {/* Privacy Notice */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-700 dark:text-blue-300">
+        <Mail className="h-4 w-4 inline mr-2" />
+        For privacy, payment amounts are not displayed on screen. Use &quot;Email Report&quot; to send payment details directly to each locum.
+      </div>
+
       {/* Locum Payment Cards */}
       <div className="space-y-3">
         {locumPayments.map((lp) => {
@@ -175,6 +187,7 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
           const locumTimesheetIds = lp.timesheets.map(ts => ts.id);
           const selectedCount = locumTimesheetIds.filter(id => selectedTimesheets.has(id)).length;
           const allSelected = selectedCount === locumTimesheetIds.length;
+          const isSendingThisEmail = sendingEmail === lp.locum.id;
 
           return (
             <div
@@ -211,27 +224,28 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
                       </Badge>
                     </div>
                     <div className="text-sm text-slate-500">
-                      {lp.timesheets.length} timesheet{lp.timesheets.length === 1 ? "" : "s"}
+                      {lp.timesheets.length} timesheet{lp.timesheets.length === 1 ? "" : "s"} • {lp.totalHours.toFixed(1)}h total
                     </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <div className="text-sm text-slate-500">Hours</div>
-                      <div className="font-medium">{lp.totalHours.toFixed(1)}h</div>
-                    </div>
-                    <div>
-                      <div className="text-sm text-slate-500">Total</div>
-                      <div className="font-semibold text-green-600">
-                        R{lp.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </div>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleSendPaymentReport(lp)}
+                    disabled={isSendingThisEmail}
+                  >
+                    {isSendingThisEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
+                    Email Report
+                  </Button>
                 </div>
               </div>
 
-              {/* Expanded Timesheets */}
+              {/* Expanded Timesheets - No monetary values shown */}
               {isExpanded && (
                 <div className="border-t bg-slate-50 dark:bg-slate-800/30">
                   <Table>
@@ -242,8 +256,6 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
                         <TableHead>Clock In</TableHead>
                         <TableHead>Clock Out</TableHead>
                         <TableHead className="text-right">Hours</TableHead>
-                        <TableHead className="text-right">Rate</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -278,12 +290,6 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
                           <TableCell className="text-right">
                             {ts.hoursWorked?.toFixed(1) || 0}h
                           </TableCell>
-                          <TableCell className="text-right">
-                            R{ts.hourlyRate.toFixed(2)}/hr
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-green-600">
-                            R{(ts.totalPayable || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -302,7 +308,6 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
             <DialogTitle>Confirm Payment</DialogTitle>
             <DialogDescription>
               Mark {selectedTimesheets.size} timesheet{selectedTimesheets.size === 1 ? "" : "s"} as paid.
-              Total: R{getSelectedTotal().toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -317,6 +322,9 @@ export function PaymentTable({ locumPayments, canManage }: PaymentTableProps) {
               <p className="text-sm text-slate-500">
                 Add a reference number for tracking (e.g., bank transfer reference)
               </p>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-sm text-amber-700 dark:text-amber-300">
+              <strong>Reminder:</strong> Make sure you have sent payment reports to all locums before marking as paid.
             </div>
           </div>
           <DialogFooter>

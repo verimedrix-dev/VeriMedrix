@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getLocums, getLocumStats } from "@/lib/actions/locums";
-import { requirePermission, checkPermission } from "@/lib/auth";
+import { requirePermission, checkPermission, isOwner as checkIsOwner } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 
 // Dynamic import for dialog - not needed on initial render
@@ -39,6 +39,7 @@ function getInitials(name: string) {
 export default async function LocumsPage() {
   await requirePermission(PERMISSIONS.EMPLOYEES);
   const canEdit = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  const ownerAccess = await checkIsOwner();
 
   const [locums, stats] = await Promise.all([
     getLocums(),
@@ -116,7 +117,7 @@ export default async function LocumsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               This Month
             </CardDescription>
             <CardTitle className="text-4xl font-bold text-purple-600 dark:text-purple-400">
@@ -125,7 +126,7 @@ export default async function LocumsPage() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              R{stats?.monthlyPayable?.toLocaleString() || 0} payable
+              Total hours worked
             </p>
           </CardContent>
         </Card>
@@ -139,21 +140,25 @@ export default async function LocumsPage() {
             Clock In/Out
           </Button>
         </Link>
-        <Link href="/locums/timesheets">
-          <Button variant="outline" className="gap-2">
-            <ClipboardCheck className="h-4 w-4" />
-            Approve Timesheets
-            {stats?.pendingApproval ? (
-              <Badge variant="destructive" className="ml-1">{stats.pendingApproval}</Badge>
-            ) : null}
-          </Button>
-        </Link>
-        <Link href="/locums/payments">
-          <Button variant="outline" className="gap-2">
-            <DollarSign className="h-4 w-4" />
-            Payment Reports
-          </Button>
-        </Link>
+        {ownerAccess && (
+          <Link href="/locums/timesheets">
+            <Button variant="outline" className="gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Approve Timesheets
+              {stats?.pendingApproval ? (
+                <Badge variant="destructive" className="ml-1">{stats.pendingApproval}</Badge>
+              ) : null}
+            </Button>
+          </Link>
+        )}
+        {ownerAccess && (
+          <Link href="/locums/payments">
+            <Button variant="outline" className="gap-2">
+              <DollarSign className="h-4 w-4" />
+              Payment Reports
+            </Button>
+          </Link>
+        )}
       </div>
 
       {/* Locum List */}
@@ -221,10 +226,12 @@ export default async function LocumsPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            R{locum.hourlyRate}/hr
-                          </Badge>
+                          {ownerAccess && (
+                            <Badge variant="outline" className="text-xs gap-1">
+                              <DollarSign className="h-3 w-3" />
+                              R{locum.hourlyRate}/hr
+                            </Badge>
+                          )}
                           {locum.email && (
                             <span className="text-xs text-slate-400">{locum.email}</span>
                           )}

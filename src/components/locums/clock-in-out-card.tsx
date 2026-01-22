@@ -50,6 +50,7 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
     currentTimesheet?.clockIn ? new Date(currentTimesheet.clockIn) : null
   );
   const [elapsedTime, setElapsedTime] = useState("");
+  const [showClockDialog, setShowClockDialog] = useState(false);
   const [showClockOutDialog, setShowClockOutDialog] = useState(false);
   const [breakMinutes, setBreakMinutes] = useState(0);
 
@@ -75,6 +76,7 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
       const result = await clockIn(locum.id);
       setIsClockedIn(true);
       setClockInTime(new Date(result.clockIn!));
+      setShowClockDialog(false);
       toast.success(`${locum.fullName} clocked in at ${format(new Date(), "HH:mm")}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to clock in");
@@ -146,34 +148,68 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
                 </Badge>
               </div>
               <Button
-                onClick={() => setShowClockOutDialog(true)}
-                className="w-full bg-red-600 hover:bg-red-700"
+                onClick={() => setShowClockDialog(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
                 disabled={loading}
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <LogOut className="h-4 w-4 mr-2" />
-                )}
-                Clock Out
+                <Clock className="h-4 w-4 mr-2" />
+                Clock In / Out
               </Button>
             </div>
           ) : (
             <Button
-              onClick={handleClockIn}
-              className="w-full bg-green-600 hover:bg-green-700"
+              onClick={() => setShowClockDialog(true)}
+              className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={loading}
             >
-              {loading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <LogIn className="h-4 w-4 mr-2" />
-              )}
-              Clock In
+              <Clock className="h-4 w-4 mr-2" />
+              Clock In / Out
             </Button>
           )}
         </CardContent>
       </Card>
+
+      {/* Clock In/Out Selection Dialog */}
+      <Dialog open={showClockDialog} onOpenChange={setShowClockDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clock In / Out - {locum.fullName}</DialogTitle>
+            <DialogDescription>
+              Select an action for this locum.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-4">
+            <Button
+              onClick={handleClockIn}
+              className="w-full h-14 bg-green-600 hover:bg-green-700 text-lg"
+              disabled={loading || isClockedIn}
+            >
+              {loading ? (
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <LogIn className="h-5 w-5 mr-2" />
+              )}
+              Clock In
+            </Button>
+            <Button
+              onClick={() => {
+                setShowClockDialog(false);
+                setShowClockOutDialog(true);
+              }}
+              className="w-full h-14 bg-red-600 hover:bg-red-700 text-lg"
+              disabled={loading || !isClockedIn}
+            >
+              <LogOut className="h-5 w-5 mr-2" />
+              Clock Out
+            </Button>
+            {isClockedIn && (
+              <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+                Currently clocked in since {clockInTime ? format(clockInTime, "HH:mm") : "--:--"}
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Clock Out Dialog */}
       <Dialog open={showClockOutDialog} onOpenChange={setShowClockOutDialog}>

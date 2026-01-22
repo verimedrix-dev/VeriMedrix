@@ -405,7 +405,8 @@ model Practice {
   TrainingModule       TrainingModule[]
   Complaint            Complaint[]
   AdverseEvent         AdverseEvent[]
-
+  CustomForm           CustomForm[]
+  CustomFormResponse   CustomFormResponse[]
   @@index([email])
   @@index([subscriptionStatus])
   @@index([scheduledDeletionAt])
@@ -564,6 +565,8 @@ model User {
   TeamInvitation                       TeamInvitation[]
   Locum                                Locum?
   UserPractices                        UserPractice[] // All practices this user has access to
+  CustomForm                           CustomForm[]
+  CustomFormResponse                   CustomFormResponse[]
 
   @@index([email])
   @@index([practiceId])
@@ -705,6 +708,7 @@ enum SubscriptionStatus {
 
 enum SubscriptionTier {
   ESSENTIALS
+  HR_MANAGEMENT
   PROFESSIONAL
   ENTERPRISE
 }
@@ -935,6 +939,7 @@ model Locum {
   User                     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
   LocumTimesheet           LocumTimesheet[]
   LocumDocument            LocumDocument[]
+  TeamInvitation           TeamInvitation?
 
   @@index([practiceId])
   @@index([isActive])
@@ -1022,11 +1027,12 @@ enum TrainingStatus {
   EXPIRED     // Previously completed but now expired
 }
 
-// Team invitation for inviting employees to create user accounts
+// Team invitation for inviting employees/locums to create user accounts
 model TeamInvitation {
   id            String           @id @default(cuid())
   practiceId    String
-  employeeId    String           @unique
+  employeeId    String?          @unique // Optional - for employee invitations
+  locumId       String?          @unique // Optional - for locum invitations
   email         String
   role          UserRole
   token         String           @unique
@@ -1038,12 +1044,14 @@ model TeamInvitation {
   acceptedAt    DateTime?
 
   Practice    Practice         @relation(fields: [practiceId], references: [id], onDelete: Cascade)
-  Employee    Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Employee    Employee?        @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Locum       Locum?           @relation(fields: [locumId], references: [id], onDelete: Cascade)
   InvitedBy   User?            @relation(fields: [invitedById], references: [id], onDelete: SetNull)
 
   @@index([practiceId])
   @@index([status])
   @@index([token])
+  @@index([locumId])
 }
 
 // =============================================================================
@@ -1641,4 +1649,88 @@ enum EventStatus {
   INVESTIGATING // Being investigated
   ACTION_TAKEN  // Corrective action implemented
   CLOSED        // Fully resolved
+}
+
+// =============================================================================
+// PAYMENT INTEGRATION (Ready for PayFast)
+// =============================================================================
+
+// Payment/transaction history - generic model for any payment provider
+model PaymentTransaction {
+  id                    String                     @id @default(cuid())
+  practiceId            String
+  reference             String                     @unique // Payment provider transaction reference
+  amount                Int                        // Amount in cents
+  currency              String                     @default("ZAR")
+  status                TransactionStatus          @default(PENDING)
+  paidAt                DateTime?
+  channel               String?                    // card, bank_transfer, eft, etc.
+  failureReason         String?
+  // Metadata
+  description           String?                    // e.g., "Professional Plan - Monthly"
+  invoiceNumber         String?                    // INV-2025-001
+  receiptUrl            String?                    // Receipt URL from payment provider
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+
+  @@index([practiceId])
+  @@index([reference])
+  @@index([status])
+  @@index([paidAt])
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  ABANDONED
+  REFUNDED
+}
+
+// ==============================
+// CUSTOM FORMS BUILDER
+// ==============================
+
+model CustomForm {
+  id          String               @id @default(cuid())
+  practiceId  String
+  name        String
+  description String?
+  fields      Json                 // Array of field definitions
+  schedule    CustomFormSchedule?  // null = no schedule, on-demand only
+  isActive    Boolean              @default(true)
+  createdById String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  Practice    Practice             @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  CreatedBy   User?                @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  Responses   CustomFormResponse[]
+
+  @@index([practiceId])
+  @@index([isActive])
+}
+
+model CustomFormResponse {
+  id            String     @id @default(cuid())
+  formId        String
+  practiceId    String
+  responses     Json       // Key-value pairs of field responses
+  submittedById String?
+  submittedAt   DateTime   @default(now())
+  notes         String?
+
+  Form          CustomForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  Practice      Practice   @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  SubmittedBy   User?      @relation(fields: [submittedById], references: [id], onDelete: SetNull)
+
+  @@index([formId])
+  @@index([practiceId])
+  @@index([submittedAt])
+}
+
+enum CustomFormSchedule {
+  DAILY
+  WEEKLY
+  MONTHLY
 }

@@ -377,7 +377,17 @@ export async function validateInvitation(token: string) {
       id: invitation.id,
       email: invitation.email,
       role: invitation.role,
-      employee: invitation.Employee,
+      isLocum: false,
+      employee: invitation.Employee ? {
+        id: invitation.Employee.id,
+        fullName: invitation.Employee.fullName,
+        position: invitation.Employee.position,
+      } : null,
+      locum: null,
+      person: invitation.Employee ? {
+        fullName: invitation.Employee.fullName,
+        position: invitation.Employee.position || "",
+      } : null,
       practice: invitation.Practice,
     },
   };
@@ -387,9 +397,10 @@ export async function validateInvitation(token: string) {
  * Accept an invitation and create user account
  * This is called after Supabase auth account is created
  *
- * Handles two scenarios:
- * 1. New user - creates User + UserPractice entry
+ * Handles three scenarios:
+ * 1. New employee user - creates User + UserPractice entry + links Employee
  * 2. Existing user (multi-practice) - adds UserPractice entry for new practice
+ * 3. Locum user - creates User + UserPractice entry + links Locum
  */
 export async function acceptInvitation(token: string, supabaseUserId: string) {
   const validation = await validateInvitation(token);
@@ -808,3 +819,4 @@ export async function getTeamLimitStatus() {
 
   return await checkUserLimitStatus(practice.id);
 }
+

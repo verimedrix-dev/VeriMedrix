@@ -1,26 +1,32 @@
 import { SubscriptionTier } from "@prisma/client";
 
 /**
- * Subscription plan limits configuration
+ * VeriMedrix Subscription Plans
  *
- * Starter (ESSENTIALS): R1,999/month
+ * HR Management: R999/month
+ * - 3 users
+ * - HR features: Team, Leave Management, Payroll, Locums, Training
+ * - Tasks
+ * - No: Compliance features (Documents, Complaints, Adverse Events, Logbook, Inspection Readiness)
+ *
+ * OHSC Essential: R1,999/month
  * - 3 users
  * - Unlimited documents
  * - Tasks, Complaints, Adverse Events, Logbook, Inspection Readiness, Training
  * - No: Leave Management, Payroll, Locums, Team Invites, SARS Reports, AI Assistant
  *
- * Professional: R3,999/month
+ * OHSC Professional: R3,999/month
  * - Unlimited users
- * - Everything in Starter plus:
+ * - Everything included
  * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant
  */
 export const SUBSCRIPTION_LIMITS = {
   ESSENTIALS: {
     maxUsers: 3,
-    displayName: "Starter",
+    displayName: "OHSC Essential",
     price: 1999,
     features: {
-      // Included in Starter
+      // Included in Starter - Compliance features
       documents: true,
       tasks: true,
       complaints: true,
@@ -37,9 +43,31 @@ export const SUBSCRIPTION_LIMITS = {
       aiAssistant: false,
     },
   },
+  HR_MANAGEMENT: {
+    maxUsers: 3,
+    displayName: "HR Management",
+    price: 999,
+    features: {
+      // HR-focused features
+      tasks: true,
+      training: true,
+      leaveManagement: true,
+      payroll: true,
+      locums: true,
+      teamInvites: true,
+      // Not included - Compliance features
+      documents: false,
+      complaints: false,
+      adverseEvents: false,
+      logbook: false,
+      inspectionReadiness: false,
+      sarsReports: false,
+      aiAssistant: false,
+    },
+  },
   PROFESSIONAL: {
     maxUsers: null, // Unlimited
-    displayName: "Professional",
+    displayName: "OHSC Professional",
     price: 3999,
     features: {
       // All features included
@@ -58,10 +86,10 @@ export const SUBSCRIPTION_LIMITS = {
       aiAssistant: true,
     },
   },
-  // Enterprise kept for schema compatibility but treated same as Professional
+  // Enterprise kept for schema compatibility but treated same as OHSC Professional
   ENTERPRISE: {
     maxUsers: null,
-    displayName: "Professional",
+    displayName: "OHSC Professional",
     price: 3999,
     features: {
       documents: true,
