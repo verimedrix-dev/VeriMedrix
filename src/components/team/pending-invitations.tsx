@@ -24,7 +24,7 @@ interface Invitation {
     fullName: string;
     email: string | null;
     position: string;
-  };
+  } | null;
   InvitedBy: {
     id: string;
     name: string;
@@ -103,7 +103,7 @@ export function PendingInvitations({ invitations }: PendingInvitationsProps) {
                   </div>
                   <div>
                     <p className="font-medium text-slate-900 dark:text-white">
-                      {invitation.Employee.fullName}
+                      {invitation.Employee?.fullName || invitation.email}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{invitation.email}</p>
                     <div className="flex items-center gap-2 mt-1">
@@ -126,7 +126,7 @@ export function PendingInvitations({ invitations }: PendingInvitationsProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleResend(invitation.id, invitation.Employee.fullName)}
+                    onClick={() => handleResend(invitation.id, invitation.Employee?.fullName || invitation.email)}
                     disabled={isLoading}
                   >
                     {isLoading ? (
