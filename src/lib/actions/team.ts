@@ -313,7 +313,7 @@ export async function resendInvitation(invitationId: string) {
   // Send new invitation email
   const inviteUrl = `${APP_URL}/accept-invitation?token=${token}`;
   const emailContent = getTeamInvitationEmail({
-    employeeName: invitation.Employee.fullName,
+    employeeName: invitation.Employee?.fullName || invitation.email,
     practiceName: practice.name,
     inviterName: user.name,
     accessLevel: getAccessLevelDisplayName(invitation.role),
