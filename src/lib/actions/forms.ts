@@ -115,7 +115,7 @@ export async function createCustomForm(data: {
           practiceId: practice.id,
           name: data.name,
           description: data.description,
-          fields: data.fields,
+          fields: data.fields as unknown as object,
           schedule: data.schedule,
           createdById: user.id,
         },
@@ -165,7 +165,7 @@ export async function updateCustomForm(
         data: {
           name: data.name,
           description: data.description,
-          fields: data.fields,
+          fields: data.fields as unknown as object | undefined,
           schedule: data.schedule,
           isActive: data.isActive,
         },
@@ -249,7 +249,7 @@ export async function submitFormResponse(
           id: createId(),
           formId,
           practiceId: practice.id,
-          responses,
+          responses: responses as unknown as object,
           submittedById: user.id,
         },
       })
