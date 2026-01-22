@@ -465,11 +465,13 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
           }
         });
 
-        // Link employee to existing user
-        await tx.employee.update({
-          where: { id: invitation.employeeId },
-          data: { userId: existingUser.id },
-        });
+        // Link employee to existing user (if employee record exists)
+        if (invitation.employeeId) {
+          await tx.employee.update({
+            where: { id: invitation.employeeId },
+            data: { userId: existingUser.id },
+          });
+        }
 
         // Mark invitation as accepted
         await tx.teamInvitation.update({
@@ -521,11 +523,13 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
         }
       });
 
-      // Link employee to user
-      await tx.employee.update({
-        where: { id: invitation.employeeId },
-        data: { userId: newUser.id },
-      });
+      // Link employee to user (if employee record exists)
+      if (invitation.employeeId) {
+        await tx.employee.update({
+          where: { id: invitation.employeeId },
+          data: { userId: newUser.id },
+        });
+      }
 
       // Mark invitation as accepted
       await tx.teamInvitation.update({
