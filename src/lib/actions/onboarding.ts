@@ -12,7 +12,7 @@ type OnboardingData = {
   practicePhone?: string;
   practiceAddress?: string;
   province: string;
-  subscriptionTier: "ESSENTIALS" | "PROFESSIONAL";
+  subscriptionTier: "HR_MANAGEMENT" | "ESSENTIALS" | "PROFESSIONAL";
 };
 
 /**
