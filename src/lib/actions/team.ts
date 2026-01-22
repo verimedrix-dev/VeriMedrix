@@ -503,7 +503,7 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
         data: {
           id: createId(),
           email: invitation.email,
-          name: invitation.Employee.fullName,
+          name: invitation.Employee?.fullName || invitation.email,
           practiceId: invitation.practiceId,
           currentPracticeId: invitation.practiceId,
           role: invitation.role,

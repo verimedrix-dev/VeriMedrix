@@ -45,6 +45,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
   ADMIN: 80,
   STAFF: 50,
   VIEWER: 10,
+  LOCUM: 5,
 };
 
 /**
