@@ -26,7 +26,7 @@ export default async function ResponsesPage({ params }: ResponsesPageProps) {
     notFound();
   }
 
-  const fields = form.fields as FormField[];
+  const fields = form.fields as unknown as FormField[];
 
   return (
     <div className="space-y-6">

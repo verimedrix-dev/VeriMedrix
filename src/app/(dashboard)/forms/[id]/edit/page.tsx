@@ -43,7 +43,7 @@ export default async function EditFormPage({ params }: EditFormPageProps) {
           id: form.id,
           name: form.name,
           description: form.description,
-          fields: form.fields as FormField[],
+          fields: form.fields as unknown as FormField[],
           schedule: form.schedule as FormSchedule,
           isActive: form.isActive,
         }}

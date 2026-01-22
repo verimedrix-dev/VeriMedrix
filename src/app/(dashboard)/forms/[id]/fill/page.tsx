@@ -65,7 +65,7 @@ export default async function FillFormPage({ params }: FillFormPageProps) {
         </div>
       </div>
 
-      <FormFiller form={{ ...form, fields: form.fields as FormField[] }} />
+      <FormFiller form={{ ...form, fields: form.fields as unknown as FormField[] }} />
     </div>
   );
 }

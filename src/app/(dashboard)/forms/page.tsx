@@ -61,7 +61,7 @@ export default async function FormsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {forms.map((form) => {
-            const fields = form.fields as { id: string; label: string; type: string }[];
+            const fields = form.fields as unknown as { id: string; label: string; type: string }[];
             return (
               <Card key={form.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
