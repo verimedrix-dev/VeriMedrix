@@ -421,14 +421,17 @@ export async function clockOut(locumId: string, breakMinutes?: number) {
   if (!practice) throw new Error("Not authenticated");
 
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const timesheet = await prisma.locumTimesheet.findUnique({
-    where: { locumId_date: { locumId, date: today } },
+  // Find the active clocked-in timesheet (might be from a previous day if they forgot to clock out)
+  const timesheet = await prisma.locumTimesheet.findFirst({
+    where: {
+      locumId,
+      practiceId: practice.id,
+      status: "CLOCKED_IN",
+    },
   });
 
-  if (!timesheet) throw new Error("No timesheet found for today");
-  if (timesheet.status !== "CLOCKED_IN") throw new Error("Not currently clocked in");
+  if (!timesheet) throw new Error("No active clock-in found for this locum");
   if (!timesheet.clockIn) throw new Error("Invalid timesheet state");
 
   const clockOut = now;
