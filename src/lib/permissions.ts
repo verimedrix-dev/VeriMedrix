@@ -152,6 +152,8 @@ export function getAccessLevelDisplayName(role: UserRole): string {
       return "Intermediate Access";
     case "VIEWER":
       return "Minimum Access";
+    case "LOCUM":
+      return "Locum";
     default:
       return role;
   }
@@ -172,6 +174,8 @@ export function getAccessLevelDescription(role: UserRole): string {
       return "View employees, manage tasks, documents, and leave";
     case "VIEWER":
       return "Personal tasks, leave requests, and view documents only";
+    case "LOCUM":
+      return "Temporary staff with clock in/out only";
     default:
       return "";
   }

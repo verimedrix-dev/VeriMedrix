@@ -17,50 +17,59 @@ export default async function TeamPage() {
 
   const { practice } = await ensureUserAndPractice();
 
-  const [teamMembers, pendingInvitations, limitStatus] = await Promise.all([
-    practice
-      ? withDbConnection(() =>
-          prisma.user.findMany({
-            where: { practiceId: practice.id },
-            orderBy: [{ role: "asc" }, { createdAt: "asc" }],
-          })
-        )
-      : [],
-    practice
-      ? withDbConnection(() =>
-          prisma.teamInvitation.findMany({
-            where: {
-              practiceId: practice.id,
-              status: "PENDING",
-            },
-            select: {
-              id: true,
-              email: true,
-              role: true,
-              expiresAt: true,
-              createdAt: true,
-              invitedByName: true,
-              Employee: {
-                select: {
-                  id: true,
-                  fullName: true,
-                  email: true,
-                  position: true,
-                },
+  if (!practice) {
+    throw new Error("Practice not found");
+  }
+
+  let teamMembers;
+  let pendingInvitations;
+  let limitStatus;
+
+  try {
+    [teamMembers, pendingInvitations, limitStatus] = await Promise.all([
+      withDbConnection(() =>
+        prisma.user.findMany({
+          where: { practiceId: practice.id },
+          orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+        })
+      ),
+      withDbConnection(() =>
+        prisma.teamInvitation.findMany({
+          where: {
+            practiceId: practice.id,
+            status: "PENDING",
+          },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            expiresAt: true,
+            createdAt: true,
+            invitedByName: true,
+            Employee: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                position: true,
               },
-              InvitedBy: {
-                select: {
-                  id: true,
-                  name: true,
-                },
+            },
+            InvitedBy: {
+              select: {
+                id: true,
+                name: true,
               },
             },
-            orderBy: { createdAt: "desc" },
-          })
-        )
-      : [],
-    practice ? checkUserLimitStatus(practice.id) : null,
-  ]);
+          },
+          orderBy: { createdAt: "desc" },
+        })
+      ),
+      checkUserLimitStatus(practice.id),
+    ]);
+  } catch (error) {
+    console.error("Error loading team page data:", error);
+    throw error;
+  }
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
