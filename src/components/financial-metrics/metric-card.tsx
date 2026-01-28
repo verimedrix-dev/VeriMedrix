@@ -8,7 +8,7 @@ import {
   MetricKey,
   getMetricStatus,
   formatMetricValue,
-} from "@/lib/actions/financial-metrics";
+} from "@/lib/financial-metrics-utils";
 
 interface MetricCardProps {
   metricKey: MetricKey;

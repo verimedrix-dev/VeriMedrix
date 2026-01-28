@@ -1,14 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { getFinancialMetricsData } from "@/lib/actions/financial-metrics";
 import {
-  getFinancialMetricsData,
   METRIC_CONFIG,
   MetricKey,
   formatPeriod,
   getPreviousPeriod,
   FinancialMetricsData,
-} from "@/lib/actions/financial-metrics";
+} from "@/lib/financial-metrics-utils";
 import { MetricCard } from "@/components/financial-metrics/metric-card";
 import { EntryDialog } from "@/components/financial-metrics/entry-dialog";
 import { UpgradePrompt } from "@/components/financial-metrics/upgrade-prompt";

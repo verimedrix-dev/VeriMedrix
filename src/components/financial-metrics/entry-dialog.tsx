@@ -22,14 +22,14 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
+import { saveFinancialMetrics } from "@/lib/actions/financial-metrics";
 import {
-  saveFinancialMetrics,
   METRIC_CONFIG,
   getCurrentPeriod,
   getLastPeriods,
   formatPeriod,
   FinancialMetricsData,
-} from "@/lib/actions/financial-metrics";
+} from "@/lib/financial-metrics-utils";
 
 interface EntryDialogProps {
   existingData?: FinancialMetricsData | null;
