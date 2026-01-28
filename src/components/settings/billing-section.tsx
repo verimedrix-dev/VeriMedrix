@@ -58,6 +58,7 @@ const plans: {
       "Inspection readiness",
       "SARS reporting",
       "AI assistant",
+      "Financial Metrics Dashboard",
     ],
   },
   {
@@ -82,13 +83,14 @@ const plans: {
       "Locum management",
       "Team invites",
       "AI assistant",
+      "Financial Metrics Dashboard",
     ],
   },
   {
     tier: "PROFESSIONAL",
     name: "OHSC Professional",
     description: "Complete practice management",
-    price: 3999,
+    price: 4999,
     features: [
       "Unlimited users",
       "Everything in both plans",
@@ -97,6 +99,7 @@ const plans: {
       "Locum management",
       "Team invites",
       "AI compliance assistant",
+      "Financial Metrics Dashboard",
       "Priority support",
     ],
     notIncluded: [],

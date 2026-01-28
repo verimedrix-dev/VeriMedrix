@@ -102,6 +102,7 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/adverse-events": PERMISSIONS.ADVERSE_EVENTS,
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
+  "/financial-metrics": PERMISSIONS.PAYROLL,
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
   "/logbook": PERMISSIONS.LOGBOOK,
   "/forms": PERMISSIONS.LOGBOOK,

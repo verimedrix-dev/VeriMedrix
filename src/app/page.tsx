@@ -604,7 +604,7 @@ export default function HomePage() {
                     14-day free trial
                   </div>
                   <div className="mb-6">
-                    <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R3,999</span>
+                    <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R4,999</span>
                     <span className="text-slate-500">/month</span>
                   </div>
                   <ul className="space-y-3 mb-6">
@@ -614,6 +614,7 @@ export default function HomePage() {
                       "Leave Management",
                       "Unlimited Payroll",
                       "Locum Management",
+                      "Financial Metrics Dashboard",
                       "SARS Reporting",
                       "Team Invitations",
                       "AI Assistant",
@@ -763,8 +764,9 @@ export default function HomePage() {
             <div>
               <h4 className="text-white font-semibold mb-4">Legal</h4>
               <ul className="space-y-3 text-sm">
-                <li><a href="#" className="text-violet-200/70 hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="text-violet-200/70 hover:text-white transition-colors">Terms of Service</a></li>
+                <li><Link href="/privacy" className="text-violet-200/70 hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-violet-200/70 hover:text-white transition-colors">Terms of Service</Link></li>
+                <li><Link href="/refund" className="text-violet-200/70 hover:text-white transition-colors">Refund Policy</Link></li>
               </ul>
             </div>
           </div>

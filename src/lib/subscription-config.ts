@@ -13,12 +13,12 @@ import { SubscriptionTier } from "@prisma/client";
  * - 3 users
  * - Unlimited documents
  * - Tasks, Complaints, Adverse Events, Logbook, Inspection Readiness, Training
- * - No: Leave Management, Payroll, Locums, Team Invites, SARS Reports, AI Assistant
+ * - No: Leave Management, Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics
  *
- * OHSC Professional: R3,999/month
+ * OHSC Professional: R4,999/month
  * - Unlimited users
  * - Everything included
- * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant
+ * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics
  */
 export const SUBSCRIPTION_LIMITS = {
   ESSENTIALS: {
@@ -41,6 +41,7 @@ export const SUBSCRIPTION_LIMITS = {
       teamInvites: false,
       sarsReports: false,
       aiAssistant: false,
+      financialMetrics: false,
     },
   },
   HR_MANAGEMENT: {
@@ -63,12 +64,13 @@ export const SUBSCRIPTION_LIMITS = {
       inspectionReadiness: false,
       sarsReports: false,
       aiAssistant: false,
+      financialMetrics: false,
     },
   },
   PROFESSIONAL: {
     maxUsers: null, // Unlimited
     displayName: "OHSC Professional",
-    price: 3999,
+    price: 4999,
     features: {
       // All features included
       documents: true,
@@ -84,13 +86,14 @@ export const SUBSCRIPTION_LIMITS = {
       teamInvites: true,
       sarsReports: true,
       aiAssistant: true,
+      financialMetrics: true,
     },
   },
   // Enterprise kept for schema compatibility but treated same as OHSC Professional
   ENTERPRISE: {
     maxUsers: null,
     displayName: "OHSC Professional",
-    price: 3999,
+    price: 4999,
     features: {
       documents: true,
       tasks: true,
@@ -105,6 +108,7 @@ export const SUBSCRIPTION_LIMITS = {
       teamInvites: true,
       sarsReports: true,
       aiAssistant: true,
+      financialMetrics: true,
     },
   },
 } as const;
@@ -159,4 +163,5 @@ export const FEATURE_DISPLAY_NAMES: Record<FeatureKey, string> = {
   teamInvites: "Team Invitations",
   sarsReports: "SARS Reporting",
   aiAssistant: "AI Assistant",
+  financialMetrics: "Financial Metrics Dashboard",
 };

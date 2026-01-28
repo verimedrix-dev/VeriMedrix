@@ -21,6 +21,7 @@ import {
   ClipboardList,
   Shield,
   HelpCircle,
+  TrendingUp,
 } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { UserRole, SubscriptionTier } from "@prisma/client";
@@ -59,6 +60,7 @@ const hrNavigation: NavItem[] = [
   { name: "Employees", href: "/employees", icon: UserCircle, permission: PERMISSIONS.EMPLOYEES },
   { name: "Locums", href: "/locums", icon: Stethoscope, permission: PERMISSIONS.EMPLOYEES, requiredFeature: "locums" },
   { name: "Payroll", href: "/payroll", icon: Wallet, permission: PERMISSIONS.PAYROLL, requiredFeature: "payroll" },
+  { name: "Financial Metrics", href: "/financial-metrics", icon: TrendingUp, permission: PERMISSIONS.PAYROLL, requiredFeature: "financialMetrics" },
   { name: "Leave", href: "/leave", icon: CalendarOff, permission: PERMISSIONS.LEAVE, requiredFeature: "leaveManagement" },
   { name: "Training", href: "/training", icon: GraduationCap, permission: PERMISSIONS.TRAINING, requiredFeature: "training" },
 ];

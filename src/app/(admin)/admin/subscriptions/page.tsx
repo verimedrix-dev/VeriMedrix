@@ -47,7 +47,7 @@ export default async function SubscriptionsPage() {
   // Subscription tier prices
   const tierPrices: Record<string, number> = {
     ESSENTIALS: 1999,
-    PROFESSIONAL: 3999,
+    PROFESSIONAL: 4999,
   };
 
   const estimatedMRR = overview.byTier.reduce((acc, tier) => {

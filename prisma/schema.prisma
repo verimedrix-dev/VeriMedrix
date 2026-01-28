@@ -407,9 +407,52 @@ model Practice {
   AdverseEvent         AdverseEvent[]
   CustomForm           CustomForm[]
   CustomFormResponse   CustomFormResponse[]
+  FinancialMetrics     PracticeFinancialMetrics[]
   @@index([email])
   @@index([subscriptionStatus])
   @@index([scheduledDeletionAt])
+}
+
+// Practice Financial Metrics - Monthly tracking of 11 key financial indicators
+model PracticeFinancialMetrics {
+  id                      String   @id @default(cuid())
+  practiceId              String
+  period                  String   // "2025-01" YYYY-MM format
+
+  // Revenue & Billing
+  revenuePerConsult       Decimal? @db.Decimal(10, 2)
+  billingErrorRate        Decimal? @db.Decimal(5, 2)
+
+  // Profit First Allocations
+  profitAllocation        Decimal? @db.Decimal(5, 2)
+  ownerPayAllocation      Decimal? @db.Decimal(5, 2)
+  taxReserveAllocation    Decimal? @db.Decimal(5, 2)
+
+  // Expense Ratios (as % of Revenue)
+  payrollPercentage       Decimal? @db.Decimal(5, 2)
+  consumablesPercentage   Decimal? @db.Decimal(5, 2)
+  rentPercentage          Decimal? @db.Decimal(5, 2)
+  overheadsPercentage     Decimal? @db.Decimal(5, 2)
+
+  // Cash Flow (days)
+  medicalAidDSODays       Int?
+  cashCollectionDays      Int?
+
+  // Supporting data
+  totalRevenue            Decimal? @db.Decimal(12, 2)
+  totalConsults           Int?
+  notes                   String?
+
+  // Metadata
+  enteredById             String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  Practice                Practice @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+
+  @@unique([practiceId, period])
+  @@index([practiceId])
+  @@index([period])
 }
 
 // Junction table for User-Practice many-to-many relationship
