@@ -103,6 +103,7 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
   "/financial-metrics": PERMISSIONS.PAYROLL,
+  "/inventory": PERMISSIONS.PAYROLL,
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
   "/logbook": PERMISSIONS.LOGBOOK,
   "/forms": PERMISSIONS.LOGBOOK,

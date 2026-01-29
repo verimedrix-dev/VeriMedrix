@@ -18,7 +18,7 @@ import { SubscriptionTier } from "@prisma/client";
  * OHSC Professional: R4,999/month
  * - Unlimited users
  * - Everything included
- * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics
+ * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics, Inventory
  */
 export const SUBSCRIPTION_LIMITS = {
   ESSENTIALS: {
@@ -42,6 +42,7 @@ export const SUBSCRIPTION_LIMITS = {
       sarsReports: false,
       aiAssistant: false,
       financialMetrics: false,
+      inventory: false,
     },
   },
   HR_MANAGEMENT: {
@@ -65,6 +66,7 @@ export const SUBSCRIPTION_LIMITS = {
       sarsReports: false,
       aiAssistant: false,
       financialMetrics: false,
+      inventory: false,
     },
   },
   PROFESSIONAL: {
@@ -87,6 +89,7 @@ export const SUBSCRIPTION_LIMITS = {
       sarsReports: true,
       aiAssistant: true,
       financialMetrics: true,
+      inventory: true,
     },
   },
   // Enterprise kept for schema compatibility but treated same as OHSC Professional
@@ -109,6 +112,7 @@ export const SUBSCRIPTION_LIMITS = {
       sarsReports: true,
       aiAssistant: true,
       financialMetrics: true,
+      inventory: true,
     },
   },
 } as const;
@@ -164,4 +168,5 @@ export const FEATURE_DISPLAY_NAMES: Record<FeatureKey, string> = {
   sarsReports: "SARS Reporting",
   aiAssistant: "AI Assistant",
   financialMetrics: "Financial Metrics Dashboard",
+  inventory: "Inventory Management",
 };

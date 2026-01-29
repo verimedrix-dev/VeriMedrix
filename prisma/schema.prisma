@@ -408,6 +408,9 @@ model Practice {
   CustomForm           CustomForm[]
   CustomFormResponse   CustomFormResponse[]
   FinancialMetrics     PracticeFinancialMetrics[]
+  InventoryCategories  InventoryCategory[]
+  InventoryItems       InventoryItem[]
+  StockMovements       StockMovement[]
   @@index([email])
   @@index([subscriptionStatus])
   @@index([scheduledDeletionAt])
@@ -453,6 +456,82 @@ model PracticeFinancialMetrics {
   @@unique([practiceId, period])
   @@index([practiceId])
   @@index([period])
+}
+
+// Inventory Management - Categories for organizing stock items
+model InventoryCategory {
+  id          String          @id @default(cuid())
+  practiceId  String
+  name        String
+  description String?
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  Practice    Practice        @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  Items       InventoryItem[]
+
+  @@unique([practiceId, name])
+  @@index([practiceId])
+}
+
+// Inventory Management - Individual stock items
+model InventoryItem {
+  id              String              @id @default(cuid())
+  practiceId      String
+  categoryId      String
+  name            String
+  description     String?
+  sku             String?
+  quantity        Int                 @default(0)
+  minQuantity     Int                 @default(0)
+  unit            String              @default("units")
+  expiryDate      DateTime?
+  batchNumber     String?
+  supplier        String?
+  supplierContact String?
+  costPerUnit     Decimal?            @db.Decimal(10, 2)
+  location        String?
+  notes           String?
+  isActive        Boolean             @default(true)
+  createdById     String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  Practice        Practice            @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  Category        InventoryCategory   @relation(fields: [categoryId], references: [id])
+  StockMovements  StockMovement[]
+
+  @@index([practiceId])
+  @@index([categoryId])
+  @@index([expiryDate])
+  @@index([practiceId, isActive])
+}
+
+// Inventory Management - Stock movement history
+model StockMovement {
+  id            String            @id @default(cuid())
+  practiceId    String
+  itemId        String
+  type          StockMovementType
+  quantity      Int
+  reason        String?
+  reference     String?
+  performedById String?
+  createdAt     DateTime          @default(now())
+
+  Practice      Practice          @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  Item          InventoryItem     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@index([practiceId])
+  @@index([itemId])
+  @@index([createdAt])
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUSTMENT
 }
 
 // Junction table for User-Practice many-to-many relationship
@@ -675,6 +754,9 @@ enum AlertType {
   WARNING_ISSUED
   TRAINING_EXPIRY
   REGISTRATION_EXPIRY
+  INVENTORY_LOW_STOCK
+  INVENTORY_EXPIRING
+  INVENTORY_EXPIRED
 }
 
 enum AuditAction {

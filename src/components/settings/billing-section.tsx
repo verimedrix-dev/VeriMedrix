@@ -59,6 +59,7 @@ const plans: {
       "SARS reporting",
       "AI assistant",
       "Financial Metrics Dashboard",
+      "Inventory Management",
     ],
   },
   {
@@ -84,6 +85,7 @@ const plans: {
       "Team invites",
       "AI assistant",
       "Financial Metrics Dashboard",
+      "Inventory Management",
     ],
   },
   {
@@ -100,6 +102,7 @@ const plans: {
       "Team invites",
       "AI compliance assistant",
       "Financial Metrics Dashboard",
+      "Inventory & Stock Management",
       "Priority support",
     ],
     notIncluded: [],

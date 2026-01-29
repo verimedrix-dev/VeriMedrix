@@ -14,6 +14,9 @@ import {
   AlertCircle,
   GraduationCap,
   Award,
+  Package,
+  PackageX,
+  Timer,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { MarkAllReadButton } from "@/components/notifications/mark-all-read-button";
@@ -61,6 +64,9 @@ export default async function NotificationsPage() {
       case "WARNING_ISSUED": return <AlertCircle className="h-5 w-5 text-orange-500" />;
       case "TRAINING_EXPIRY": return <GraduationCap className="h-5 w-5 text-amber-500" />;
       case "REGISTRATION_EXPIRY": return <Award className="h-5 w-5 text-amber-500" />;
+      case "INVENTORY_LOW_STOCK": return <Package className="h-5 w-5 text-amber-500" />;
+      case "INVENTORY_EXPIRING": return <Timer className="h-5 w-5 text-orange-500" />;
+      case "INVENTORY_EXPIRED": return <PackageX className="h-5 w-5 text-red-500" />;
       default: return <Bell className="h-5 w-5 text-slate-500" />;
     }
   };
@@ -78,6 +84,9 @@ export default async function NotificationsPage() {
       case "WARNING_ISSUED": return "Warning";
       case "TRAINING_EXPIRY": return "Training Expiry";
       case "REGISTRATION_EXPIRY": return "Registration Expiry";
+      case "INVENTORY_LOW_STOCK": return "Low Stock";
+      case "INVENTORY_EXPIRING": return "Expiring Soon";
+      case "INVENTORY_EXPIRED": return "Expired Item";
       default: return type.replace(/_/g, " ");
     }
   };
@@ -145,7 +154,7 @@ export default async function NotificationsPage() {
               <Bell className="h-12 w-12 mx-auto text-slate-400 dark:text-slate-500 mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No notifications</h3>
               <p className="text-slate-600 dark:text-slate-400">
-                You&apos;re all caught up! Notifications about leave requests, document expiries, and tasks will appear here.
+                You&apos;re all caught up! Notifications about leave requests, document expiries, inventory alerts, and tasks will appear here.
               </p>
             </CardContent>
           </Card>
