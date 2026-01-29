@@ -468,6 +468,78 @@ export async function clockOut(locumId: string, breakMinutes?: number) {
   return updated;
 }
 
+// Manual clock entry - for when real-time clock-in wasn't possible
+export async function manualClockEntry(data: {
+  locumId: string;
+  date: string; // YYYY-MM-DD
+  clockInTime: string; // HH:mm
+  clockOutTime: string; // HH:mm
+  breakMinutes?: number;
+}) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) throw new Error("Not authenticated");
+
+  const locum = await prisma.locum.findFirst({
+    where: { id: data.locumId, practiceId: practice.id },
+  });
+  if (!locum) throw new Error("Locum not found");
+
+  // Parse date and times
+  const [year, month, day] = data.date.split("-").map(Number);
+  const entryDate = new Date(year, month - 1, day);
+
+  const [inH, inM] = data.clockInTime.split(":").map(Number);
+  const clockInDT = new Date(year, month - 1, day, inH, inM, 0);
+
+  const [outH, outM] = data.clockOutTime.split(":").map(Number);
+  const clockOutDT = new Date(year, month - 1, day, outH, outM, 0);
+
+  if (clockOutDT <= clockInDT) {
+    throw new Error("Clock-out time must be after clock-in time");
+  }
+
+  // Check if a timesheet already exists for this date
+  const existing = await prisma.locumTimesheet.findUnique({
+    where: { locumId_date: { locumId: data.locumId, date: entryDate } },
+  });
+
+  if (existing) {
+    throw new Error("A timesheet entry already exists for this date. Delete it first to add a manual entry.");
+  }
+
+  const breakMins = data.breakMinutes || 0;
+  const totalMinutes = (clockOutDT.getTime() - clockInDT.getTime()) / (1000 * 60);
+  const workMinutes = totalMinutes - breakMins;
+  const hoursWorked = Math.round((workMinutes / 60) * 100) / 100;
+  const totalPayable = Math.round(hoursWorked * locum.hourlyRate * 100) / 100;
+
+  const timesheet = await prisma.locumTimesheet.create({
+    data: {
+      locumId: data.locumId,
+      practiceId: practice.id,
+      date: entryDate,
+      clockIn: clockInDT,
+      clockOut: clockOutDT,
+      breakMinutes: breakMins,
+      hoursWorked,
+      hourlyRate: locum.hourlyRate,
+      totalPayable,
+      status: "CLOCKED_OUT",
+      notes: "Manual entry",
+    },
+  });
+
+  await Promise.all([
+    invalidateCache(cacheKeys.practiceLocums(practice.id)),
+    invalidateCache(cacheKeys.practiceDashboard(practice.id)),
+  ]);
+
+  revalidatePath("/locums");
+  revalidatePath("/locums/clock");
+  revalidatePath("/locums/timesheets");
+  return timesheet;
+}
+
 // Get current clock status for a locum
 export async function getClockStatus(locumId: string) {
   const { practice } = await ensureUserAndPractice();

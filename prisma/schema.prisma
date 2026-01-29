@@ -1859,3 +1859,30 @@ enum CustomFormSchedule {
   WEEKLY
   MONTHLY
 }
+
+model Tutorial {
+  id          String          @id @default(cuid())
+  title       String
+  youtubeUrl  String
+  description String?
+  category    TutorialCategory @default(GETTING_STARTED)
+  sortOrder   Int             @default(0)
+  isPublished Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([category])
+  @@index([isPublished])
+}
+
+enum TutorialCategory {
+  GETTING_STARTED
+  DOCUMENTS
+  EMPLOYEES
+  COMPLIANCE
+  INVENTORY
+  PAYROLL
+  TASKS
+  SETTINGS
+  OTHER
+}

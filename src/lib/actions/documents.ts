@@ -69,7 +69,10 @@ export async function getDocumentsPageData() {
                 id: true,
                 name: true,
                 displayOrder: true,
-                DocumentType: { select: { id: true, name: true } }
+                DocumentType: {
+                  select: { id: true, name: true },
+                  orderBy: { name: "asc" }
+                }
               },
               orderBy: { displayOrder: "asc" }
             }),

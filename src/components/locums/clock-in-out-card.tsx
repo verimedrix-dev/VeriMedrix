@@ -14,9 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Clock, LogIn, LogOut, Building, Loader2 } from "lucide-react";
+import { Clock, LogIn, LogOut, Building, Loader2, PenLine } from "lucide-react";
 import { toast } from "sonner";
-import { clockIn, clockOut } from "@/lib/actions/locums";
+import { clockIn, clockOut, manualClockEntry } from "@/lib/actions/locums";
 import { LocumSourceType } from "@prisma/client";
 import { format, differenceInMinutes } from "date-fns";
 
@@ -52,7 +52,14 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
   const [elapsedTime, setElapsedTime] = useState("");
   const [showClockDialog, setShowClockDialog] = useState(false);
   const [showClockOutDialog, setShowClockOutDialog] = useState(false);
+  const [showManualDialog, setShowManualDialog] = useState(false);
   const [breakMinutes, setBreakMinutes] = useState(0);
+
+  // Manual entry state
+  const [manualDate, setManualDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [manualClockIn, setManualClockIn] = useState("08:00");
+  const [manualClockOut, setManualClockOut] = useState("17:00");
+  const [manualBreak, setManualBreak] = useState(0);
 
   // Update elapsed time every minute
   useEffect(() => {
@@ -98,6 +105,31 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to clock out");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleManualEntry = async () => {
+    setLoading(true);
+    try {
+      const result = await manualClockEntry({
+        locumId: locum.id,
+        date: manualDate,
+        clockInTime: manualClockIn,
+        clockOutTime: manualClockOut,
+        breakMinutes: manualBreak,
+      });
+      setShowManualDialog(false);
+      setManualDate(format(new Date(), "yyyy-MM-dd"));
+      setManualClockIn("08:00");
+      setManualClockOut("17:00");
+      setManualBreak(0);
+      toast.success(
+        `Manual entry added for ${locum.fullName}. Hours: ${result.hoursWorked?.toFixed(2)}h, Total: R${result.totalPayable?.toFixed(2)}`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to add manual entry");
     } finally {
       setLoading(false);
     }
@@ -157,14 +189,25 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
               </Button>
             </div>
           ) : (
-            <Button
-              onClick={() => setShowClockDialog(true)}
-              className="w-full bg-blue-600 hover:bg-blue-700"
-              disabled={loading}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Clock In / Out
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={() => setShowClockDialog(true)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={loading}
+              >
+                <Clock className="h-4 w-4 mr-2" />
+                Clock In / Out
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowManualDialog(true)}
+                className="w-full"
+                disabled={loading}
+              >
+                <PenLine className="h-4 w-4 mr-2" />
+                Manual Entry
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -253,6 +296,106 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
               >
                 {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Confirm Clock Out
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Entry Dialog */}
+      <Dialog open={showManualDialog} onOpenChange={setShowManualDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Manual Clock Entry - {locum.fullName}</DialogTitle>
+            <DialogDescription>
+              Add a clock record manually for when real-time clock-in was not possible.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="manualDate">Date</Label>
+              <Input
+                id="manualDate"
+                type="date"
+                value={manualDate}
+                onChange={(e) => setManualDate(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="manualClockIn">Clock In Time</Label>
+                <Input
+                  id="manualClockIn"
+                  type="time"
+                  value={manualClockIn}
+                  onChange={(e) => setManualClockIn(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="manualClockOut">Clock Out Time</Label>
+                <Input
+                  id="manualClockOut"
+                  type="time"
+                  value={manualClockOut}
+                  onChange={(e) => setManualClockOut(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="manualBreak">Break time (minutes)</Label>
+              <Input
+                id="manualBreak"
+                type="number"
+                min="0"
+                value={manualBreak}
+                onChange={(e) => setManualBreak(parseInt(e.target.value) || 0)}
+                placeholder="0"
+              />
+            </div>
+
+            {/* Preview calculation */}
+            {manualClockIn && manualClockOut && (
+              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Rate:</span>
+                  <span>R{locum.hourlyRate}/hr</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Estimated hours:</span>
+                  <span>
+                    {(() => {
+                      const [inH, inM] = manualClockIn.split(":").map(Number);
+                      const [outH, outM] = manualClockOut.split(":").map(Number);
+                      const totalMins = (outH * 60 + outM) - (inH * 60 + inM) - manualBreak;
+                      return totalMins > 0 ? (totalMins / 60).toFixed(2) : "0";
+                    })()}h
+                  </span>
+                </div>
+                <div className="flex justify-between font-medium border-t pt-1 dark:border-slate-700">
+                  <span>Estimated pay:</span>
+                  <span>
+                    R{(() => {
+                      const [inH, inM] = manualClockIn.split(":").map(Number);
+                      const [outH, outM] = manualClockOut.split(":").map(Number);
+                      const totalMins = (outH * 60 + outM) - (inH * 60 + inM) - manualBreak;
+                      const hours = totalMins > 0 ? totalMins / 60 : 0;
+                      return (hours * locum.hourlyRate).toFixed(2);
+                    })()}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowManualDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleManualEntry}
+                disabled={loading || !manualDate || !manualClockIn || !manualClockOut}
+              >
+                {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Add Entry
               </Button>
             </div>
           </div>

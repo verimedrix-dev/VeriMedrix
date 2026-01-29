@@ -44,7 +44,7 @@ const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD },
   { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.DASHBOARD, requiredFeature: "inspectionReadiness" },
   { name: "OHSC Documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENTS, requiredFeature: "documents" },
-  { name: "AI Assistant", href: "/ai-assistant", icon: Bot, permission: PERMISSIONS.AI_ASSISTANT, requiredFeature: "aiAssistant" },
+  { name: "AI Compliance Assistant", href: "/ai-assistant", icon: Bot, permission: PERMISSIONS.AI_ASSISTANT, requiredFeature: "aiAssistant" },
   { name: "Tasks", href: "/tasks", icon: CheckSquare, permission: PERMISSIONS.TASKS, requiredFeature: "tasks" },
   { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS, requiredFeature: "logbook" },
   { name: "Custom Forms", href: "/forms", icon: ClipboardList, permission: PERMISSIONS.LOGBOOK, requiredFeature: "logbook" },

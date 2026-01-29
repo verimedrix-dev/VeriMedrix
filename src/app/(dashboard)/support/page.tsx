@@ -2,10 +2,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ensureUserAndPractice } from "@/lib/actions/practice";
 import { getUserSupportTickets } from "@/lib/actions/support";
+import { getPublishedTutorials } from "@/lib/actions/tutorials";
 import { HelpCircle, MessageSquare, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
 import { NewTicketDialog } from "@/components/support/new-ticket-dialog";
+import { TutorialsSection } from "@/components/support/tutorials-section";
+import { SupportChatbot } from "@/components/support/support-chatbot";
 import { TicketCategory, TicketStatus, TicketPriority } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -13,11 +16,14 @@ export const dynamic = "force-dynamic";
 async function getSupportData() {
   try {
     await ensureUserAndPractice();
-    const tickets = await getUserSupportTickets();
-    return { tickets };
+    const [tickets, tutorials] = await Promise.all([
+      getUserSupportTickets(),
+      getPublishedTutorials(),
+    ]);
+    return { tickets, tutorials };
   } catch (error) {
     console.error("Support data fetch error:", error);
-    return { tickets: [] };
+    return { tickets: [], tutorials: [] };
   }
 }
 
@@ -82,7 +88,7 @@ function getStatusIcon(status: TicketStatus) {
 }
 
 export default async function SupportPage() {
-  const { tickets } = await getSupportData();
+  const { tickets, tutorials } = await getSupportData();
 
   const openTickets = tickets.filter(t => ["OPEN", "IN_PROGRESS"].includes(t.status));
   const awaitingResponse = tickets.filter(t => t.status === "WAITING_RESPONSE");
@@ -143,74 +149,81 @@ export default async function SupportPage() {
         </Card>
       </div>
 
-      {/* Tickets List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Support Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {tickets.length === 0 ? (
-            <div className="py-12 text-center">
-              <HelpCircle className="h-12 w-12 mx-auto text-slate-400 dark:text-slate-500 mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No support tickets yet</h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-4">
-                Need help? Create a support ticket and our team will assist you.
-              </p>
-              <NewTicketDialog />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {tickets.map((ticket) => (
-                <Link
-                  key={ticket.id}
-                  href={`/support/${ticket.id}`}
-                  className="block"
-                >
-                  <div className={`p-4 rounded-lg border hover:shadow-md transition-all ${
-                    ticket.status === "WAITING_RESPONSE"
-                      ? "border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20"
-                      : "hover:border-blue-200 dark:hover:border-blue-800"
-                  }`}>
-                    <div className="flex items-start gap-4">
-                      <div className="mt-1">
-                        {getStatusIcon(ticket.status)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <h3 className="font-medium text-slate-900 dark:text-white truncate">
-                            {ticket.subject}
-                          </h3>
-                          {getStatusBadge(ticket.status)}
-                          {getPriorityBadge(ticket.priority)}
+      {/* Support Chatbot & Tickets Side by Side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Support Chatbot */}
+        <SupportChatbot />
+
+        {/* Tickets List */}
+        <Card className="flex flex-col" style={{ height: "500px" }}>
+          <CardHeader className="flex-shrink-0">
+            <CardTitle>Your Support Tickets</CardTitle>
+          </CardHeader>
+          <CardContent className="flex-1 overflow-y-auto">
+            {tickets.length === 0 ? (
+              <div className="py-8 text-center">
+                <HelpCircle className="h-10 w-10 mx-auto text-slate-400 dark:text-slate-500 mb-3" />
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">No support tickets yet</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                  Need help? Create a support ticket and our team will assist you.
+                </p>
+                <NewTicketDialog />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {tickets.map((ticket) => (
+                  <Link
+                    key={ticket.id}
+                    href={`/support/${ticket.id}`}
+                    className="block"
+                  >
+                    <div className={`p-3 rounded-lg border hover:shadow-md transition-all ${
+                      ticket.status === "WAITING_RESPONSE"
+                        ? "border-l-4 border-l-purple-500 bg-purple-50/50 dark:bg-purple-950/20"
+                        : "hover:border-blue-200 dark:hover:border-blue-800"
+                    }`}>
+                      <div className="flex items-start gap-3">
+                        <div className="mt-0.5">
+                          {getStatusIcon(ticket.status)}
                         </div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-1">
-                          {ticket.description}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm text-slate-500 dark:text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <Badge variant="outline" className="text-xs font-normal">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                            <h3 className="font-medium text-sm text-slate-900 dark:text-white truncate">
+                              {ticket.subject}
+                            </h3>
+                            {getStatusBadge(ticket.status)}
+                            {getPriorityBadge(ticket.priority)}
+                          </div>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">
+                            {ticket.description}
+                          </p>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                            <Badge variant="outline" className="text-[10px] font-normal">
                               {getCategoryLabel(ticket.category)}
                             </Badge>
-                          </span>
-                          <span>
-                            {formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}
-                          </span>
-                          {ticket._count.Messages > 0 && (
-                            <span className="flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3" />
-                              {ticket._count.Messages} {ticket._count.Messages === 1 ? "message" : "messages"}
+                            <span>
+                              {formatDistanceToNow(new Date(ticket.createdAt), { addSuffix: true })}
                             </span>
-                          )}
+                            {ticket._count.Messages > 0 && (
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {ticket._count.Messages}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tutorial Videos */}
+      <TutorialsSection tutorials={tutorials} />
     </div>
   );
 }

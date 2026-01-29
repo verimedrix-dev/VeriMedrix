@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,16 +14,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Upload, Loader2, FileText } from "lucide-react";
+import { Upload, Loader2, FileText, Search, Check, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { createDocument, getDocumentTypes, uploadDocumentFile } from "@/lib/actions/documents";
+import { cn } from "@/lib/utils";
 
 type DocumentType = {
   id: string;
@@ -48,8 +42,10 @@ export function UploadDocumentDialog() {
   });
   const [file, setFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [typeSearch, setTypeSearch] = useState("");
+  const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Prevent hydration mismatch by only rendering Dialog on client
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -60,11 +56,39 @@ export function UploadDocumentDialog() {
     }
   }, [open]);
 
-  // Get the name of the selected document type to use as title
+  // Focus search input when type picker opens
+  useEffect(() => {
+    if (typePickerOpen && searchInputRef.current) {
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  }, [typePickerOpen]);
+
   const getSelectedTypeName = () => {
     const selectedType = documentTypes.find(t => t.id === formData.documentTypeId);
     return selectedType?.name || "";
   };
+
+  // Group and filter document types by search
+  const filteredGroupedTypes = useMemo(() => {
+    const q = typeSearch.toLowerCase();
+
+    const filtered = q
+      ? documentTypes.filter(
+          (t) =>
+            t.name.toLowerCase().includes(q) ||
+            (t.DocumentCategory?.name || "").toLowerCase().includes(q)
+        )
+      : documentTypes;
+
+    return filtered.reduce((acc, type) => {
+      const categoryName = type.DocumentCategory?.name || "Uncategorized";
+      if (!acc[categoryName]) {
+        acc[categoryName] = [];
+      }
+      acc[categoryName].push(type);
+      return acc;
+    }, {} as Record<string, DocumentType[]>);
+  }, [documentTypes, typeSearch]);
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -89,7 +113,6 @@ export function UploadDocumentDialog() {
       return;
     }
 
-    // Type guard - file is guaranteed to exist after validateForm passes
     if (!file) {
       toast.error("Please select a file to upload");
       return;
@@ -98,7 +121,6 @@ export function UploadDocumentDialog() {
     setLoading(true);
 
     try {
-      // Upload file to Supabase Storage
       const uploadFormData = new FormData();
       uploadFormData.append("file", file);
 
@@ -106,7 +128,7 @@ export function UploadDocumentDialog() {
 
       await createDocument({
         documentTypeId: formData.documentTypeId,
-        title: getSelectedTypeName(), // Use document type name as title
+        title: getSelectedTypeName(),
         fileUrl: uploadResult.url,
         fileName: uploadResult.fileName,
         fileSize: uploadResult.fileSize,
@@ -120,6 +142,7 @@ export function UploadDocumentDialog() {
       setFormData({ documentTypeId: "", expiryDate: "", notes: "" });
       setFile(null);
       setErrors({});
+      setTypeSearch("");
     } catch (error) {
       console.error("Upload error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to upload document");
@@ -128,17 +151,13 @@ export function UploadDocumentDialog() {
     }
   };
 
-  // Group document types by category
-  const groupedTypes = documentTypes.reduce((acc, type) => {
-    const categoryName = type.DocumentCategory?.name || "Uncategorized";
-    if (!acc[categoryName]) {
-      acc[categoryName] = [];
-    }
-    acc[categoryName].push(type);
-    return acc;
-  }, {} as Record<string, DocumentType[]>);
+  const handleSelectType = (typeId: string) => {
+    setFormData({ ...formData, documentTypeId: typeId });
+    if (errors.documentType) setErrors({ ...errors, documentType: undefined });
+    setTypePickerOpen(false);
+    setTypeSearch("");
+  };
 
-  // Render placeholder during SSR to prevent hydration mismatch
   if (!mounted) {
     return (
       <Button disabled>
@@ -151,12 +170,15 @@ export function UploadDocumentDialog() {
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
-      // Clear form and errors when dialog closes
       setFormData({ documentTypeId: "", expiryDate: "", notes: "" });
       setFile(null);
       setErrors({});
+      setTypeSearch("");
+      setTypePickerOpen(false);
     }
   };
+
+  const totalFilteredCount = Object.values(filteredGroupedTypes).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -175,35 +197,84 @@ export function UploadDocumentDialog() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Document Type Picker with Search */}
             <div className="space-y-2">
-              <Label htmlFor="documentType" className={errors.documentType ? "text-red-600" : ""}>
+              <Label className={errors.documentType ? "text-red-600" : ""}>
                 Document Type *
               </Label>
-              <Select
-                value={formData.documentTypeId}
-                onValueChange={(value) => {
-                  setFormData({ ...formData, documentTypeId: value });
-                  if (errors.documentType) setErrors({ ...errors, documentType: undefined });
-                }}
-              >
-                <SelectTrigger className={errors.documentType ? "border-red-500 ring-red-500" : ""}>
-                  <SelectValue placeholder="Select document type" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {Object.entries(groupedTypes).map(([category, types]) => (
-                    <div key={category}>
-                      <div className="px-2 py-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800">
-                        {category}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setTypePickerOpen(!typePickerOpen)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-sm border rounded-md bg-background transition-colors",
+                    errors.documentType
+                      ? "border-red-500 ring-1 ring-red-500"
+                      : "border-input hover:border-slate-400",
+                    !formData.documentTypeId && "text-muted-foreground"
+                  )}
+                >
+                  <span className="truncate">
+                    {formData.documentTypeId
+                      ? getSelectedTypeName()
+                      : "Select document type"}
+                  </span>
+                  <ChevronDown className={cn("h-4 w-4 ml-2 flex-shrink-0 transition-transform", typePickerOpen && "rotate-180")} />
+                </button>
+
+                {typePickerOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                    {/* Search input */}
+                    <div className="p-2 border-b">
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          ref={searchInputRef}
+                          placeholder="Search document types..."
+                          value={typeSearch}
+                          onChange={(e) => setTypeSearch(e.target.value)}
+                          className="h-8 pl-8 text-sm"
+                        />
                       </div>
-                      {types.map((type) => (
-                        <SelectItem key={type.id} value={type.id}>
-                          {type.name}
-                        </SelectItem>
-                      ))}
                     </div>
-                  ))}
-                </SelectContent>
-              </Select>
+
+                    {/* Scrollable list */}
+                    <div className="max-h-[250px] overflow-y-auto">
+                      {totalFilteredCount === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          No document types found
+                        </div>
+                      ) : (
+                        Object.entries(filteredGroupedTypes).map(([category, types]) => (
+                          <div key={category}>
+                            <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                              {category}
+                            </div>
+                            {types.map((type) => (
+                              <button
+                                key={type.id}
+                                type="button"
+                                onClick={() => handleSelectType(type.id)}
+                                className={cn(
+                                  "w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors",
+                                  formData.documentTypeId === type.id && "bg-accent"
+                                )}
+                              >
+                                {formData.documentTypeId === type.id ? (
+                                  <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                                ) : (
+                                  <div className="w-3.5 flex-shrink-0" />
+                                )}
+                                <span className="truncate">{type.name}</span>
+                              </button>
+                            ))}
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
               {errors.documentType && (
                 <p className="text-sm text-red-600">{errors.documentType}</p>
               )}

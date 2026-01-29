@@ -86,7 +86,7 @@ function getStatusBadge(status: string) {
 }
 
 interface PageProps {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<{ category?: string; type?: string }>;
 }
 
 export default async function DocumentsPage({ searchParams }: PageProps) {
@@ -94,15 +94,19 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
   const data = await getDocumentsPageData();
   const params = await searchParams;
   const selectedCategoryId = params.category;
+  const selectedTypeId = params.type;
 
   const allDocuments = data?.documents || [];
   const categories = data?.categories || [];
   const stats = data?.stats;
 
-  // Filter documents by category if selected
-  const documents = selectedCategoryId
-    ? allDocuments.filter(doc => doc.DocumentType?.DocumentCategory?.id === selectedCategoryId)
-    : allDocuments;
+  // Filter documents by category and/or document type
+  let documents = allDocuments;
+  if (selectedTypeId) {
+    documents = allDocuments.filter(doc => doc.DocumentType?.id === selectedTypeId);
+  } else if (selectedCategoryId) {
+    documents = allDocuments.filter(doc => doc.DocumentType?.DocumentCategory?.id === selectedCategoryId);
+  }
 
   // Calculate document count per category
   const documentCountByCategory: Record<string, number> = {};
@@ -113,9 +117,23 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
     }
   });
 
+  // Calculate document count per document type
+  const documentCountByType: Record<string, number> = {};
+  allDocuments.forEach(doc => {
+    const typeId = doc.DocumentType?.id;
+    if (typeId) {
+      documentCountByType[typeId] = (documentCountByType[typeId] || 0) + 1;
+    }
+  });
+
   // Get selected category name for header
   const selectedCategory = selectedCategoryId
     ? categories.find(c => c.id === selectedCategoryId)
+    : null;
+
+  // Get selected document type name for header
+  const selectedType = selectedTypeId
+    ? categories.flatMap(c => c.DocumentType).find(t => t.id === selectedTypeId)
     : null;
 
   return (
@@ -124,10 +142,12 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-            {selectedCategory ? selectedCategory.name : "OHSC Documents"}
+            {selectedType ? selectedType.name : selectedCategory ? selectedCategory.name : "OHSC Documents"}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {selectedCategory
+            {selectedType
+              ? `Viewing ${documents.length} document${documents.length !== 1 ? "s" : ""} in ${selectedType.name}`
+              : selectedCategory
               ? `Viewing ${documents.length} document${documents.length !== 1 ? "s" : ""} in ${selectedCategory.name}`
               : "Manage all your OHSC compliance documents in one place"
             }
@@ -202,6 +222,7 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
           categories={categories}
           totalDocuments={stats?.total || 0}
           documentCountByCategory={documentCountByCategory}
+          documentCountByType={documentCountByType}
         />
 
         {/* Documents Table */}
@@ -254,14 +275,16 @@ export default async function DocumentsPage({ searchParams }: PageProps) {
                     <TableCell colSpan={6} className="text-center py-12">
                       <FileText className="h-12 w-12 mx-auto text-slate-400 mb-4" />
                       <p className="text-slate-600 dark:text-slate-400 mb-2">
-                        {selectedCategory
+                        {selectedType
+                          ? `No documents in ${selectedType.name}`
+                          : selectedCategory
                           ? `No documents in ${selectedCategory.name}`
                           : "No documents uploaded yet"
                         }
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-500">
-                        {selectedCategory
-                          ? "Upload a document and select this category to see it here"
+                        {selectedCategory || selectedType
+                          ? "Upload a document and select this type to see it here"
                           : "Click \"Upload Document\" to add your first document"
                         }
                       </p>
