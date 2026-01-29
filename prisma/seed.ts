@@ -46,10 +46,10 @@ function frequencyToMonths(frequency: string): number | undefined {
  */
 const documentCategories: DocumentCategoryDefinition[] = [
   // =============================================================================
-  // CORE PRINCIPLE 1: INFECTION PREVENTION & CONTROL (IPC)
+  // CORE PRINCIPLE 1: IPC
   // =============================================================================
   {
-    name: "1. Infection Prevention & Control",
+    name: "IPC",
     description: "IPC measures to prevent healthcare-associated infections",
     displayOrder: 1,
     icon: "Shield",
@@ -169,7 +169,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 2: EMERGENCY PREPAREDNESS
   // =============================================================================
   {
-    name: "2. Emergency Preparedness",
+    name: "Emergency Preparedness",
     description: "Emergency response planning and equipment readiness",
     displayOrder: 2,
     icon: "AlertTriangle",
@@ -286,7 +286,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 3: CLINICAL GOVERNANCE
   // =============================================================================
   {
-    name: "3. Clinical Governance",
+    name: "Clinical Governance",
     description: "Clinical quality assurance and governance framework",
     displayOrder: 3,
     icon: "Stethoscope",
@@ -404,7 +404,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 4: INFRASTRUCTURE & ENVIRONMENT
   // =============================================================================
   {
-    name: "4. Infrastructure & Environment",
+    name: "Infrastructure & Environment",
     description: "Facility management and environmental safety",
     displayOrder: 4,
     icon: "Building2",
@@ -524,7 +524,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 5: MEDICINES & VACCINES
   // =============================================================================
   {
-    name: "5. Medicines & Vaccines",
+    name: "Medicine & Vaccines",
     description: "Pharmaceutical management and vaccine cold chain",
     displayOrder: 5,
     icon: "Pill",
@@ -642,7 +642,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 6: HUMAN RESOURCES
   // =============================================================================
   {
-    name: "6. Human Resources",
+    name: "Human Resources",
     description: "Staff management, credentials and training",
     displayOrder: 6,
     icon: "Users",
@@ -759,7 +759,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 7: PATIENT RIGHTS
   // =============================================================================
   {
-    name: "7. Patient Rights",
+    name: "Patient Rights",
     description: "Patient rights, dignity and complaint management",
     displayOrder: 7,
     icon: "Heart",
@@ -878,7 +878,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 8: HEALTH INFORMATION MANAGEMENT
   // =============================================================================
   {
-    name: "8. Health Information Management",
+    name: "Health Information",
     description: "Patient records, data management and reporting",
     displayOrder: 8,
     icon: "Database",

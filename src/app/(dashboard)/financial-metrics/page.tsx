@@ -12,9 +12,13 @@ import {
 import { MetricCard } from "@/components/financial-metrics/metric-card";
 import { EntryDialog } from "@/components/financial-metrics/entry-dialog";
 import { UpgradePrompt } from "@/components/financial-metrics/upgrade-prompt";
-import { TrendingUp, Calendar, Info } from "lucide-react";
+import { TrendingUp, Calendar, Info, DollarSign, PiggyBank, Wallet, Landmark, Building2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+function formatRand(value: number): string {
+  return `R${value.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default async function FinancialMetricsPage() {
   await requirePermission(PERMISSIONS.PAYROLL);
@@ -52,6 +56,22 @@ export default async function FinancialMetricsPage() {
   // Check if we have any data
   const hasData = currentData !== undefined;
 
+  // Calculate budget allocation amounts
+  const revenue = currentData?.totalRevenue || 0;
+  const budgetAllocations = revenue > 0 ? {
+    profit: ((currentData?.profitAllocation || 0) / 100) * revenue,
+    ownerPay: ((currentData?.ownerPayAllocation || 0) / 100) * revenue,
+    taxReserve: ((currentData?.taxReserveAllocation || 0) / 100) * revenue,
+    payroll: ((currentData?.payrollPercentage || 0) / 100) * revenue,
+    consumables: ((currentData?.consumablesPercentage || 0) / 100) * revenue,
+    rent: ((currentData?.rentPercentage || 0) / 100) * revenue,
+    overheads: ((currentData?.overheadsPercentage || 0) / 100) * revenue,
+  } : null;
+
+  const totalProfitFirst = budgetAllocations
+    ? budgetAllocations.profit + budgetAllocations.ownerPay + budgetAllocations.taxReserve
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -62,7 +82,7 @@ export default async function FinancialMetricsPage() {
             Financial Metrics Dashboard
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Track 11 key financial indicators for your practice
+            Budget planning and financial performance tracking
           </p>
         </div>
         <EntryDialog existingData={currentData} />
@@ -82,13 +102,23 @@ export default async function FinancialMetricsPage() {
               </div>
             </div>
             {currentData && (
-              <div className="text-right">
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Revenue</p>
-                <p className="text-lg font-semibold text-slate-900 dark:text-white">
-                  {currentData.totalRevenue
-                    ? `R${currentData.totalRevenue.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`
-                    : "—"}
-                </p>
+              <div className="flex items-center gap-8">
+                <div className="text-right">
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Total Revenue</p>
+                  <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                    {currentData.totalRevenue
+                      ? formatRand(currentData.totalRevenue)
+                      : "—"}
+                  </p>
+                </div>
+                {currentData.totalConsults && (
+                  <div className="text-right">
+                    <p className="text-sm text-slate-600 dark:text-slate-400">Consults</p>
+                    <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {currentData.totalConsults.toLocaleString("en-ZA")}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -105,7 +135,7 @@ export default async function FinancialMetricsPage() {
                 No data for {formatPeriod(currentPeriod)}
               </h3>
               <p className="text-slate-500 dark:text-slate-400 mb-4">
-                Enter your financial metrics to start tracking your practice&apos;s performance.
+                Enter your total revenue and allocation percentages to see your budget breakdown and financial overview.
               </p>
               <EntryDialog />
             </div>
@@ -113,6 +143,140 @@ export default async function FinancialMetricsPage() {
         </Card>
       ) : (
         <>
+          {/* Budget Allocation Breakdown */}
+          {budgetAllocations && revenue > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Profit First Allocations */}
+              <Card className="border-green-200 dark:border-green-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <PiggyBank className="h-5 w-5 text-green-600" />
+                    Profit First Allocations
+                  </CardTitle>
+                  <CardDescription>Where your revenue should go first</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">Profit</p>
+                          <p className="text-xs text-slate-500">{currentData.profitAllocation || 0}% of revenue</p>
+                        </div>
+                      </div>
+                      <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                        {formatRand(budgetAllocations.profit)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Wallet className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">Owner&apos;s Pay</p>
+                          <p className="text-xs text-slate-500">{currentData.ownerPayAllocation || 0}% of revenue</p>
+                        </div>
+                      </div>
+                      <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                        {formatRand(budgetAllocations.ownerPay)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Landmark className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">Tax Reserve</p>
+                          <p className="text-xs text-slate-500">{currentData.taxReserveAllocation || 0}% of revenue</p>
+                        </div>
+                      </div>
+                      <p className="text-lg font-semibold text-green-700 dark:text-green-400">
+                        {formatRand(budgetAllocations.taxReserve)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-green-200 dark:border-green-800 pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Total Profit First</span>
+                      <span className="text-sm font-bold text-green-700 dark:text-green-400">
+                        {formatRand(totalProfitFirst)}
+                        <span className="text-xs font-normal ml-1">
+                          ({revenue > 0 ? ((totalProfitFirst / revenue) * 100).toFixed(0) : 0}%)
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Operating Expenses */}
+              <Card className="border-amber-200 dark:border-amber-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-amber-600" />
+                    Operating Expenses
+                  </CardTitle>
+                  <CardDescription>Your practice running costs</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Payroll</p>
+                        <p className="text-xs text-slate-500">{currentData.payrollPercentage || 0}% of revenue</p>
+                      </div>
+                      <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">
+                        {formatRand(budgetAllocations.payroll)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Consumables</p>
+                        <p className="text-xs text-slate-500">{currentData.consumablesPercentage || 0}% of revenue</p>
+                      </div>
+                      <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">
+                        {formatRand(budgetAllocations.consumables)}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                      <div>
+                        <p className="text-sm font-medium text-slate-900 dark:text-white">Rent</p>
+                        <p className="text-xs text-slate-500">{currentData.rentPercentage || 0}% of revenue</p>
+                      </div>
+                      <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">
+                        {formatRand(budgetAllocations.rent)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-amber-200 dark:border-amber-800 pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Total Overheads</span>
+                      <span className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                        {formatRand(budgetAllocations.overheads)}
+                        <span className="text-xs font-normal ml-1">({currentData.overheadsPercentage || 0}%)</span>
+                      </span>
+                    </div>
+                    <div className="flex justify-between mt-2">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Remaining</span>
+                      <span className={`text-sm font-bold ${
+                        revenue - totalProfitFirst - budgetAllocations.overheads >= 0
+                          ? "text-blue-700 dark:text-blue-400"
+                          : "text-red-700 dark:text-red-400"
+                      }`}>
+                        {formatRand(Math.abs(revenue - totalProfitFirst - budgetAllocations.overheads))}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           {/* Legend */}
           <div className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
@@ -200,6 +364,7 @@ export default async function FinancialMetricsPage() {
                         <th className="text-right py-2 px-3 font-medium">Revenue</th>
                         <th className="text-right py-2 px-3 font-medium">Rev/Consult</th>
                         <th className="text-right py-2 px-3 font-medium">Profit %</th>
+                        <th className="text-right py-2 px-3 font-medium">Owner Pay %</th>
                         <th className="text-right py-2 px-3 font-medium">Overheads %</th>
                         <th className="text-right py-2 px-3 font-medium">DSO</th>
                       </tr>
@@ -221,6 +386,9 @@ export default async function FinancialMetricsPage() {
                           </td>
                           <td className="text-right py-2 px-3">
                             {m.profitAllocation !== null ? `${m.profitAllocation}%` : "—"}
+                          </td>
+                          <td className="text-right py-2 px-3">
+                            {m.ownerPayAllocation !== null ? `${m.ownerPayAllocation}%` : "—"}
                           </td>
                           <td className="text-right py-2 px-3">
                             {m.overheadsPercentage !== null ? `${m.overheadsPercentage}%` : "—"}

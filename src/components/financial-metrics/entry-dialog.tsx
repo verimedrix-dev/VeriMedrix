@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,7 +24,6 @@ import { Loader2, Plus, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { saveFinancialMetrics } from "@/lib/actions/financial-metrics";
 import {
-  METRIC_CONFIG,
   getCurrentPeriod,
   getLastPeriods,
   formatPeriod,
@@ -34,6 +33,10 @@ import {
 interface EntryDialogProps {
   existingData?: FinancialMetricsData | null;
   onSaved?: () => void;
+}
+
+function formatRand(value: number): string {
+  return `R${value.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
@@ -61,17 +64,36 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
 
   const availablePeriods = getLastPeriods(12);
 
+  // Calculate Rand amounts from percentages
+  const revenue = parseFloat(formData.totalRevenue) || 0;
+
+  const allocations = useMemo(() => {
+    if (revenue <= 0) return null;
+    const profit = (parseFloat(formData.profitAllocation) || 0) / 100 * revenue;
+    const ownerPay = (parseFloat(formData.ownerPayAllocation) || 0) / 100 * revenue;
+    const taxReserve = (parseFloat(formData.taxReserveAllocation) || 0) / 100 * revenue;
+    const payroll = (parseFloat(formData.payrollPercentage) || 0) / 100 * revenue;
+    const consumables = (parseFloat(formData.consumablesPercentage) || 0) / 100 * revenue;
+    const rent = (parseFloat(formData.rentPercentage) || 0) / 100 * revenue;
+    const overheads = (parseFloat(formData.overheadsPercentage) || 0) / 100 * revenue;
+
+    const totalAllocated = profit + ownerPay + taxReserve + overheads;
+    const remaining = revenue - totalAllocated;
+
+    return { profit, ownerPay, taxReserve, payroll, consumables, rent, overheads, totalAllocated, remaining };
+  }, [revenue, formData.profitAllocation, formData.ownerPayAllocation, formData.taxReserveAllocation, formData.payrollPercentage, formData.consumablesPercentage, formData.rentPercentage, formData.overheadsPercentage]);
+
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     // Auto-calculate revenue per consult if both revenue and consults are entered
     if (field === "totalRevenue" || field === "totalConsults") {
-      const revenue = field === "totalRevenue" ? parseFloat(value) : parseFloat(formData.totalRevenue);
+      const rev = field === "totalRevenue" ? parseFloat(value) : parseFloat(formData.totalRevenue);
       const consults = field === "totalConsults" ? parseInt(value) : parseInt(formData.totalConsults);
 
-      if (revenue > 0 && consults > 0) {
-        const rpc = revenue / consults;
-        setFormData((prev) => ({ ...prev, revenuePerConsult: rpc.toFixed(2) }));
+      if (rev > 0 && consults > 0) {
+        const rpc = rev / consults;
+        setFormData((prev) => ({ ...prev, [field]: value, revenuePerConsult: rpc.toFixed(2) }));
       }
     }
   };
@@ -144,7 +166,7 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
             {isEditing ? "Edit Financial Metrics" : "Enter Financial Metrics"}
           </DialogTitle>
           <DialogDescription>
-            Enter your practice&apos;s financial metrics for the selected period.
+            Enter your practice&apos;s financial data. Rand amounts are calculated automatically from your revenue and percentages.
           </DialogDescription>
         </DialogHeader>
 
@@ -177,7 +199,7 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder="e.g., 500000"
+                  placeholder="e.g., 200000"
                   value={formData.totalRevenue}
                   onChange={(e) => handleChange("totalRevenue", e.target.value)}
                 />
@@ -188,7 +210,7 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   id="totalConsults"
                   type="number"
                   min="0"
-                  placeholder="e.g., 1000"
+                  placeholder="e.g., 500"
                   value={formData.totalConsults}
                   onChange={(e) => handleChange("totalConsults", e.target.value)}
                 />
@@ -204,7 +226,7 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.revenuePerConsult}
                   onChange={(e) => handleChange("revenuePerConsult", e.target.value)}
                 />
-                <p className="text-xs text-slate-500">Auto-calculated from revenue/consults</p>
+                <p className="text-xs text-slate-500">Auto-calculated from revenue / consults</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="billingErrorRate">Billing Error Rate (%)</Label>
@@ -224,7 +246,10 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
 
           {/* Profit First Allocations */}
           <div className="space-y-4">
-            <h3 className="font-medium text-sm text-slate-900 dark:text-white">Profit First Allocations (%)</h3>
+            <h3 className="font-medium text-sm text-slate-900 dark:text-white">
+              Profit First Allocations (%)
+              {revenue > 0 && <span className="text-blue-600 dark:text-blue-400 ml-2 font-normal">from {formatRand(revenue)}</span>}
+            </h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="profitAllocation">Profit</Label>
@@ -238,6 +263,9 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.profitAllocation}
                   onChange={(e) => handleChange("profitAllocation", e.target.value)}
                 />
+                {allocations && allocations.profit > 0 && (
+                  <p className="text-xs font-medium text-green-600 dark:text-green-400">= {formatRand(allocations.profit)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="ownerPayAllocation">Owner&apos;s Pay</Label>
@@ -251,6 +279,9 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.ownerPayAllocation}
                   onChange={(e) => handleChange("ownerPayAllocation", e.target.value)}
                 />
+                {allocations && allocations.ownerPay > 0 && (
+                  <p className="text-xs font-medium text-green-600 dark:text-green-400">= {formatRand(allocations.ownerPay)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="taxReserveAllocation">Tax Reserve</Label>
@@ -264,13 +295,19 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.taxReserveAllocation}
                   onChange={(e) => handleChange("taxReserveAllocation", e.target.value)}
                 />
+                {allocations && allocations.taxReserve > 0 && (
+                  <p className="text-xs font-medium text-green-600 dark:text-green-400">= {formatRand(allocations.taxReserve)}</p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Expense Ratios */}
           <div className="space-y-4">
-            <h3 className="font-medium text-sm text-slate-900 dark:text-white">Expense Ratios (% of Revenue)</h3>
+            <h3 className="font-medium text-sm text-slate-900 dark:text-white">
+              Expense Ratios (% of Revenue)
+              {revenue > 0 && <span className="text-blue-600 dark:text-blue-400 ml-2 font-normal">from {formatRand(revenue)}</span>}
+            </h3>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="payrollPercentage">Payroll</Label>
@@ -284,6 +321,9 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.payrollPercentage}
                   onChange={(e) => handleChange("payrollPercentage", e.target.value)}
                 />
+                {allocations && allocations.payroll > 0 && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">= {formatRand(allocations.payroll)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="consumablesPercentage">Consumables</Label>
@@ -297,6 +337,9 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.consumablesPercentage}
                   onChange={(e) => handleChange("consumablesPercentage", e.target.value)}
                 />
+                {allocations && allocations.consumables > 0 && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">= {formatRand(allocations.consumables)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rentPercentage">Rent</Label>
@@ -310,6 +353,9 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.rentPercentage}
                   onChange={(e) => handleChange("rentPercentage", e.target.value)}
                 />
+                {allocations && allocations.rent > 0 && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">= {formatRand(allocations.rent)}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="overheadsPercentage">Total Overheads</Label>
@@ -323,9 +369,55 @@ export function EntryDialog({ existingData, onSaved }: EntryDialogProps) {
                   value={formData.overheadsPercentage}
                   onChange={(e) => handleChange("overheadsPercentage", e.target.value)}
                 />
+                {allocations && allocations.overheads > 0 && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">= {formatRand(allocations.overheads)}</p>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Live Budget Summary */}
+          {allocations && (
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3">
+              <h3 className="font-medium text-sm text-slate-900 dark:text-white">Budget Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-slate-600 dark:text-slate-400">Total Revenue</span>
+                  <span className="font-medium">{formatRand(revenue)}</span>
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
+                  <div className="flex justify-between text-green-700 dark:text-green-400">
+                    <span>Profit ({formData.profitAllocation || 0}%)</span>
+                    <span>{formatRand(allocations.profit)}</span>
+                  </div>
+                  <div className="flex justify-between text-green-700 dark:text-green-400">
+                    <span>Owner&apos;s Pay ({formData.ownerPayAllocation || 0}%)</span>
+                    <span>{formatRand(allocations.ownerPay)}</span>
+                  </div>
+                  <div className="flex justify-between text-green-700 dark:text-green-400">
+                    <span>Tax Reserve ({formData.taxReserveAllocation || 0}%)</span>
+                    <span>{formatRand(allocations.taxReserve)}</span>
+                  </div>
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
+                  <div className="flex justify-between text-amber-700 dark:text-amber-400">
+                    <span>Operating Expenses ({formData.overheadsPercentage || 0}%)</span>
+                    <span>{formatRand(allocations.overheads)}</span>
+                  </div>
+                </div>
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
+                  <div className="flex justify-between font-medium">
+                    <span className={allocations.remaining >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}>
+                      {allocations.remaining >= 0 ? "Unallocated" : "Over-allocated"}
+                    </span>
+                    <span className={allocations.remaining >= 0 ? "text-blue-700 dark:text-blue-400" : "text-red-700 dark:text-red-400"}>
+                      {formatRand(Math.abs(allocations.remaining))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Cash Flow */}
           <div className="space-y-4">
