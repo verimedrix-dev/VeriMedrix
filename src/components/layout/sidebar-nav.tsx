@@ -23,6 +23,7 @@ import {
   HelpCircle,
   TrendingUp,
   Package,
+  Building2,
 } from "lucide-react";
 import { NavLink } from "./nav-link";
 import { UserRole, SubscriptionTier } from "@prisma/client";
@@ -49,6 +50,7 @@ const mainNavigation: NavItem[] = [
   { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS, requiredFeature: "logbook" },
   { name: "Custom Forms", href: "/forms", icon: ClipboardList, permission: PERMISSIONS.LOGBOOK, requiredFeature: "logbook" },
   { name: "Calendar", href: "/calendar", icon: Calendar, permission: PERMISSIONS.CALENDAR },
+  { name: "Service Providers", href: "/service-providers", icon: Building2, permission: PERMISSIONS.DASHBOARD },
 ];
 
 // OHSC Registers - for OHSC compliance tracking

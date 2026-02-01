@@ -17,6 +17,7 @@ import {
   Mail,
   MessageSquare,
   Video,
+  Handshake,
   LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ const analyticsNavigation: NavItem[] = [
 
 const contentNavigation: NavItem[] = [
   { name: "Content", href: "/admin/content", icon: FileText },
+  { name: "Service Providers", href: "/admin/service-providers", icon: Handshake },
   { name: "Tutorials", href: "/admin/tutorials", icon: Video },
   { name: "Announcements", href: "/admin/announcements", icon: Bell },
   { name: "Email Templates", href: "/admin/emails", icon: Mail },

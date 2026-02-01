@@ -1888,3 +1888,37 @@ enum TutorialCategory {
   SETTINGS
   OTHER
 }
+
+model ServiceProviderCategory {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String?
+  icon        String?
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  Providers   ServiceProvider[]
+}
+
+model ServiceProvider {
+  id          String                    @id @default(cuid())
+  categoryId  String
+  name        String
+  description String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  city        String?
+  province    String?
+  logoUrl     String?
+  isActive    Boolean                   @default(true)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  Category    ServiceProviderCategory   @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([isActive])
+}

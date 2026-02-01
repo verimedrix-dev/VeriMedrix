@@ -107,6 +107,7 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
   "/logbook": PERMISSIONS.LOGBOOK,
   "/forms": PERMISSIONS.LOGBOOK,
+  "/service-providers": PERMISSIONS.DASHBOARD,
   "/team": PERMISSIONS.TEAM,
   "/settings": PERMISSIONS.SETTINGS,
 };
