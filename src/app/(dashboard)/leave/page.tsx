@@ -12,16 +12,23 @@ import {
   Stethoscope,
   Users,
 } from "lucide-react";
-import { getLeaveRequests } from "@/lib/actions/employees";
+import { getLeaveRequests, getEmployeesWithLeaveBalances } from "@/lib/actions/employees";
 import { getCurrentUserRole, getMyLeaveBalance, getMyLeaveRequests, getMyEmployeeId } from "@/lib/actions/personal";
 import { format } from "date-fns";
 import { LeaveActions } from "@/components/leave/leave-actions";
 
-// Dynamic import for dialog - not needed on initial render
+// Dynamic import for dialogs - not needed on initial render
 const MyLeaveRequestDialog = dynamic(
   () => import("@/components/leave/my-leave-request-dialog").then((mod) => mod.MyLeaveRequestDialog),
   {
     loading: () => <Skeleton className="h-10 w-36" />,
+  }
+);
+
+const AdminLeaveDialog = dynamic(
+  () => import("@/components/leave/admin-leave-dialog").then((mod) => mod.AdminLeaveDialog),
+  {
+    loading: () => <Skeleton className="h-10 w-32" />,
   }
 );
 
@@ -247,17 +254,23 @@ export default async function LeavePage() {
   }
 
   // Admin/Owner view - original page
-  const pendingRequests = await getLeaveRequests({ status: "PENDING" });
-  const allRequests = await getLeaveRequests();
+  const [pendingRequests, allRequests, employeesWithBalances] = await Promise.all([
+    getLeaveRequests({ status: "PENDING" }),
+    getLeaveRequests(),
+    getEmployeesWithLeaveBalances(),
+  ]);
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Leave Management</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Review and manage employee leave requests
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Leave Management</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Review and manage employee leave requests
+          </p>
+        </div>
+        <AdminLeaveDialog employees={employeesWithBalances} />
       </div>
 
       {/* Pending Approvals */}

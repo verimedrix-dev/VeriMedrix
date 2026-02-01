@@ -60,11 +60,17 @@ const registersNavigation: NavItem[] = [
 const hrNavigation: NavItem[] = [
   { name: "Employees", href: "/employees", icon: UserCircle, permission: PERMISSIONS.EMPLOYEES },
   { name: "Locums", href: "/locums", icon: Stethoscope, permission: PERMISSIONS.EMPLOYEES, requiredFeature: "locums" },
-  { name: "Payroll", href: "/payroll", icon: Wallet, permission: PERMISSIONS.PAYROLL, requiredFeature: "payroll" },
-  { name: "Financial Metrics", href: "/financial-metrics", icon: TrendingUp, permission: PERMISSIONS.PAYROLL, requiredFeature: "financialMetrics" },
-  { name: "Inventory", href: "/inventory", icon: Package, permission: PERMISSIONS.PAYROLL, requiredFeature: "inventory" },
   { name: "Leave", href: "/leave", icon: CalendarOff, permission: PERMISSIONS.LEAVE, requiredFeature: "leaveManagement" },
   { name: "Training", href: "/training", icon: GraduationCap, permission: PERMISSIONS.TRAINING, requiredFeature: "training" },
+];
+
+const financialNavigation: NavItem[] = [
+  { name: "Payroll", href: "/payroll", icon: Wallet, permission: PERMISSIONS.PAYROLL, requiredFeature: "payroll" },
+  { name: "Financial Metrics", href: "/financial-metrics", icon: TrendingUp, permission: PERMISSIONS.PAYROLL, requiredFeature: "financialMetrics" },
+];
+
+const stockNavigation: NavItem[] = [
+  { name: "Inventory", href: "/inventory", icon: Package, permission: PERMISSIONS.PAYROLL, requiredFeature: "inventory" },
 ];
 
 const adminNavigation: NavItem[] = [
@@ -101,6 +107,8 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
   const filteredMain = mainNavigation.filter(filterByPermissionAndFeature);
   const filteredRegisters = registersNavigation.filter(filterByPermissionAndFeature);
   const filteredHr = hrNavigation.filter(filterByPermissionAndFeature);
+  const filteredFinancial = financialNavigation.filter(filterByPermissionAndFeature);
+  const filteredStock = stockNavigation.filter(filterByPermissionAndFeature);
   const filteredAdmin = adminNavigation.filter(filterByPermissionAndFeature);
   const filteredSupport = supportNavigation.filter(filterByPermissionAndFeature);
 
@@ -132,6 +140,34 @@ export function SidebarNav({ userRole, subscriptionTier, unreadNotifications = 0
           </p>
           <div className="mt-2 space-y-1">
             {filteredHr.map((item) => (
+              <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Financial Management Section */}
+      {filteredFinancial.length > 0 && (
+        <div className="pt-4">
+          <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Financial Management
+          </p>
+          <div className="mt-2 space-y-1">
+            {filteredFinancial.map((item) => (
+              <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stock Management Section */}
+      {filteredStock.length > 0 && (
+        <div className="pt-4">
+          <p className="px-3 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            Stock Management
+          </p>
+          <div className="mt-2 space-y-1">
+            {filteredStock.map((item) => (
               <NavLink key={item.name} name={item.name} href={item.href} icon={item.icon} />
             ))}
           </div>

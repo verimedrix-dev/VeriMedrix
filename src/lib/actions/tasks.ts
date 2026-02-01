@@ -202,7 +202,7 @@ export async function updateTask(id: string, data: {
   return task;
 }
 
-export async function completeTask(id: string, data?: { evidenceNotes?: string; evidenceUrl?: string }) {
+export async function completeTask(id: string, data?: { evidenceNotes?: string; evidenceUrl?: string; signatureUrl?: string; photoCapturedAt?: Date }) {
   const { user, practice } = await ensureUserAndPractice();
   if (!practice || !user) throw new Error("Not authenticated");
 
@@ -214,6 +214,8 @@ export async function completeTask(id: string, data?: { evidenceNotes?: string; 
       completedById: user.id,
       evidenceNotes: data?.evidenceNotes,
       evidenceUrl: data?.evidenceUrl,
+      signatureUrl: data?.signatureUrl,
+      photoCapturedAt: data?.photoCapturedAt,
     }
   });
 
@@ -543,6 +545,8 @@ export async function getLogbookData(date?: Date) {
         completedAt: true,
         evidenceUrl: true,
         evidenceNotes: true,
+        signatureUrl: true,
+        photoCapturedAt: true,
         User_Task_assignedToIdToUser: { select: { id: true, name: true } },
         User_Task_completedByIdToUser: { select: { id: true, name: true } },
         TaskTemplate: { select: { id: true, name: true, requiresEvidence: true, frequency: true, category: true } },

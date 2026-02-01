@@ -577,6 +577,111 @@ export async function approveLeaveRequest(id: string) {
   return updated;
 }
 
+export async function createAdminLeave(data: {
+  employeeId: string;
+  leaveType: LeaveType;
+  startDate: Date;
+  endDate: Date;
+  totalDays: number;
+  reason?: string;
+}) {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!practice || !user) throw new Error("Not authenticated");
+
+  const employee = await prisma.employee.findFirst({
+    where: { id: data.employeeId, practiceId: practice.id },
+  });
+  if (!employee) throw new Error("Employee not found");
+
+  // Deduct from leave balance
+  const balanceField =
+    data.leaveType === "ANNUAL"
+      ? "annualLeaveBalance"
+      : data.leaveType === "SICK"
+      ? "sickLeaveBalance"
+      : data.leaveType === "FAMILY_RESPONSIBILITY"
+      ? "familyLeaveBalance"
+      : null;
+
+  if (balanceField) {
+    const currentBalance = employee[balanceField] as number;
+    if (data.totalDays > currentBalance) {
+      throw new Error(`Insufficient ${data.leaveType.toLowerCase().replace(/_/g, " ")} balance. Available: ${currentBalance} days`);
+    }
+
+    await prisma.employee.update({
+      where: { id: data.employeeId },
+      data: {
+        [balanceField]: {
+          decrement: data.totalDays,
+        },
+      },
+    });
+  }
+
+  // Create the leave request as already approved
+  const leaveRequest = await prisma.leaveRequest.create({
+    data: {
+      id: generateId(),
+      employeeId: data.employeeId,
+      leaveType: data.leaveType,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      totalDays: data.totalDays,
+      reason: data.reason,
+      status: "APPROVED",
+      approvedById: user.id,
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  // Notify the employee if they have a user account linked
+  if (employee.userId) {
+    const { createAlert } = await import("./alerts");
+    const leaveTypeDisplay = data.leaveType.replace(/_/g, " ").toLowerCase();
+    const startDateStr = data.startDate.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+    const endDateStr = data.endDate.toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
+
+    await createAlert({
+      practiceId: practice.id,
+      recipientId: employee.userId,
+      alertType: "LEAVE_APPROVED",
+      message: `Leave has been recorded on your behalf: ${leaveTypeDisplay} from ${startDateStr} to ${endDateStr} (${data.totalDays} day${data.totalDays !== 1 ? "s" : ""}).`,
+    });
+  }
+
+  // Invalidate caches
+  await invalidateCache(cacheKeys.practiceEmployees(practice.id));
+
+  revalidatePath("/employees");
+  revalidatePath(`/employees/${data.employeeId}`);
+  revalidatePath("/leave");
+  revalidatePath("/notifications");
+  return leaveRequest;
+}
+
+// Get employees with leave balances for admin leave dialog
+export async function getEmployeesWithLeaveBalances() {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) return [];
+
+  return await withDbConnection(() =>
+    prisma.employee.findMany({
+      where: { practiceId: practice.id, isActive: true },
+      select: {
+        id: true,
+        fullName: true,
+        position: true,
+        annualLeaveBalance: true,
+        sickLeaveBalance: true,
+        familyLeaveBalance: true,
+      },
+      orderBy: { fullName: "asc" },
+    })
+  );
+}
+
 export async function declineLeaveRequest(id: string, reason: string) {
   const { user, practice } = await ensureUserAndPractice();
   if (!practice || !user) throw new Error("Not authenticated");

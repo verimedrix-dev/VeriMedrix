@@ -601,6 +601,8 @@ model Task {
   completedById                 String?
   evidenceUrl                   String?
   evidenceNotes                 String?
+  signatureUrl                  String?
+  photoCapturedAt               DateTime?
   verifiedById                  String?
   verifiedAt                    DateTime?
   status                        TaskStatus    @default(PENDING)

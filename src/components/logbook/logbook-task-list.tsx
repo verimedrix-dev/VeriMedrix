@@ -55,10 +55,12 @@ import {
   User,
   FileText,
   Upload,
+  PenLine,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { completeTask, uploadTaskEvidence, updateTask, assignTask, deleteTask, getPracticeTeamMembers } from "@/lib/actions/tasks";
+import { SignaturePad } from "./signature-pad";
 
 type TeamMember = {
   id: string;
@@ -77,6 +79,8 @@ type LogbookTask = {
   completedAt: Date | null;
   evidenceUrl: string | null;
   evidenceNotes: string | null;
+  signatureUrl: string | null;
+  photoCapturedAt: Date | null;
   User_Task_assignedToIdToUser?: { id: string; name: string | null } | null;
   User_Task_completedByIdToUser?: { id: string; name: string | null } | null;
   TaskTemplate?: {
@@ -113,10 +117,13 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
   const [evidencePreview, setEvidencePreview] = useState<string | null>(null);
   const [isImageFile, setIsImageFile] = useState(true);
   const [evidenceNotes, setEvidenceNotes] = useState("");
+  const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
+  const [photoCapturedAt, setPhotoCapturedAt] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // Edit form state
   const [editTitle, setEditTitle] = useState(task.title);
@@ -140,7 +147,7 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
     "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ];
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, isCamera = false) => {
     const file = e.target.files?.[0];
     if (file) {
       if (!ALLOWED_TYPES.includes(file.type)) {
@@ -156,14 +163,15 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
       setEvidenceFile(file);
       setIsImageFile(isImage);
 
+      // Record timestamp when photo is captured
       if (isImage) {
+        setPhotoCapturedAt(new Date());
         const reader = new FileReader();
         reader.onloadend = () => {
           setEvidencePreview(reader.result as string);
         };
         reader.readAsDataURL(file);
       } else {
-        // For documents, just store the file name
         setEvidencePreview(file.name);
       }
     }
@@ -173,8 +181,12 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
     setEvidenceFile(null);
     setEvidencePreview(null);
     setIsImageFile(true);
+    setPhotoCapturedAt(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
     }
   };
 
@@ -182,6 +194,7 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
     setUploading(true);
     try {
       let evidenceUrl: string | undefined;
+      let signatureUrl: string | undefined;
 
       if (evidenceFile) {
         const formData = new FormData();
@@ -190,15 +203,28 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
         evidenceUrl = uploadResult.url;
       }
 
+      // Upload signature if drawn
+      if (signatureDataUrl) {
+        const blob = await fetch(signatureDataUrl).then(r => r.blob());
+        const sigFile = new File([blob], "signature.png", { type: "image/png" });
+        const sigFormData = new FormData();
+        sigFormData.append("file", sigFile);
+        const sigResult = await uploadTaskEvidence(sigFormData);
+        signatureUrl = sigResult.url;
+      }
+
       await completeTask(task.id, {
         evidenceNotes: evidenceNotes || undefined,
         evidenceUrl,
+        signatureUrl,
+        photoCapturedAt: photoCapturedAt || undefined,
       });
 
       toast.success("Task logged!");
       setCompleteDialogOpen(false);
       clearEvidence();
       setEvidenceNotes("");
+      setSignatureDataUrl(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to log task");
     } finally {
@@ -437,29 +463,45 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Photo / File Upload */}
             <div className="space-y-2">
               <Label>
                 Evidence{" "}
                 {requiresEvidence && <span className="text-red-500">*</span>}
               </Label>
+              {/* Hidden file inputs */}
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => handleFileSelect(e, true)}
+                className="hidden"
+              />
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx"
-                capture="environment"
-                onChange={handleFileSelect}
+                onChange={(e) => handleFileSelect(e, false)}
                 className="hidden"
               />
               {evidencePreview ? (
                 <div className="relative">
                   {isImageFile ? (
-                    <Image
-                      src={evidencePreview}
-                      alt="Evidence preview"
-                      width={400}
-                      height={300}
-                      className="w-full h-48 object-cover rounded-lg border"
-                    />
+                    <>
+                      <Image
+                        src={evidencePreview}
+                        alt="Evidence preview"
+                        width={400}
+                        height={300}
+                        className="w-full h-48 object-cover rounded-lg border"
+                      />
+                      {photoCapturedAt && (
+                        <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {format(photoCapturedAt, "MMM d, yyyy h:mm:ss a")}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-48 bg-slate-100 dark:bg-slate-800 rounded-lg border flex flex-col items-center justify-center gap-2">
                       <FileText className="h-12 w-12 text-blue-600 dark:text-blue-400" />
@@ -476,21 +518,45 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
                   </button>
                 </div>
               ) : (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-40 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-3 hover:border-blue-500 dark:hover:border-blue-400 transition-colors bg-slate-50 dark:bg-slate-900"
-                >
-                  <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                    <Upload className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-green-500 dark:hover:border-green-400 transition-colors bg-slate-50 dark:bg-slate-900"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                        <Camera className="h-6 w-6 text-green-600 dark:text-green-400" />
+                      </div>
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Take Photo
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-blue-500 dark:hover:border-blue-400 transition-colors bg-slate-50 dark:bg-slate-900"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                        <Upload className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                      </div>
+                      <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Upload File
+                      </span>
+                    </button>
                   </div>
-                  <span className="text-sm text-slate-600 dark:text-slate-400 text-center">
-                    Upload photo or document
-                  </span>
-                  <span className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-400 text-center">
                     Images, PDF, Word, Excel (max 10MB)
-                  </span>
-                </button>
+                  </p>
+                </div>
               )}
+            </div>
+
+            {/* Signature Pad */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <PenLine className="h-3.5 w-3.5" />
+                Signature (optional)
+              </Label>
+              <SignaturePad onSignatureChange={setSignatureDataUrl} />
             </div>
 
             <div className="space-y-2">
@@ -681,6 +747,24 @@ function LogbookTaskCard({ task, teamMembers }: { task: LogbookTask; teamMembers
                   );
                 }
               })()
+            )}
+            {task.photoCapturedAt && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-3">
+                <strong>Photo captured:</strong>{" "}
+                {format(new Date(task.photoCapturedAt), "MMM d, yyyy 'at' h:mm:ss a")}
+              </p>
+            )}
+            {task.signatureUrl && (
+              <div className="mt-3">
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-1">Signature:</p>
+                <Image
+                  src={task.signatureUrl}
+                  alt="Signature"
+                  width={300}
+                  height={100}
+                  className="border rounded-lg bg-white dark:bg-slate-900 p-2"
+                />
+              </div>
             )}
             {task.evidenceNotes && (
               <p className="text-sm text-slate-600 dark:text-slate-400 mt-3">
