@@ -5,11 +5,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ChevronRight, FileText } from "lucide-react";
+import { ChevronRight, FileText, FileDown } from "lucide-react";
 
 interface DocumentType {
   id: string;
   name: string;
+  hasTemplate?: boolean;
 }
 
 interface Category {
@@ -137,6 +138,9 @@ export function CategorySidebar({
                           <div className="flex items-center gap-1.5 min-w-0">
                             <FileText className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate">{docType.name}</span>
+                            {docType.hasTemplate && (
+                              <FileDown className="h-3 w-3 flex-shrink-0 text-blue-500" />
+                            )}
                           </div>
                           {typeCount > 0 && (
                             <Badge

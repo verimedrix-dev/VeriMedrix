@@ -116,6 +116,8 @@ model DocumentType {
   requiresExpiry      Boolean          @default(false)
   ohscMeasureNumber   String?
   guidanceNotes       String?
+  hasTemplate         Boolean          @default(false)
+  templateDefinition  Json?
   createdAt           DateTime         @default(now())
   updatedAt           DateTime
   Document            Document[]

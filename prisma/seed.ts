@@ -55,43 +55,43 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "Shield",
     types: [
       {
-        name: "IPC Policy Document",
+        name: "Hand hygiene facilities available",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-1",
-        description: "Written infection prevention and control policy",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Hand Hygiene Protocol",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IPC-2",
-        description: "Hand hygiene facilities and compliance documentation",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "PPE Protocol & Stock Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IPC-3",
-        description: "Personal Protective Equipment availability and usage protocols",
+        description: "Evidence of hand hygiene facilities (soap, water, sanitiser, signage)",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Sterilisation & Decontamination SOP",
+        name: "Hand hygiene audits conducted",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "IPC-4",
-        description: "Standard operating procedures for sterilisation and decontamination",
+        ohscMeasureNumber: "IPC-2",
+        description: "Hand hygiene compliance audit records",
+        defaultReviewMonths: 3,
+        reviewFrequency: "Quarterly"
+      },
+      {
+        name: "Cleaning & disinfection SOP",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IPC-3",
+        description: "Standard operating procedure for cleaning and disinfection",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Healthcare Waste Management Plan",
+        name: "Daily cleaning logs",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IPC-4",
+        description: "Daily, weekly and monthly cleaning checklists and logs",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Healthcare risk waste segregation",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-5",
@@ -100,67 +100,67 @@ const documentCategories: DocumentCategoryDefinition[] = [
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Waste Service Provider Contract",
+        name: "Waste removal contract",
         isRequired: true,
         requiresExpiry: true,
         ohscMeasureNumber: "IPC-6",
-        description: "Service level agreement with licensed waste management company",
+        description: "Service level agreement with licensed waste removal company",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Sharps Safety Protocol",
+        name: "Sharps management system",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-7",
-        description: "Safe handling and disposal of sharps",
+        description: "Safe handling, storage and disposal of sharps",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Environmental Cleaning Schedule",
+        name: "Sharps injury register",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-8",
-        description: "Daily, weekly, monthly cleaning schedules and checklists",
+        description: "Register of sharps injuries and post-exposure management",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Linen Management Protocol",
+        name: "PPE availability",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-9",
+        description: "Evidence of PPE availability and stock records",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "PPE training records",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IPC-10",
+        description: "Evidence of staff training on correct PPE usage",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Linen handling process",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IPC-11",
         description: "Clean and dirty linen handling procedures",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Outbreak Response Plan",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IPC-10",
-        description: "Procedures for managing infectious disease outbreaks",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Staff IPC Training Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IPC-11",
-        description: "Evidence of IPC training for all staff members",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "IPC Audit Records",
+        name: "Staff IPC training",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IPC-12",
-        description: "Regular IPC compliance audits and corrective actions",
-        defaultReviewMonths: 3,
-        reviewFrequency: "Quarterly"
+        description: "Evidence of IPC training for all staff members",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
     ],
   },
@@ -175,107 +175,106 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "AlertTriangle",
     types: [
       {
-        name: "Emergency Response Plan",
+        name: "Emergency trolley/bag available",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-1",
-        description: "Comprehensive emergency and disaster response plan",
+        description: "Evidence of emergency trolley or bag with required equipment",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Fire Safety Plan",
+        name: "Emergency trolley checklist",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-2",
-        description: "Fire prevention, detection and evacuation procedures",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Regular checks of emergency trolley contents and condition",
+        reviewFrequency: "Weekly"
       },
       {
-        name: "Fire Safety Compliance Certificate",
+        name: "Emergency drugs stocked",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "EP-3",
-        description: "Certificate of compliance from fire department",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Emergency medication inventory available and stocked",
+        reviewFrequency: "Weekly"
       },
       {
-        name: "Fire Equipment Service Records",
+        name: "Emergency drug expiry checks",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-4",
-        description: "Maintenance records for extinguishers, alarms, sprinklers",
+        description: "Regular expiry date checks on emergency drugs",
+        reviewFrequency: "Weekly"
+      },
+      {
+        name: "Oxygen supply available",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "EP-5",
+        description: "Evidence of functional oxygen supply and delivery equipment",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Fire Drill Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "EP-5",
-        description: "Evidence of regular fire evacuation drills",
-        defaultReviewMonths: 6,
-        reviewFrequency: "Bi-annually"
-      },
-      {
-        name: "Emergency Trolley/Equipment Checklist",
+        name: "Oxygen pressure checks",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-6",
-        description: "Weekly checks of emergency equipment and supplies",
+        description: "Regular oxygen cylinder pressure and flow checks",
         reviewFrequency: "Weekly"
       },
       {
-        name: "Resuscitation Equipment Inventory",
+        name: "Suction equipment functional",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-7",
-        description: "List and condition of resuscitation equipment",
-        reviewFrequency: "Weekly"
+        description: "Evidence of functional suction equipment and regular testing",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Emergency Drug Stock List",
+        name: "Airway equipment available",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-8",
-        description: "Emergency medication inventory and expiry tracking",
-        reviewFrequency: "Weekly"
+        description: "Airway management equipment available and functional",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "BLS/ACLS Staff Certification Records",
+        name: "BLS/CPR trained staff",
         isRequired: true,
         requiresExpiry: true,
         ohscMeasureNumber: "EP-9",
-        description: "Current BLS/ACLS certification for clinical staff",
+        description: "Current BLS/CPR certification for clinical staff",
         defaultReviewMonths: 24,
         reviewFrequency: "2-Yearly"
       },
       {
-        name: "Emergency Contact Directory",
+        name: "Emergency referral pathways",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-10",
-        description: "Emergency contact numbers for services and authorities",
-        defaultReviewMonths: 6,
-        reviewFrequency: "Bi-annually"
-      },
-      {
-        name: "Business Continuity Plan",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "EP-11",
-        description: "Plan for maintaining operations during emergencies",
+        description: "Documented emergency referral pathways and contact numbers",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Emergency Signage Documentation",
+        name: "Emergency drills conducted",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "EP-11",
+        description: "Evidence of regular emergency drills and documentation",
+        defaultReviewMonths: 6,
+        reviewFrequency: "Bi-annually"
+      },
+      {
+        name: "Clinical risk register",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "EP-12",
-        description: "Exit signs, evacuation routes, assembly point signage",
+        description: "Register of clinical risks, mitigations and review dates",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
@@ -292,7 +291,7 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "Stethoscope",
     types: [
       {
-        name: "Clinical Governance Framework",
+        name: "Clinical governance framework",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "CG-1",
@@ -301,101 +300,97 @@ const documentCategories: DocumentCategoryDefinition[] = [
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Clinical Protocols & Guidelines",
+        name: "Incident reporting system",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "CG-2",
-        description: "Standard treatment protocols and clinical guidelines",
+        description: "System for reporting clinical incidents",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Incident investigations",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "CG-3",
+        description: "Investigation records for reported incidents",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Near-miss reporting",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "CG-4",
+        description: "Near-miss event reporting and documentation",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Adverse event management",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "CG-5",
+        description: "Management and documentation of adverse events",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Informed consent SOP",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "CG-6",
+        description: "Standard operating procedure for informed consent",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Referral Policy & Directory",
+        name: "Signed consent forms",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "CG-3",
-        description: "Patient referral protocols and specialist directory",
+        ohscMeasureNumber: "CG-7",
+        description: "Completed and signed patient consent forms",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Scope of practice compliance",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "CG-8",
+        description: "Evidence of compliance with scope of practice requirements",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Adverse Events Register",
+        name: "Clinical audits",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "CG-4",
-        description: "Register of adverse events and corrective actions",
-        reviewFrequency: "Continuous"
-      },
-      {
-        name: "Clinical Audit Reports",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "CG-5",
-        description: "Regular clinical audits including file audits",
+        ohscMeasureNumber: "CG-9",
+        description: "Regular clinical audit reports and findings",
         defaultReviewMonths: 3,
         reviewFrequency: "Quarterly"
       },
       {
-        name: "Prescribing Audit Records",
+        name: "Quality improvement plans",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "CG-6",
-        description: "Audits of prescribing practices and antibiotic stewardship",
-        defaultReviewMonths: 3,
-        reviewFrequency: "Quarterly"
-      },
-      {
-        name: "Quality Improvement Plan",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "CG-7",
+        ohscMeasureNumber: "CG-10",
         description: "Documented quality improvement initiatives and outcomes",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Morbidity & Mortality Review Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "CG-8",
-        description: "M&M meetings and review documentation",
-        defaultReviewMonths: 3,
-        reviewFrequency: "Quarterly"
-      },
-      {
-        name: "Clinical Meeting Minutes",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "CG-9",
-        description: "Records of clinical governance meetings",
-        defaultReviewMonths: 1,
-        reviewFrequency: "Monthly"
-      },
-      {
-        name: "Patient Safety Incident Reports",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "CG-10",
-        description: "Incident reporting and investigation records",
-        reviewFrequency: "Continuous"
-      },
-      {
-        name: "Informed Consent SOP & Forms",
+        name: "Complaints review",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "CG-11",
-        description: "Consent policy and standardised consent forms",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Patient complaints review and resolution records",
+        reviewFrequency: "Continuous"
       },
       {
-        name: "Triage Protocol",
+        name: "Morbidity & mortality review",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "CG-12",
-        description: "Patient triage and prioritisation procedures",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Morbidity and mortality review meetings and documentation",
+        defaultReviewMonths: 3,
+        reviewFrequency: "Quarterly"
       },
     ],
   },
@@ -410,112 +405,110 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "Building2",
     types: [
       {
-        name: "Facility License Certificate",
+        name: "Consulting room safety checks",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "IE-1",
-        description: "Current health facility license from Department of Health",
+        description: "Safety inspection records for consulting rooms",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Building Compliance Certificate",
+        name: "Waiting area safety",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "IE-2",
-        description: "Certificate of occupancy and building compliance",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Safety assessment of patient waiting areas",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Electrical Compliance Certificate",
+        name: "Preventive maintenance plan",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IE-3",
+        description: "Scheduled preventive maintenance plan for facility and equipment",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Maintenance records",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "IE-4",
+        description: "Records of completed maintenance activities",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Electrical safety compliance",
         isRequired: true,
         requiresExpiry: true,
-        ohscMeasureNumber: "IE-3",
-        description: "Electrical Certificate of Compliance (COC)",
+        ohscMeasureNumber: "IE-5",
+        description: "Electrical Certificate of Compliance and safety records",
         defaultReviewMonths: 24,
         reviewFrequency: "2-Yearly"
       },
       {
-        name: "Water Safety Plan",
+        name: "Fire safety equipment",
         isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IE-4",
-        description: "Water quality testing and legionella prevention",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Equipment Maintenance Schedule",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "IE-5",
-        description: "Preventive maintenance schedules for all equipment",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Equipment Calibration Records",
-        isRequired: true,
-        requiresExpiry: false,
+        requiresExpiry: true,
         ohscMeasureNumber: "IE-6",
-        description: "Calibration certificates for medical equipment",
+        description: "Fire extinguishers, alarms, and fire safety equipment records",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Equipment Inventory Register",
+        name: "Fire exit signage",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IE-7",
-        description: "Complete inventory of all medical equipment",
+        description: "Evidence of compliant fire exit signage throughout facility",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Pest Control Contract & Records",
+        name: "Ventilation adequacy",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "IE-8",
-        description: "Pest control service agreement and treatment records",
+        description: "Assessment and records of adequate ventilation in the facility",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Ventilation & HVAC Maintenance",
+        name: "Lighting adequacy",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IE-9",
-        description: "Air conditioning and ventilation maintenance records",
-        defaultReviewMonths: 6,
-        reviewFrequency: "Bi-annually"
+        description: "Assessment of adequate lighting throughout the facility",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Security Plan & Access Control",
+        name: "Patient privacy measures",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IE-10",
-        description: "Security measures and access control documentation",
+        description: "Evidence of physical privacy measures for patients",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Generator/UPS Maintenance Records",
-        isRequired: false,
+        name: "Accessibility for disabled",
+        isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IE-11",
-        description: "Backup power maintenance and testing records (if applicable)",
-        defaultReviewMonths: 6,
-        reviewFrequency: "Bi-annually"
+        description: "Evidence of accessibility provisions for disabled persons",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Facility Risk Assessment",
+        name: "Equipment servicing logs",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "IE-12",
-        description: "Environmental and infrastructure risk assessment",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Service and calibration logs for medical equipment",
+        reviewFrequency: "Continuous"
       },
     ],
   },
@@ -524,114 +517,112 @@ const documentCategories: DocumentCategoryDefinition[] = [
   // CORE PRINCIPLE 5: MEDICINES & VACCINES
   // =============================================================================
   {
-    name: "Medicine & Vaccines",
+    name: "Medicines & Vaccines",
     description: "Pharmaceutical management and vaccine cold chain",
     displayOrder: 5,
     icon: "Pill",
     types: [
       {
-        name: "Dispensing License",
-        isRequired: false,
-        requiresExpiry: true,
+        name: "Secure medicine storage",
+        isRequired: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "MV-1",
-        description: "License to dispense medication (if applicable)",
+        description: "Evidence of secure storage for medicines",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Medicine Management Policy",
+        name: "Controlled drug storage",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "MV-2",
-        description: "Policy for medicine procurement, storage and dispensing",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Controlled Substances Register",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-3",
-        description: "Schedule 5+ controlled substances register",
-        reviewFrequency: "Daily"
-      },
-      {
-        name: "Medicine Stock Inventory",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-4",
-        description: "Current stock list with expiry dates",
-        defaultReviewMonths: 1,
-        reviewFrequency: "Monthly"
-      },
-      {
-        name: "Cold Chain Temperature Logs",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-5",
-        description: "Fridge temperature monitoring records (2-8°C)",
-        reviewFrequency: "Daily"
-      },
-      {
-        name: "Vaccine Management Protocol",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-6",
-        description: "Vaccine storage, handling and administration procedures",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Cold Chain Breach Protocol",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-7",
-        description: "Procedure for cold chain failure incidents",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Expired Medicine Disposal Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-8",
-        description: "Documentation of expired medicine disposal",
-        defaultReviewMonths: 1,
-        reviewFrequency: "Monthly"
-      },
-      {
-        name: "Adverse Drug Reaction Protocol",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-9",
-        description: "SOP for managing and reporting adverse drug reactions",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Drug Allergy Documentation SOP",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-10",
-        description: "Procedure for documenting and checking drug allergies",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Medicine Storage Security",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "MV-11",
-        description: "Security measures for medicine storage areas",
+        description: "Secure storage for controlled substances (Schedule 5/6)",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Supplier Agreements & GMP Certificates",
+        name: "Schedule 5/6 register",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-3",
+        description: "Register for Schedule 5 and 6 controlled substances",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Cold chain fridge",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-4",
+        description: "Dedicated cold chain fridge for vaccine storage (2-8°C)",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Daily fridge temperature logs",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-5",
+        description: "Daily temperature monitoring records for cold chain fridge",
+        reviewFrequency: "Daily"
+      },
+      {
+        name: "Vaccine stock list",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-6",
+        description: "Current list of vaccine stock held",
+        defaultReviewMonths: 1,
+        reviewFrequency: "Monthly"
+      },
+      {
+        name: "Expiry date monitoring",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-7",
+        description: "System for monitoring medicine and vaccine expiry dates",
+        defaultReviewMonths: 1,
+        reviewFrequency: "Monthly"
+      },
+      {
+        name: "Emergency drug stock",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-8",
+        description: "Emergency drug stock availability and checks",
+        defaultReviewMonths: 1,
+        reviewFrequency: "Monthly"
+      },
+      {
+        name: "Stock rotation (FIFO)",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-9",
+        description: "First-in-first-out stock rotation system for medicines",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Medicine recall process",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-10",
+        description: "Process for handling medicine recalls",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
+      },
+      {
+        name: "Expired stock disposal",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "MV-11",
+        description: "Records of expired medicine disposal",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Supplier records",
+        isRequired: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "MV-12",
-        description: "Pharmaceutical supplier contracts and compliance certificates",
+        description: "Records of pharmaceutical suppliers and agreements",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
@@ -648,109 +639,110 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "Users",
     types: [
       {
-        name: "Staff HR Files",
+        name: "Staff contracts on file",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HR-1",
-        description: "Complete personnel files for all staff members",
+        description: "Signed employment contracts for all staff",
         reviewFrequency: "Continuous"
       },
       {
-        name: "HPCSA Registration Certificates",
-        isRequired: true,
-        requiresExpiry: true,
-        ohscMeasureNumber: "HR-2",
-        description: "Current HPCSA registration for all healthcare professionals",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "SANC Registration Certificates",
-        isRequired: true,
-        requiresExpiry: true,
-        ohscMeasureNumber: "HR-3",
-        description: "Current SANC registration for nursing staff",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "SAPC Registration Certificates",
-        isRequired: false,
-        requiresExpiry: true,
-        ohscMeasureNumber: "HR-4",
-        description: "SAPC registration for pharmacy staff (if applicable)",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Job Descriptions",
+        name: "Job descriptions available",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "HR-5",
+        ohscMeasureNumber: "HR-2",
         description: "Written job descriptions for all positions",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Employment Contracts",
+        name: "Professional registration verified",
+        isRequired: true,
+        requiresExpiry: true,
+        ohscMeasureNumber: "HR-3",
+        description: "Verification of professional registration (HPCSA/SANC/SAPC)",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Registration renewal tracking",
+        isRequired: true,
+        requiresExpiry: true,
+        ohscMeasureNumber: "HR-4",
+        description: "System for tracking professional registration renewals",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Staff induction records",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HR-5",
+        description: "Induction and orientation records for new staff",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Scope of practice alignment",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HR-6",
-        description: "Signed employment contracts for all staff",
-        reviewFrequency: "Continuous"
+        description: "Evidence that staff duties align with scope of practice",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Staff Training Records",
+        name: "CPD compliance",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HR-7",
-        description: "Evidence of mandatory training completion",
+        description: "Continuing professional development compliance records",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Orientation & Induction Records",
+        name: "Mandatory training (BLS)",
         isRequired: true,
-        requiresExpiry: false,
+        requiresExpiry: true,
         ohscMeasureNumber: "HR-8",
-        description: "New staff orientation and induction documentation",
-        reviewFrequency: "Continuous"
+        description: "Evidence of mandatory training including Basic Life Support",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "CPD/CME Records",
+        name: "Staff immunisation records",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HR-9",
-        description: "Continuing professional development records",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Staff Immunisation Records",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "HR-10",
         description: "Vaccination records for all staff (Hep B, Flu, etc.)",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Performance Appraisal Records",
+        name: "Performance appraisals",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "HR-11",
+        ohscMeasureNumber: "HR-10",
         description: "Annual performance reviews for all staff",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Professional Indemnity Insurance",
+        name: "Supervision records",
         isRequired: true,
-        requiresExpiry: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HR-11",
+        description: "Records of clinical supervision sessions",
+        defaultReviewMonths: 3,
+        reviewFrequency: "Quarterly"
+      },
+      {
+        name: "Disciplinary process",
+        isRequired: true,
+        requiresExpiry: false,
         ohscMeasureNumber: "HR-12",
-        description: "Current professional indemnity cover for practitioners",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Documented disciplinary procedures and records",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
       },
     ],
   },
@@ -765,230 +757,227 @@ const documentCategories: DocumentCategoryDefinition[] = [
     icon: "Heart",
     types: [
       {
-        name: "Patient Rights Charter",
+        name: "Patient Rights Charter displayed",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-1",
-        description: "Displayed Patients' Rights Charter (all official languages)",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Patients' Rights Charter visibly displayed in the facility",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Complaints Management Policy",
+        name: "Privacy during consultation",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-2",
-        description: "Policy for handling and resolving patient complaints",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Evidence of patient privacy measures during consultations",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "Complaints Register",
+        name: "Confidentiality policy",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-3",
-        description: "Register of all complaints with resolution tracking",
-        reviewFrequency: "Continuous"
+        description: "Policy for patient confidentiality and data protection",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
       },
       {
-        name: "Complaints Analysis Reports",
+        name: "Informed consent communication",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-4",
-        description: "Quarterly analysis of complaints and trends",
-        defaultReviewMonths: 3,
-        reviewFrequency: "Quarterly"
+        description: "Evidence of informed consent communication with patients",
+        reviewFrequency: "Continuous"
       },
       {
-        name: "Patient Satisfaction Survey Results",
+        name: "Respectful communication training",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-5",
-        description: "Patient satisfaction surveys and analysis",
+        description: "Staff training on respectful and dignified communication",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Complaints register",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "PR-6",
+        description: "Register of all patient complaints received",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Complaint resolution records",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "PR-7",
+        description: "Records of complaint investigation and resolution",
+        reviewFrequency: "Continuous"
+      },
+      {
+        name: "Patient feedback system",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "PR-8",
+        description: "System for collecting patient feedback (suggestion boxes, surveys)",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Feedback analysis",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "PR-9",
+        description: "Analysis of patient feedback and actions taken",
         defaultReviewMonths: 3,
         reviewFrequency: "Quarterly"
       },
       {
-        name: "Patient Privacy Policy (POPIA)",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "PR-6",
-        description: "Privacy and data protection policy compliant with POPIA",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Consent Forms Templates",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "PR-7",
-        description: "Standardised informed consent forms",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Patient Communication Policy",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "PR-8",
-        description: "Guidelines for patient communication and education",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Vulnerable Patients Protocol",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "PR-9",
-        description: "Special procedures for vulnerable patient groups",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Interpreter Services Information",
+        name: "Waiting time communication",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-10",
-        description: "Access to interpreter services for language barriers",
+        description: "Communication of expected waiting times to patients",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Waiting Time Management",
+        name: "Cultural sensitivity training",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-11",
-        description: "Policy and monitoring of patient waiting times",
+        description: "Staff training on cultural sensitivity and diversity",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Patient Feedback Mechanism",
+        name: "Support for vulnerable patients",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "PR-12",
-        description: "Suggestion boxes, feedback forms, complaint channels",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Protocols and support measures for vulnerable patient groups",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
       },
     ],
   },
 
   // =============================================================================
-  // CORE PRINCIPLE 8: HEALTH INFORMATION MANAGEMENT
+  // CORE PRINCIPLE 8: HEALTH INFORMATION
   // =============================================================================
   {
     name: "Health Information",
-    description: "Patient records, data management and reporting",
+    description: "Patient records, data management and information security",
     displayOrder: 8,
     icon: "Database",
     types: [
       {
-        name: "Health Records Policy",
+        name: "Complete clinical records",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HI-1",
-        description: "Policy for creation, maintenance and storage of health records",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Evidence of complete and accurate clinical records",
+        reviewFrequency: "Continuous"
       },
       {
-        name: "Record Retention Schedule",
+        name: "Legible documentation",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HI-2",
-        description: "Document retention periods and destruction procedures",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
+        description: "Evidence of legible clinical documentation standards",
+        reviewFrequency: "Continuous"
       },
       {
-        name: "Electronic Health Record SOP",
-        isRequired: false,
+        name: "ICD-10 accuracy audits",
+        isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HI-3",
-        description: "Standard operating procedures for EHR system (if applicable)",
-        defaultReviewMonths: 60,
-        reviewFrequency: "5-Yearly"
-      },
-      {
-        name: "Data Backup & Recovery Plan",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "HI-4",
-        description: "Procedures for backing up and recovering patient data",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Information Security Policy",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "HI-5",
-        description: "IT security measures and access controls",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
-      },
-      {
-        name: "Access Control Register",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "HI-6",
-        description: "Log of who has access to patient records",
-        defaultReviewMonths: 6,
-        reviewFrequency: "Bi-annually"
-      },
-      {
-        name: "Record Audit Trail",
-        isRequired: true,
-        requiresExpiry: false,
-        ohscMeasureNumber: "HI-7",
-        description: "Audit logs of record access and modifications",
+        description: "Audits of ICD-10 coding accuracy",
         defaultReviewMonths: 3,
         reviewFrequency: "Quarterly"
       },
       {
-        name: "Statistics & Reporting Protocols",
+        name: "Electronic system security",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "HI-8",
-        description: "Procedures for compiling and submitting health statistics",
+        ohscMeasureNumber: "HI-4",
+        description: "Security measures for electronic health information systems",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Notifiable Diseases Reporting SOP",
+        name: "User access controls",
         isRequired: true,
         requiresExpiry: false,
-        ohscMeasureNumber: "HI-9",
-        description: "Procedures for reporting notifiable medical conditions",
+        ohscMeasureNumber: "HI-5",
+        description: "User access control policies and registers",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Password management",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HI-6",
+        description: "Password management policy and practices",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "POPIA policy",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HI-7",
+        description: "Protection of Personal Information Act compliance policy",
         defaultReviewMonths: 60,
         reviewFrequency: "5-Yearly"
       },
       {
-        name: "Health Information Exchange Agreements",
-        isRequired: false,
-        requiresExpiry: true,
-        ohscMeasureNumber: "HI-10",
-        description: "Agreements with other facilities for information sharing",
+        name: "POPIA staff training",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HI-8",
+        description: "Staff training records on POPIA compliance",
         defaultReviewMonths: 12,
         reviewFrequency: "Annually"
       },
       {
-        name: "Record Destruction Log",
+        name: "Record retention policy",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HI-9",
+        description: "Policy for retention and destruction of records",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
+      },
+      {
+        name: "Secure paper file storage",
+        isRequired: true,
+        requiresExpiry: false,
+        ohscMeasureNumber: "HI-10",
+        description: "Evidence of secure storage for paper-based files",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
+      },
+      {
+        name: "Data backup system",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HI-11",
-        description: "Log of destroyed records with authorisation",
-        reviewFrequency: "Continuous"
+        description: "System for regular data backups and recovery",
+        defaultReviewMonths: 12,
+        reviewFrequency: "Annually"
       },
       {
-        name: "OHSC Self-Assessment Report",
+        name: "Data breach response plan",
         isRequired: true,
         requiresExpiry: false,
         ohscMeasureNumber: "HI-12",
-        description: "Completed OHSC self-assessment checklist",
-        defaultReviewMonths: 12,
-        reviewFrequency: "Annually"
+        description: "Plan for responding to data breaches and security incidents",
+        defaultReviewMonths: 60,
+        reviewFrequency: "5-Yearly"
       },
     ],
   },

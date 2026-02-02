@@ -144,20 +144,15 @@ export const getDocumentsForCalendar = cache(async () => {
   });
 });
 
-// Cache document types for 1 hour - they rarely change
-export const getDocumentTypes = unstable_cache(
-  async () => {
-    return await prisma.documentType.findMany({
-      include: { DocumentCategory: true },
-      orderBy: [
-        { DocumentCategory: { displayOrder: "asc" } },
-        { name: "asc" }
-      ]
-    });
-  },
-  ["document-types"],
-  { revalidate: 3600 } // 1 hour
-);
+export async function getDocumentTypes() {
+  return await prisma.documentType.findMany({
+    include: { DocumentCategory: true },
+    orderBy: [
+      { DocumentCategory: { displayOrder: "asc" } },
+      { name: "asc" }
+    ]
+  });
+}
 
 // Cache document categories for 1 hour - they rarely change
 export const getDocumentCategories = unstable_cache(
@@ -372,6 +367,25 @@ export async function getDocumentDownloadUrl(documentId: string) {
 
   // For other URLs, return as-is
   return { url: doc.fileUrl, fileName: doc.fileName || doc.title };
+}
+
+export async function getTemplateVariants(documentTypeId: string) {
+  const { practice } = await ensureUserAndPractice();
+  if (!practice) return null;
+
+  const docType = await prisma.documentType.findUnique({
+    where: { id: documentTypeId },
+    select: { templateDefinition: true },
+  });
+
+  if (!docType?.templateDefinition) return null;
+
+  const definition = docType.templateDefinition as Record<string, unknown>;
+  const variants = definition.variants as Array<{ name: string }> | undefined;
+
+  if (!variants || variants.length === 0) return null;
+
+  return variants.map((v, i) => ({ index: i, name: v.name }));
 }
 
 export async function uploadDocumentFile(formData: FormData) {

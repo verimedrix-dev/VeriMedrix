@@ -14,14 +14,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, Loader2, FileText, Search, Check, ChevronDown } from "lucide-react";
+import { Upload, Loader2, FileText, Search, Check, ChevronDown, Download } from "lucide-react";
 import { toast } from "sonner";
-import { createDocument, getDocumentTypes, uploadDocumentFile } from "@/lib/actions/documents";
+import { createDocument, getDocumentTypes, getTemplateVariants, uploadDocumentFile } from "@/lib/actions/documents";
 import { cn } from "@/lib/utils";
 
 type DocumentType = {
   id: string;
   name: string;
+  hasTemplate?: boolean;
   DocumentCategory: { id: string; name: string } | null;
 };
 
@@ -44,6 +45,9 @@ export function UploadDocumentDialog() {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [typeSearch, setTypeSearch] = useState("");
   const [typePickerOpen, setTypePickerOpen] = useState(false);
+  const [variants, setVariants] = useState<{ index: number; name: string }[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<number>(0);
+  const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -63,9 +67,38 @@ export function UploadDocumentDialog() {
     }
   }, [typePickerOpen]);
 
+  const getSelectedType = () => {
+    return documentTypes.find(t => t.id === formData.documentTypeId) || null;
+  };
+
   const getSelectedTypeName = () => {
-    const selectedType = documentTypes.find(t => t.id === formData.documentTypeId);
-    return selectedType?.name || "";
+    return getSelectedType()?.name || "";
+  };
+
+  const selectedTypeHasTemplate = getSelectedType()?.hasTemplate === true;
+
+  const handleDownloadTemplate = async () => {
+    if (!formData.documentTypeId) return;
+    try {
+      const variantParam = variants.length > 0 ? `?variant=${selectedVariant}` : "";
+      const response = await fetch(`/api/templates/${formData.documentTypeId}${variantParam}`);
+      if (!response.ok) throw new Error("Failed to download template");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const downloadName = variants.length > 0
+        ? variants[selectedVariant]?.name || getSelectedTypeName()
+        : getSelectedTypeName();
+      a.download = `${downloadName.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "_")}_Template.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Template downloaded!");
+    } catch {
+      toast.error("Failed to download template");
+    }
   };
 
   // Group and filter document types by search
@@ -143,6 +176,8 @@ export function UploadDocumentDialog() {
       setFile(null);
       setErrors({});
       setTypeSearch("");
+      setVariants([]);
+      setSelectedVariant(0);
     } catch (error) {
       console.error("Upload error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to upload document");
@@ -156,6 +191,17 @@ export function UploadDocumentDialog() {
     if (errors.documentType) setErrors({ ...errors, documentType: undefined });
     setTypePickerOpen(false);
     setTypeSearch("");
+    setVariants([]);
+    setSelectedVariant(0);
+    setVariantPickerOpen(false);
+
+    // Fetch variants if the type has a template
+    const type = documentTypes.find(t => t.id === typeId);
+    if (type?.hasTemplate) {
+      getTemplateVariants(typeId).then((v) => {
+        if (v) setVariants(v);
+      });
+    }
   };
 
   if (!mounted) {
@@ -175,6 +221,9 @@ export function UploadDocumentDialog() {
       setErrors({});
       setTypeSearch("");
       setTypePickerOpen(false);
+      setVariants([]);
+      setSelectedVariant(0);
+      setVariantPickerOpen(false);
     }
   };
 
@@ -188,15 +237,15 @@ export function UploadDocumentDialog() {
           Upload Document
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
+          <DialogHeader className="pb-2">
             <DialogTitle>Upload OHSC Document</DialogTitle>
             <DialogDescription>
               Add a new OHSC compliance document to your practice cabinet.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-3">
             {/* Document Type Picker with Search */}
             <div className="space-y-2">
               <Label className={errors.documentType ? "text-red-600" : ""}>
@@ -280,11 +329,74 @@ export function UploadDocumentDialog() {
               )}
             </div>
 
+            {/* Template Banner */}
+            {selectedTypeHasTemplate && (
+              <div className="rounded-md border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 px-3 py-2 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                    <span className="text-xs text-blue-700 dark:text-blue-300">
+                      {variants.length > 0
+                        ? `${variants.length} templates available`
+                        : "Template available for this document type"}
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="ml-2 h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-100 dark:border-blue-600 dark:text-blue-300 dark:hover:bg-blue-900 flex-shrink-0"
+                    onClick={handleDownloadTemplate}
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Download
+                  </Button>
+                </div>
+                {variants.length > 0 && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setVariantPickerOpen(!variantPickerOpen)}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 text-xs border border-blue-200 dark:border-blue-700 rounded bg-white dark:bg-blue-950/50 text-blue-800 dark:text-blue-200 hover:border-blue-300"
+                    >
+                      <span className="truncate">{variants[selectedVariant]?.name || "Select template"}</span>
+                      <ChevronDown className={cn("h-3 w-3 ml-1 flex-shrink-0 transition-transform", variantPickerOpen && "rotate-180")} />
+                    </button>
+                    {variantPickerOpen && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-[200px] overflow-y-auto">
+                        {variants.map((v) => (
+                          <button
+                            key={v.index}
+                            type="button"
+                            onClick={() => {
+                              setSelectedVariant(v.index);
+                              setVariantPickerOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-left hover:bg-accent transition-colors",
+                              selectedVariant === v.index && "bg-accent"
+                            )}
+                          >
+                            {selectedVariant === v.index ? (
+                              <Check className="h-3 w-3 text-primary flex-shrink-0" />
+                            ) : (
+                              <div className="w-3 flex-shrink-0" />
+                            )}
+                            <span className="truncate">{v.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="file" className={errors.file ? "text-red-600" : ""}>
                 File *
               </Label>
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              <div className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
                 errors.file
                   ? "border-red-500 bg-red-50 dark:bg-red-950/20"
                   : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
@@ -312,11 +424,11 @@ export function UploadDocumentDialog() {
                     </div>
                   ) : (
                     <>
-                      <Upload className={`h-8 w-8 mx-auto mb-2 ${errors.file ? "text-red-400" : "text-slate-400"}`} />
+                      <Upload className={`h-6 w-6 mx-auto mb-1 ${errors.file ? "text-red-400" : "text-slate-400"}`} />
                       <p className={`text-sm ${errors.file ? "text-red-600" : "text-slate-600 dark:text-slate-400"}`}>
                         Click to upload or drag and drop
                       </p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">PDF, DOC, DOCX, JPG, PNG up to 10MB</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">PDF, DOC, DOCX, JPG, PNG up to 10MB</p>
                     </>
                   )}
                 </label>
@@ -343,7 +455,7 @@ export function UploadDocumentDialog() {
                 placeholder="Any additional notes about this document..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                rows={3}
+                rows={2}
               />
             </div>
           </div>
