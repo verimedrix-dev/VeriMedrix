@@ -27,6 +27,7 @@ export const PERMISSIONS = {
 
   // Premium features (Professional plan only)
   AI_ASSISTANT: "ai_assistant",
+  INVENTORY: "inventory",
 
   // Admin features
   TEAM: "team",
@@ -81,6 +82,7 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
 
   // Premium features - all roles can access IF subscription allows
   [PERMISSIONS.AI_ASSISTANT]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.INVENTORY]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
 
   // Admin features - owner only
   [PERMISSIONS.TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
@@ -103,7 +105,7 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
   "/financial-metrics": PERMISSIONS.PAYROLL,
-  "/inventory": PERMISSIONS.PAYROLL,
+  "/inventory": PERMISSIONS.INVENTORY,
   "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
   "/logbook": PERMISSIONS.LOGBOOK,
   "/forms": PERMISSIONS.LOGBOOK,
@@ -174,7 +176,7 @@ export function getAccessLevelDescription(role: UserRole): string {
     case "ADMIN":
       return "All features except team management and settings";
     case "STAFF":
-      return "View employees, manage tasks, documents, and leave";
+      return "View employees, manage tasks, documents, leave, and inventory";
     case "VIEWER":
       return "Personal tasks, leave requests, and view documents only";
     case "LOCUM":
@@ -197,7 +199,7 @@ export function getInvitableRoles(): { value: UserRole; label: string; descripti
     {
       value: "STAFF",
       label: "Intermediate Access",
-      description: "View employees, manage tasks, documents, and leave",
+      description: "View employees, manage tasks, documents, leave, and inventory",
     },
     {
       value: "VIEWER",

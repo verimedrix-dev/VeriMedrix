@@ -72,7 +72,7 @@ const financialNavigation: NavItem[] = [
 ];
 
 const stockNavigation: NavItem[] = [
-  { name: "Inventory", href: "/inventory", icon: Package, permission: PERMISSIONS.PAYROLL, requiredFeature: "inventory" },
+  { name: "Inventory", href: "/inventory", icon: Package, permission: PERMISSIONS.INVENTORY, requiredFeature: "inventory" },
 ];
 
 const adminNavigation: NavItem[] = [
