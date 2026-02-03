@@ -82,7 +82,7 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
 
   // Premium features - all roles can access IF subscription allows
   [PERMISSIONS.AI_ASSISTANT]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
-  [PERMISSIONS.INVENTORY]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
+  [PERMISSIONS.INVENTORY]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
 
   // Admin features - owner only
   [PERMISSIONS.TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
@@ -178,7 +178,7 @@ export function getAccessLevelDescription(role: UserRole): string {
     case "STAFF":
       return "View employees, manage tasks, documents, leave, and inventory";
     case "VIEWER":
-      return "Personal tasks, leave requests, and view documents only";
+      return "Personal tasks, leave requests, view documents, and inventory";
     case "LOCUM":
       return "Temporary staff with clock in/out only";
     default:
@@ -204,7 +204,7 @@ export function getInvitableRoles(): { value: UserRole; label: string; descripti
     {
       value: "VIEWER",
       label: "Minimum Access",
-      description: "Personal tasks, leave requests, and view documents only",
+      description: "Personal tasks, leave requests, view documents, and inventory",
     },
   ];
 }
