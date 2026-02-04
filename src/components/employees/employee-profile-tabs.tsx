@@ -143,6 +143,7 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
   const [deletingWarningId, setDeletingWarningId] = useState<string | null>(null);
   const [docToDelete, setDocToDelete] = useState<{ id: string; title: string } | null>(null);
   const [warningToDelete, setWarningToDelete] = useState<{ id: string; type: string } | null>(null);
+  const [goalToDelete, setGoalToDelete] = useState<{ id: string; title: string } | null>(null);
   const now = new Date();
 
   // Get current quarter and year for KPI display
@@ -170,13 +171,18 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
     }
   };
 
-  const handleDeleteGoal = async (goalId: string) => {
-    if (!confirm("Are you sure you want to delete this goal?")) return;
+  const handleDeleteGoal = (goalId: string, goalTitle: string) => {
+    setGoalToDelete({ id: goalId, title: goalTitle });
+  };
 
-    setDeletingGoalId(goalId);
+  const confirmDeleteGoal = async () => {
+    if (!goalToDelete) return;
+
+    setDeletingGoalId(goalToDelete.id);
     try {
-      await deleteKpiGoal(goalId);
+      await deleteKpiGoal(goalToDelete.id);
       toast.success("Goal deleted");
+      setGoalToDelete(null);
       startTransition(() => {
         router.refresh();
       });
@@ -432,7 +438,7 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
                                             variant="ghost"
                                             size="sm"
                                             className="h-7 px-2 text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                            onClick={() => handleDeleteGoal(goal.id)}
+                                            onClick={() => handleDeleteGoal(goal.id, goal.title)}
                                             disabled={isPending || isDeleting}
                                             title="Delete goal"
                                           >
@@ -800,6 +806,28 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteWarning}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Goal Confirmation Dialog */}
+      <AlertDialog open={!!goalToDelete} onOpenChange={() => setGoalToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Goal</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{goalToDelete?.title}&quot;?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteGoal}
               className="bg-red-600 hover:bg-red-700"
             >
               Delete

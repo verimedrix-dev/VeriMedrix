@@ -135,6 +135,8 @@ export function ComplaintCard({ complaint }: { complaint: Complaint }) {
   const [findingsDialogOpen, setFindingsDialogOpen] = useState(false);
   const [resolveDialogOpen, setResolveDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [investigatedBy, setInvestigatedBy] = useState("");
   const [investigationNotes, setInvestigationNotes] = useState(complaint.investigationNotes || "");
@@ -226,16 +228,20 @@ export function ComplaintCard({ complaint }: { complaint: Complaint }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this complaint? This cannot be undone.")) return;
-    setLoading(true);
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
     try {
       await deleteComplaint(complaint.id);
       toast.success("Complaint deleted");
+      setDeleteDialogOpen(false);
     } catch {
       toast.error("Failed to delete complaint");
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -553,6 +559,37 @@ export function ComplaintCard({ complaint }: { complaint: Complaint }) {
             <Button onClick={handleResolve} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Mark Resolved
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Complaint</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this complaint? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

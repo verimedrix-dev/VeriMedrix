@@ -18,6 +18,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -78,6 +79,9 @@ export function AdminTutorialsClient({ initialTutorials }: AdminTutorialsClientP
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [tutorialToDelete, setTutorialToDelete] = useState<Tutorial | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -154,14 +158,24 @@ export function AdminTutorialsClient({ initialTutorials }: AdminTutorialsClientP
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this tutorial?")) return;
+  const handleDelete = (tutorial: Tutorial) => {
+    setTutorialToDelete(tutorial);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!tutorialToDelete) return;
+    setDeleting(true);
     try {
-      await deleteTutorial(id);
+      await deleteTutorial(tutorialToDelete.id);
       toast.success("Tutorial deleted");
+      setDeleteDialogOpen(false);
+      setTutorialToDelete(null);
       router.refresh();
     } catch {
       toast.error("Failed to delete tutorial");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -343,7 +357,7 @@ export function AdminTutorialsClient({ initialTutorials }: AdminTutorialsClientP
                               )}
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleDelete(tutorial.id)}
+                              onClick={() => handleDelete(tutorial)}
                               className="text-red-600 dark:text-red-400"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -444,6 +458,40 @@ export function AdminTutorialsClient({ initialTutorials }: AdminTutorialsClientP
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setTutorialToDelete(null);
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Tutorial</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{tutorialToDelete?.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

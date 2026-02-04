@@ -137,6 +137,9 @@ export function EventCard({ event }: { event: AdverseEvent }) {
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [outcomeDialogOpen, setOutcomeDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [investigatedBy, setInvestigatedBy] = useState("");
   const [findings, setFindings] = useState(event.findings || "");
@@ -221,12 +224,16 @@ export function EventCard({ event }: { event: AdverseEvent }) {
     }
   };
 
-  const handleReportToAuthority = async () => {
-    if (!confirm("This will record that this event has been reported to the relevant authority. Continue?")) return;
+  const handleReportToAuthority = () => {
+    setReportDialogOpen(true);
+  };
+
+  const confirmReportToAuthority = async () => {
     setLoading(true);
     try {
       await reportToAuthority(event.id);
       toast.success("Marked as reported to authority");
+      setReportDialogOpen(false);
     } catch {
       toast.error("Failed to update");
     } finally {
@@ -246,16 +253,20 @@ export function EventCard({ event }: { event: AdverseEvent }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this event? This cannot be undone.")) return;
-    setLoading(true);
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    setDeleting(true);
     try {
       await deleteAdverseEvent(event.id);
       toast.success("Event deleted");
+      setDeleteDialogOpen(false);
     } catch {
       toast.error("Failed to delete event");
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -613,6 +624,67 @@ export function EventCard({ event }: { event: AdverseEvent }) {
             <Button onClick={handleRecordOutcome} disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Outcome
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Report to Authority Confirmation Dialog */}
+      <Dialog open={reportDialogOpen} onOpenChange={setReportDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Report to Authority</DialogTitle>
+            <DialogDescription>
+              This will record that this event has been reported to the relevant authority. Continue?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setReportDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmReportToAuthority}
+              disabled={loading}
+              className="w-full sm:w-auto"
+            >
+              {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Shield className="h-4 w-4 mr-2" />
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Event</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this event? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>

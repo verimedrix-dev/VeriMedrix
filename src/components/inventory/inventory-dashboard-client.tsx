@@ -3,7 +3,15 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Package, Plus, Download } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Package, Plus, Download, Loader2, Trash2 } from "lucide-react";
 import { InventoryStats } from "./inventory-stats";
 import { CategoryFilter } from "./category-filter";
 import { InventoryTable } from "./inventory-table";
@@ -27,6 +35,9 @@ export function InventoryDashboardClient({ initialData }: InventoryDashboardClie
   const [editingItem, setEditingItem] = useState<InventoryItemData | null>(null);
   const [stockMoveItem, setStockMoveItem] = useState<InventoryItemData | null>(null);
   const [detailItem, setDetailItem] = useState<InventoryItemData | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<InventoryItemData | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Filter state
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -51,14 +62,24 @@ export function InventoryDashboardClient({ initialData }: InventoryDashboardClie
     setStockMoveItem(item);
   };
 
-  const handleDeleteItem = async (item: InventoryItemData) => {
-    if (!confirm(`Are you sure you want to remove "${item.name}" from inventory?`)) return;
+  const handleDeleteItem = (item: InventoryItemData) => {
+    setItemToDelete(item);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteItem = async () => {
+    if (!itemToDelete) return;
+    setDeleting(true);
     try {
-      await deleteInventoryItem(item.id);
-      toast.success(`"${item.name}" removed from inventory`);
+      await deleteInventoryItem(itemToDelete.id);
+      toast.success(`"${itemToDelete.name}" removed from inventory`);
+      setDeleteDialogOpen(false);
+      setItemToDelete(null);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete item");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -184,6 +205,40 @@ export function InventoryDashboardClient({ initialData }: InventoryDashboardClie
         onOpenChange={(open) => { if (!open) setDetailItem(null); }}
         item={detailItem}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) setItemToDelete(null);
+      }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remove Item</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove &quot;{itemToDelete?.name}&quot; from inventory? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteItem}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
