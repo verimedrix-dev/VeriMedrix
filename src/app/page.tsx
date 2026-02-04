@@ -772,6 +772,9 @@ export default function HomePage() {
             <p className="text-center text-sm text-violet-300/60">
               © 2025 VeriMedrix. All rights reserved.
             </p>
+            <p className="text-center text-xs text-violet-300/40 mt-2">
+              Registration No: 2026 / 050922 / 07
+            </p>
           </div>
         </div>
       </footer>
