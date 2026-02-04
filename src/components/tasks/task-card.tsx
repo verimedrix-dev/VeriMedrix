@@ -165,9 +165,20 @@ export function TaskCard({ task }: { task: Task }) {
       } finally {
         setLoading(false);
       }
-    } else {
-      // Show completion dialog if evidence is required or available
+    } else if (requiresEvidence) {
+      // Show completion dialog only if evidence is required
       setCompleteDialogOpen(true);
+    } else {
+      // Complete immediately without dialog if no evidence required
+      setLoading(true);
+      try {
+        await completeTask(task.id);
+        toast.success("Task completed!");
+      } catch {
+        toast.error("Failed to complete task");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
