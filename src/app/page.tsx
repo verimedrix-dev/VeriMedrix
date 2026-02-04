@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,31 @@ import {
   ChevronDown,
   Sparkles,
 } from "lucide-react";
+
+// Component to handle auth error redirects - wrapped in Suspense
+function AuthErrorHandler() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  useEffect(() => {
+    const error = searchParams.get("error");
+    const errorCode = searchParams.get("error_code");
+
+    if (error || errorCode) {
+      let message = "An error occurred. Please try again.";
+
+      if (errorCode === "otp_expired" || error === "access_denied") {
+        message = "Your password reset link has expired. Please request a new one.";
+      } else if (errorCode === "otp_disabled") {
+        message = "This link is no longer valid. Please request a new one.";
+      }
+
+      router.replace(`/sign-in?error=${encodeURIComponent(message)}`);
+    }
+  }, [searchParams, router]);
+
+  return null;
+}
 
 // Optimized Intersection Observer hook for scroll animations
 function useInView(threshold = 0.1) {
@@ -68,29 +93,12 @@ function FeatureSection({
 }
 
 export default function HomePage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  // Check for auth error params and redirect to sign-in with friendly message
-  useEffect(() => {
-    const error = searchParams.get("error");
-    const errorCode = searchParams.get("error_code");
-
-    if (error || errorCode) {
-      let message = "An error occurred. Please try again.";
-
-      if (errorCode === "otp_expired" || error === "access_denied") {
-        message = "Your password reset link has expired. Please request a new one.";
-      } else if (errorCode === "otp_disabled") {
-        message = "This link is no longer valid. Please request a new one.";
-      }
-
-      router.replace(`/sign-in?error=${encodeURIComponent(message)}`);
-    }
-  }, [searchParams, router]);
-
   return (
     <div id="top" className="min-h-screen bg-white overflow-x-hidden">
+      {/* Handle auth error redirects */}
+      <Suspense fallback={null}>
+        <AuthErrorHandler />
+      </Suspense>
       {/* Animated Background Gradient */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-indigo-50" />

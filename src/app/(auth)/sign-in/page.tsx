@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -14,7 +14,7 @@ import { VeyroLogo } from "@/components/ui/veyro-logo";
 import { toast } from "sonner";
 import { check2FARequired, verify2FALogin } from "@/lib/actions/security";
 
-export default function SignInPage() {
+function SignInContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -327,5 +327,21 @@ export default function SignInPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }
