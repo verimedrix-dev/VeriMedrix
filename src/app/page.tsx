@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -67,7 +68,26 @@ function FeatureSection({
 }
 
 export default function HomePage() {
-  // Use CSS animations for initial load - no mounted state needed
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Check for auth error params and redirect to sign-in with friendly message
+  useEffect(() => {
+    const error = searchParams.get("error");
+    const errorCode = searchParams.get("error_code");
+
+    if (error || errorCode) {
+      let message = "An error occurred. Please try again.";
+
+      if (errorCode === "otp_expired" || error === "access_denied") {
+        message = "Your password reset link has expired. Please request a new one.";
+      } else if (errorCode === "otp_disabled") {
+        message = "This link is no longer valid. Please request a new one.";
+      }
+
+      router.replace(`/sign-in?error=${encodeURIComponent(message)}`);
+    }
+  }, [searchParams, router]);
 
   return (
     <div id="top" className="min-h-screen bg-white overflow-x-hidden">

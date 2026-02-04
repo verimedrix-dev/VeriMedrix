@@ -3,20 +3,26 @@
 import { useState, useRef, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, EyeOff, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Eye, EyeOff, ShieldCheck, ArrowLeft, AlertCircle } from "lucide-react";
 import { VeyroLogo } from "@/components/ui/veyro-logo";
 import { toast } from "sonner";
 import { check2FARequired, verify2FALogin } from "@/lib/actions/security";
 
 export default function SignInPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // 2FA state
   const [requires2FA, setRequires2FA] = useState(false);
@@ -25,6 +31,16 @@ export default function SignInPage() {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const supabase = createClient();
+
+  // Check for error params in URL
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      setErrorMessage(error);
+      // Clear the error from URL without page reload
+      router.replace("/sign-in", { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Focus first OTP input when 2FA is required
   useEffect(() => {
@@ -241,6 +257,14 @@ export default function SignInPage() {
             Sign in to your VeriMedrix account
           </CardDescription>
         </CardHeader>
+        {errorMessage && (
+          <div className="px-6">
+            <Alert variant="destructive" className="mb-0">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          </div>
+        )}
         <form onSubmit={handleSignIn}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
