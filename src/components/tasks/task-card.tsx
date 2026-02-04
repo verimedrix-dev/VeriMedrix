@@ -101,6 +101,8 @@ export function TaskCard({ task }: { task: Task }) {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [evidenceDialogOpen, setEvidenceDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>(
     task.User_Task_assignedToIdToUser?.id || ""
@@ -211,17 +213,20 @@ export function TaskCard({ task }: { task: Task }) {
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+  const handleDelete = () => {
+    setDeleteDialogOpen(true);
+  };
 
-    setLoading(true);
+  const confirmDelete = async () => {
+    setDeleting(true);
     try {
       await deleteTask(task.id);
       toast.success("Task deleted");
-    } catch (error) {
+      setDeleteDialogOpen(false);
+    } catch {
       toast.error("Failed to delete task");
     } finally {
-      setLoading(false);
+      setDeleting(false);
     }
   };
 
@@ -496,6 +501,37 @@ export function TaskCard({ task }: { task: Task }) {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEvidenceDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Task</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete &quot;{task.title}&quot;? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              className="w-full sm:w-auto"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="w-full sm:w-auto"
+            >
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
             </Button>
           </DialogFooter>
         </DialogContent>
