@@ -68,11 +68,16 @@ export async function GET(request: Request) {
     }
   }
 
-  // Handle code exchange (older flow / OAuth)
+  // Handle code exchange (PKCE flow / OAuth)
   if (code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user?.email) {
+      // For password recovery, redirect to reset-password page
+      if (type === "recovery") {
+        return NextResponse.redirect(`${origin}/reset-password`);
+      }
+
       // For new users (not in database yet), redirect to dashboard
       // The dashboard layout's ensureUserAndPractice() will create the user and redirect to onboarding
       try {

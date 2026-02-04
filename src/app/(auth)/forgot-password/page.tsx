@@ -29,8 +29,8 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      // Use auth callback route which handles the recovery token
-      const redirectUrl = `${window.location.origin}/auth/callback`;
+      // Use auth callback route with type=recovery to indicate password reset
+      const redirectUrl = `${window.location.origin}/auth/callback?type=recovery`;
 
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
