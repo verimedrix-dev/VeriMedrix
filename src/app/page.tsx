@@ -20,12 +20,21 @@ import {
   Sparkles,
 } from "lucide-react";
 
-// Component to handle auth error redirects - wrapped in Suspense
-function AuthErrorHandler() {
+// Component to handle auth redirects - wrapped in Suspense
+function AuthRedirectHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   useEffect(() => {
+    // Check for auth code (password reset or email confirmation)
+    const code = searchParams.get("code");
+    if (code) {
+      // Forward to auth callback with recovery type (for password reset)
+      router.replace(`/auth/callback?code=${code}&type=recovery`);
+      return;
+    }
+
+    // Check for error params
     const error = searchParams.get("error");
     const errorCode = searchParams.get("error_code");
 
@@ -95,9 +104,9 @@ function FeatureSection({
 export default function HomePage() {
   return (
     <div id="top" className="min-h-screen bg-white overflow-x-hidden">
-      {/* Handle auth error redirects */}
+      {/* Handle auth redirects (password reset codes, errors) */}
       <Suspense fallback={null}>
-        <AuthErrorHandler />
+        <AuthRedirectHandler />
       </Suspense>
       {/* Animated Background Gradient */}
       <div className="fixed inset-0 -z-10">
