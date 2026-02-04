@@ -41,6 +41,11 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/sign-in?error=${encodeURIComponent(error.message)}`);
     }
 
+    // For password recovery, redirect to reset-password page
+    if (type === "recovery") {
+      return NextResponse.redirect(`${origin}/reset-password`);
+    }
+
     // After verification, get the user
     const { data: { user } } = await supabase.auth.getUser();
 
