@@ -45,6 +45,8 @@ interface EditEmployeeDialogProps {
     employmentType?: EmploymentType;
     isActive?: boolean;
   };
+  /** Only owners can see employment details like hire date, termination date, status */
+  showEmploymentSection?: boolean;
 }
 
 function formatDateForInput(date: Date | string | null | undefined): string {
@@ -56,6 +58,7 @@ function formatDateForInput(date: Date | string | null | undefined): string {
 export function EditEmployeeDialog({
   employeeId,
   employee,
+  showEmploymentSection = true,
 }: EditEmployeeDialogProps) {
   const { refresh, isPending } = useRefresh();
   const [open, setOpen] = useState(false);
@@ -271,58 +274,63 @@ export function EditEmployeeDialog({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="employmentType">Employment Type</Label>
-                  <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as EmploymentType)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PERMANENT">Permanent</SelectItem>
-                      <SelectItem value="CONTRACT">Contract</SelectItem>
-                      <SelectItem value="PART_TIME">Part Time</SelectItem>
-                      <SelectItem value="LOCUM">Locum</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Owner-only employment details */}
+              {showEmploymentSection && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="employmentType">Employment Type</Label>
+                      <Select value={employmentType} onValueChange={(v) => setEmploymentType(v as EmploymentType)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PERMANENT">Permanent</SelectItem>
+                          <SelectItem value="CONTRACT">Contract</SelectItem>
+                          <SelectItem value="PART_TIME">Part Time</SelectItem>
+                          <SelectItem value="LOCUM">Locum</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="hireDate">Hire Date</Label>
-                  <Input
-                    id="hireDate"
-                    type="date"
-                    value={hireDate}
-                    onChange={(e) => setHireDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="terminationDate">Termination Date</Label>
-                  <Input
-                    id="terminationDate"
-                    type="date"
-                    value={terminationDate}
-                    onChange={(e) => setTerminationDate(e.target.value)}
-                  />
-                  <p className="text-xs text-slate-500">Only fill if employee has left</p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <div className="flex items-center gap-3 pt-2">
-                    <Switch
-                      checked={isActive}
-                      onCheckedChange={setIsActive}
-                    />
-                    <span className={`text-sm ${isActive ? "text-green-600" : "text-slate-500"}`}>
-                      {isActive ? "Active" : "Inactive"}
-                    </span>
+                    <div className="space-y-2">
+                      <Label htmlFor="hireDate">Hire Date</Label>
+                      <Input
+                        id="hireDate"
+                        type="date"
+                        value={hireDate}
+                        onChange={(e) => setHireDate(e.target.value)}
+                      />
+                    </div>
                   </div>
-                </div>
-              </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="terminationDate">Termination Date</Label>
+                      <Input
+                        id="terminationDate"
+                        type="date"
+                        value={terminationDate}
+                        onChange={(e) => setTerminationDate(e.target.value)}
+                      />
+                      <p className="text-xs text-slate-500">Only fill if employee has left</p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <div className="flex items-center gap-3 pt-2">
+                        <Switch
+                          checked={isActive}
+                          onCheckedChange={setIsActive}
+                        />
+                        <span className={`text-sm ${isActive ? "text-green-600" : "text-slate-500"}`}>
+                          {isActive ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </TabsContent>
           </Tabs>
 

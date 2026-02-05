@@ -12,6 +12,8 @@ import {
 import { ArrowLeft, FileDown, CheckCircle, DollarSign, Calculator, Users } from "lucide-react";
 import Link from "next/link";
 import { getPayrollRun, getEmployeesWithCompensation } from "@/lib/actions/payroll";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { format } from "date-fns";
 import { PayrollRunActions } from "@/components/payroll/payroll-run-actions";
 import { GeneratePayrollButton } from "@/components/payroll/generate-payroll-button";
@@ -29,6 +31,8 @@ export default async function PayrollRunPage({
 }: {
   searchParams: Promise<{ month?: string; year?: string }>;
 }) {
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
+
   const params = await searchParams;
   const currentDate = new Date();
   const month = params.month ? parseInt(params.month) : currentDate.getMonth() + 1;

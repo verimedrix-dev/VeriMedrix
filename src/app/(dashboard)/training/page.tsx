@@ -15,7 +15,7 @@ import Link from "next/link";
 import { format, differenceInDays } from "date-fns";
 import { getTrainingPageData, getEmployeesTrainingOverview } from "@/lib/actions/training";
 import { getEmployeesBasic } from "@/lib/actions/employees";
-import { requirePermission } from "@/lib/auth";
+import { requirePermission, checkPermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { TrainingModulesList } from "@/components/training/training-modules-list";
 import { EmployeeComplianceTable } from "@/components/training/employee-compliance-table";
@@ -44,6 +44,9 @@ const PositionRequirementsDialog = dynamic(
 
 export default async function TrainingPage() {
   await requirePermission(PERMISSIONS.TRAINING);
+
+  // Check if user can manage team training (ADMIN and above)
+  const canManageTeam = await checkPermission(PERMISSIONS.TRAINING_MANAGE_TEAM);
 
   const [pageData, employeesCompliance, employees] = await Promise.all([
     getTrainingPageData(),
@@ -86,13 +89,15 @@ export default async function TrainingPage() {
             Manage continuous professional development and staff training compliance
           </p>
         </div>
-        <div className="flex gap-3">
-          <RecordTrainingDialog
-            employees={employees.map(e => ({ id: e.id, fullName: e.fullName, position: e.position }))}
-            modules={modulesList}
-          />
-          <AddTrainingModuleDialog />
-        </div>
+        {canManageTeam && (
+          <div className="flex gap-3">
+            <RecordTrainingDialog
+              employees={employees.map(e => ({ id: e.id, fullName: e.fullName, position: e.position }))}
+              modules={modulesList}
+            />
+            <AddTrainingModuleDialog />
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}

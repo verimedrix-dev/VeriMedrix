@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export default async function NewFormPage() {
-  await requirePermission(PERMISSIONS.LOGBOOK_CRUD);
+  await requirePermission(PERMISSIONS.FORMS_CREATE);
 
   return (
     <div className="space-y-6">

@@ -49,9 +49,11 @@ interface Timesheet {
 interface TimesheetApprovalTableProps {
   timesheets: Timesheet[];
   canApprove: boolean;
+  /** Only owner can see rates and totals */
+  showFinancials?: boolean;
 }
 
-export function TimesheetApprovalTable({ timesheets, canApprove }: TimesheetApprovalTableProps) {
+export function TimesheetApprovalTable({ timesheets, canApprove, showFinancials = false }: TimesheetApprovalTableProps) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState<string | null>(null);
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -161,8 +163,8 @@ export function TimesheetApprovalTable({ timesheets, canApprove }: TimesheetAppr
               <TableHead>Date</TableHead>
               <TableHead>Time</TableHead>
               <TableHead>Hours</TableHead>
-              <TableHead>Rate</TableHead>
-              <TableHead>Total</TableHead>
+              {showFinancials && <TableHead>Rate</TableHead>}
+              {showFinancials && <TableHead>Total</TableHead>}
               {canApprove && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
@@ -213,12 +215,14 @@ export function TimesheetApprovalTable({ timesheets, canApprove }: TimesheetAppr
                     {ts.hoursWorked?.toFixed(2) || 0}h
                   </Badge>
                 </TableCell>
-                <TableCell>R{ts.hourlyRate}</TableCell>
-                <TableCell>
-                  <span className="font-medium">
-                    R{ts.totalPayable?.toFixed(2) || 0}
-                  </span>
-                </TableCell>
+                {showFinancials && <TableCell>R{ts.hourlyRate}</TableCell>}
+                {showFinancials && (
+                  <TableCell>
+                    <span className="font-medium">
+                      R{ts.totalPayable?.toFixed(2) || 0}
+                    </span>
+                  </TableCell>
+                )}
                 {canApprove && (
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

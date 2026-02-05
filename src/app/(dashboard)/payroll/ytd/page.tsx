@@ -26,7 +26,7 @@ import { getCurrentTaxYear } from "@/lib/tax-calculator";
 type SearchParams = Promise<{ taxYear?: string }>;
 
 export default async function YTDDashboardPage({ searchParams }: { searchParams: SearchParams }) {
-  await requirePermission(PERMISSIONS.PAYROLL);
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
 
   const params = await searchParams;
   const currentDate = new Date();

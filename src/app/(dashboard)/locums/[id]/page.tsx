@@ -31,9 +31,12 @@ interface Props {
 }
 
 export default async function LocumProfilePage({ params }: Props) {
-  await requirePermission(PERMISSIONS.EMPLOYEES);
-  const canManage = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  await requirePermission(PERMISSIONS.LOCUMS);
+  const canManage = await checkPermission(PERMISSIONS.LOCUMS_FULL);
   const ownerAccess = await checkIsOwner();
+  // Intermediate (ADMIN) and above can see timesheet history, stats, compliance documents
+  // Minimum (STAFF) can only see contact information
+  const canViewTimesheetData = await checkPermission(PERMISSIONS.LOCUMS_FULL);
 
   const { id } = await params;
   const locum = await getLocum(id);
@@ -106,58 +109,60 @@ export default async function LocumProfilePage({ params }: Props) {
         )}
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-xs text-slate-500">Total Hours</p>
-                <p className="text-lg font-semibold">{totalHours.toFixed(1)}h</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {ownerAccess && (
+      {/* Stats Cards - Only visible to intermediate (ADMIN) and above */}
+      {canViewTimesheetData && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-4">
               <div className="flex items-center gap-3">
-                <DollarSign className="h-5 w-5 text-green-500" />
+                <Clock className="h-5 w-5 text-blue-500" />
                 <div>
-                  <p className="text-xs text-slate-500">Total Earnings</p>
-                  <p className="text-lg font-semibold">R{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  <p className="text-xs text-slate-500">Total Hours</p>
+                  <p className="text-lg font-semibold">{totalHours.toFixed(1)}h</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        )}
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="text-xs text-slate-500">Shifts Completed</p>
-                <p className="text-lg font-semibold">{approvedCount}</p>
+          {ownerAccess && (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <DollarSign className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="text-xs text-slate-500">Total Earnings</p>
+                    <p className="text-lg font-semibold">R{totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-purple-500" />
+                <div>
+                  <p className="text-xs text-slate-500">Shifts Completed</p>
+                  <p className="text-lg font-semibold">{approvedCount}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-amber-500" />
-              <div>
-                <p className="text-xs text-slate-500">Pending Approval</p>
-                <p className="text-lg font-semibold">{pendingCount}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-4">
+              <div className="flex items-center gap-3">
+                <Calendar className="h-5 w-5 text-amber-500" />
+                <div>
+                  <p className="text-xs text-slate-500">Pending Approval</p>
+                  <p className="text-lg font-semibold">{pendingCount}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Contact & Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`grid grid-cols-1 ${canViewTimesheetData ? "lg:grid-cols-2" : ""} gap-6`}>
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Contact Information</CardTitle>
@@ -190,6 +195,7 @@ export default async function LocumProfilePage({ params }: Props) {
                 </div>
               </div>
             )}
+            {/* Hourly rate - owner only */}
             {ownerAccess && (
               <div className="flex items-center gap-3">
                 <DollarSign className="h-5 w-5 text-slate-400" />
@@ -202,88 +208,93 @@ export default async function LocumProfilePage({ params }: Props) {
           </CardContent>
         </Card>
 
+        {/* Compliance Documents - only visible to intermediate and above */}
+        {canViewTimesheetData && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Compliance Documents</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* HPCSA */}
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <p className="font-medium">HPCSA Registration</p>
+                    <p className="text-sm text-slate-500">{locum.hpcsaNumber || "Not provided"}</p>
+                  </div>
+                </div>
+                {hpcsaStatus && (
+                  <Badge className={hpcsaStatus.color}>
+                    {hpcsaStatus.status === "expired" && <XCircle className="h-3 w-3 mr-1" />}
+                    {hpcsaStatus.status === "expiring" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                    {hpcsaStatus.status === "valid" && <CheckCircle className="h-3 w-3 mr-1" />}
+                    {hpcsaStatus.label}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Indemnity Insurance */}
+              <div className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Shield className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <p className="font-medium">Indemnity Insurance</p>
+                    <p className="text-sm text-slate-500">{locum.indemnityInsuranceNumber || "Not provided"}</p>
+                  </div>
+                </div>
+                {indemnityStatus && (
+                  <Badge className={indemnityStatus.color}>
+                    {indemnityStatus.status === "expired" && <XCircle className="h-3 w-3 mr-1" />}
+                    {indemnityStatus.status === "expiring" && <AlertTriangle className="h-3 w-3 mr-1" />}
+                    {indemnityStatus.status === "valid" && <CheckCircle className="h-3 w-3 mr-1" />}
+                    {indemnityStatus.label}
+                  </Badge>
+                )}
+              </div>
+
+              {locum.notes && (
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                  <p className="text-sm font-medium mb-1">Notes</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{locum.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Timesheet History - only visible to intermediate and above */}
+      {canViewTimesheetData && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Compliance Documents</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Timesheet History
+            </CardTitle>
+            <CardDescription>
+              {locum.LocumTimesheet.length === 0
+                ? "No timesheets recorded yet"
+                : `${locum.LocumTimesheet.length} timesheet${locum.LocumTimesheet.length === 1 ? "" : "s"} recorded`}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* HPCSA */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="font-medium">HPCSA Registration</p>
-                  <p className="text-sm text-slate-500">{locum.hpcsaNumber || "Not provided"}</p>
-                </div>
+          <CardContent>
+            {locum.LocumTimesheet.length === 0 ? (
+              <div className="text-center py-12">
+                <Clock className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                  No timesheets yet
+                </h3>
+                <p className="text-slate-500 dark:text-slate-400">
+                  Timesheets will appear here once the locum clocks in.
+                </p>
               </div>
-              {hpcsaStatus && (
-                <Badge className={hpcsaStatus.color}>
-                  {hpcsaStatus.status === "expired" && <XCircle className="h-3 w-3 mr-1" />}
-                  {hpcsaStatus.status === "expiring" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                  {hpcsaStatus.status === "valid" && <CheckCircle className="h-3 w-3 mr-1" />}
-                  {hpcsaStatus.label}
-                </Badge>
-              )}
-            </div>
-
-            {/* Indemnity Insurance */}
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-purple-500" />
-                <div>
-                  <p className="font-medium">Indemnity Insurance</p>
-                  <p className="text-sm text-slate-500">{locum.indemnityInsuranceNumber || "Not provided"}</p>
-                </div>
-              </div>
-              {indemnityStatus && (
-                <Badge className={indemnityStatus.color}>
-                  {indemnityStatus.status === "expired" && <XCircle className="h-3 w-3 mr-1" />}
-                  {indemnityStatus.status === "expiring" && <AlertTriangle className="h-3 w-3 mr-1" />}
-                  {indemnityStatus.status === "valid" && <CheckCircle className="h-3 w-3 mr-1" />}
-                  {indemnityStatus.label}
-                </Badge>
-              )}
-            </div>
-
-            {locum.notes && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-                <p className="text-sm font-medium mb-1">Notes</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">{locum.notes}</p>
-              </div>
+            ) : (
+              <LocumTimesheetHistory timesheets={locum.LocumTimesheet} showFinancials={ownerAccess} />
             )}
           </CardContent>
         </Card>
-      </div>
-
-      {/* Timesheet History */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Timesheet History
-          </CardTitle>
-          <CardDescription>
-            {locum.LocumTimesheet.length === 0
-              ? "No timesheets recorded yet"
-              : `${locum.LocumTimesheet.length} timesheet${locum.LocumTimesheet.length === 1 ? "" : "s"} recorded`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {locum.LocumTimesheet.length === 0 ? (
-            <div className="text-center py-12">
-              <Clock className="h-12 w-12 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
-              <h3 className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                No timesheets yet
-              </h3>
-              <p className="text-slate-500 dark:text-slate-400">
-                Timesheets will appear here once the locum clocks in.
-              </p>
-            </div>
-          ) : (
-            <LocumTimesheetHistory timesheets={locum.LocumTimesheet} showFinancials={ownerAccess} />
-          )}
-        </CardContent>
-      </Card>
+      )}
     </div>
   );
 }

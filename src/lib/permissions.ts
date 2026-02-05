@@ -2,36 +2,97 @@ import { UserRole } from "@prisma/client";
 
 /**
  * Permission constants for features in the application
+ *
+ * Access Levels:
+ * - Minimum (STAFF): Basic staff access
+ * - Intermediate (ADMIN): Manager-level access
+ * - Full (PRACTICE_OWNER): Admin/Owner access
  */
 export const PERMISSIONS = {
-  // Core features
+  // ============================================
+  // FULL ACCESS FOR ALL ROLES
+  // ============================================
   DASHBOARD: "dashboard",
   DOCUMENTS: "documents",
   TASKS: "tasks",
   CALENDAR: "calendar",
-  TRAINING: "training",
-  LEAVE: "leave",
-
-  // OHSC Registers
+  LOGBOOK: "logbook",
   COMPLAINTS: "complaints",
   ADVERSE_EVENTS: "adverse_events",
-
-  // HR Management
-  EMPLOYEES: "employees",
-  EMPLOYEES_CRUD: "employees_crud", // Create, edit, delete employees
-  PAYROLL: "payroll",
-
-  // Logbook & Custom Forms
-  LOGBOOK: "logbook",
-  LOGBOOK_CRUD: "logbook_crud",
-
-  // Premium features (Professional plan only)
+  INSPECTION_READINESS: "inspection_readiness",
   AI_ASSISTANT: "ai_assistant",
   INVENTORY: "inventory",
 
-  // Admin features
+  // ============================================
+  // RESTRICTED ACCESS - TRAINING
+  // Minimum: View own records
+  // Intermediate: View team + Schedule
+  // Full: Full access
+  // ============================================
+  TRAINING: "training",
+  TRAINING_VIEW_OWN: "training_view_own",
+  TRAINING_MANAGE_TEAM: "training_manage_team",
+  TRAINING_FULL: "training_full",
+
+  // ============================================
+  // RESTRICTED ACCESS - LEAVE
+  // Minimum: Request own leave
+  // Intermediate: Approve team leave
+  // Full: Full access
+  // ============================================
+  LEAVE: "leave",
+  LEAVE_REQUEST_OWN: "leave_request_own",
+  LEAVE_APPROVE_TEAM: "leave_approve_team",
+  LEAVE_FULL: "leave_full",
+
+  // ============================================
+  // RESTRICTED ACCESS - EMPLOYEES
+  // Minimum: View own profile
+  // Intermediate: View team profiles
+  // Full: Full access (CRUD)
+  // ============================================
+  EMPLOYEES: "employees",
+  EMPLOYEES_VIEW_OWN: "employees_view_own",
+  EMPLOYEES_VIEW_TEAM: "employees_view_team",
+  EMPLOYEES_FULL: "employees_full",
+
+  // ============================================
+  // RESTRICTED ACCESS - PAYROLL
+  // Minimum: View own payslips
+  // Intermediate: Full access
+  // Full: Full access
+  // ============================================
+  PAYROLL: "payroll",
+  PAYROLL_VIEW_OWN: "payroll_view_own",
+  PAYROLL_FULL: "payroll_full",
+
+  // ============================================
+  // RESTRICTED ACCESS - LOCUMS
+  // Minimum: Clock in/out only
+  // Intermediate: Full access
+  // Full: Full access
+  // ============================================
+  LOCUMS: "locums",
+  LOCUMS_CLOCK: "locums_clock",
+  LOCUMS_FULL: "locums_full",
+
+  // ============================================
+  // RESTRICTED ACCESS - FORMS
+  // Minimum: Fill assigned forms
+  // Intermediate: Create forms
+  // Full: Full access
+  // ============================================
+  FORMS: "forms",
+  FORMS_FILL: "forms_fill",
+  FORMS_CREATE: "forms_create",
+  FORMS_FULL: "forms_full",
+
+  // ============================================
+  // ADMIN ONLY (Full access only)
+  // ============================================
   TEAM: "team",
   SETTINGS: "settings",
+  FINANCIAL_METRICS: "financial_metrics",
 
 } as const;
 
@@ -52,41 +113,83 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 /**
  * Permission matrix: which roles have which permissions
  *
- * Access Tiers:
- * - PRACTICE_OWNER (Admin/Owner): Full access to everything
- * - ADMIN (Full Access): All features except Team & Settings
- * - STAFF (Intermediate): No Payroll/Team/Settings, can view employees but not edit
- * - VIEWER (Minimum): Personal access only - own tasks, leave, view documents
+ * Access Tiers (based on VeriMedrix RBAC Matrix):
+ * - PRACTICE_OWNER / SUPER_ADMIN: Full (Admin/Owner) - Full access to everything
+ * - ADMIN: Intermediate (Manager) - Full access except Team, Settings, Financial Metrics
+ * - STAFF: Minimum (Staff) - Limited access to HR features, view own data
+ * - VIEWER: Same as STAFF (legacy role)
+ * - LOCUM: Clock in/out only
  */
 const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
-  // Core features - all roles except LOCUM can access
+  // ============================================
+  // FULL ACCESS FOR ALL ROLES (except LOCUM)
+  // Dashboard, Documents, Tasks, Calendar, Logbook, Complaints,
+  // Adverse Events, Inspection Readiness, AI Assistant, Inventory
+  // ============================================
   [PERMISSIONS.DASHBOARD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.DOCUMENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.TASKS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.CALENDAR]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
-  [PERMISSIONS.TRAINING]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
-  [PERMISSIONS.LEAVE]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
-
-  // OHSC Registers - Admin and above can access
-  [PERMISSIONS.COMPLAINTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
-  [PERMISSIONS.ADVERSE_EVENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
-
-  // Logbook & Custom Forms
-  [PERMISSIONS.LOGBOOK]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
-  [PERMISSIONS.LOGBOOK_CRUD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
-
-  // HR Management - limited access
-  [PERMISSIONS.EMPLOYEES]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF"],
-  [PERMISSIONS.EMPLOYEES_CRUD]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
-  [PERMISSIONS.PAYROLL]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
-
-  // Premium features - all roles can access IF subscription allows
+  [PERMISSIONS.LOGBOOK]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.COMPLAINTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.ADVERSE_EVENTS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.INSPECTION_READINESS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.AI_ASSISTANT]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
   [PERMISSIONS.INVENTORY]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
 
-  // Admin features - owner only
+  // ============================================
+  // TRAINING - Tiered access
+  // ============================================
+  [PERMISSIONS.TRAINING]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.TRAINING_VIEW_OWN]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.TRAINING_MANAGE_TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+  [PERMISSIONS.TRAINING_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+
+  // ============================================
+  // LEAVE - Tiered access
+  // ============================================
+  [PERMISSIONS.LEAVE]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.LEAVE_REQUEST_OWN]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.LEAVE_APPROVE_TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+  [PERMISSIONS.LEAVE_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+
+  // ============================================
+  // EMPLOYEES - Tiered access
+  // ============================================
+  [PERMISSIONS.EMPLOYEES]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.EMPLOYEES_VIEW_OWN]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.EMPLOYEES_VIEW_TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+  [PERMISSIONS.EMPLOYEES_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+
+  // ============================================
+  // PAYROLL - Tiered access
+  // ============================================
+  [PERMISSIONS.PAYROLL]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.PAYROLL_VIEW_OWN]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.PAYROLL_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+
+  // ============================================
+  // LOCUMS - Manager and above only (Staff has no access)
+  // LOCUM role can access for self-service when invited
+  // ============================================
+  [PERMISSIONS.LOCUMS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "LOCUM"],
+  [PERMISSIONS.LOCUMS_CLOCK]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "LOCUM"],
+  [PERMISSIONS.LOCUMS_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+
+  // ============================================
+  // FORMS - Tiered access
+  // ============================================
+  [PERMISSIONS.FORMS]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.FORMS_FILL]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"],
+  [PERMISSIONS.FORMS_CREATE]: ["SUPER_ADMIN", "PRACTICE_OWNER", "ADMIN"],
+  [PERMISSIONS.FORMS_FULL]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+
+  // ============================================
+  // ADMIN ONLY - Full (Admin/Owner) access only
+  // ============================================
   [PERMISSIONS.TEAM]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
   [PERMISSIONS.SETTINGS]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
+  [PERMISSIONS.FINANCIAL_METRICS]: ["SUPER_ADMIN", "PRACTICE_OWNER"],
 
 };
 
@@ -94,24 +197,33 @@ const PERMISSION_MATRIX: Record<Permission, UserRole[]> = {
  * Route to permission mapping
  */
 const ROUTE_PERMISSIONS: Record<string, Permission> = {
+  // Full access for all
   "/dashboard": PERMISSIONS.DASHBOARD,
   "/documents": PERMISSIONS.DOCUMENTS,
   "/tasks": PERMISSIONS.TASKS,
   "/calendar": PERMISSIONS.CALENDAR,
-  "/training": PERMISSIONS.TRAINING,
-  "/leave": PERMISSIONS.LEAVE,
+  "/logbook": PERMISSIONS.LOGBOOK,
   "/complaints": PERMISSIONS.COMPLAINTS,
   "/adverse-events": PERMISSIONS.ADVERSE_EVENTS,
+  "/inspection-readiness": PERMISSIONS.INSPECTION_READINESS,
+  "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
+  "/inventory": PERMISSIONS.INVENTORY,
+  "/service-providers": PERMISSIONS.DASHBOARD,
+  "/notifications": PERMISSIONS.DASHBOARD,
+  "/support": PERMISSIONS.DASHBOARD,
+
+  // Tiered access routes
+  "/training": PERMISSIONS.TRAINING,
+  "/leave": PERMISSIONS.LEAVE,
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
-  "/financial-metrics": PERMISSIONS.PAYROLL,
-  "/inventory": PERMISSIONS.INVENTORY,
-  "/ai-assistant": PERMISSIONS.AI_ASSISTANT,
-  "/logbook": PERMISSIONS.LOGBOOK,
-  "/forms": PERMISSIONS.LOGBOOK,
-  "/service-providers": PERMISSIONS.DASHBOARD,
+  "/locums": PERMISSIONS.LOCUMS,
+  "/forms": PERMISSIONS.FORMS,
+
+  // Admin only routes
   "/team": PERMISSIONS.TEAM,
   "/settings": PERMISSIONS.SETTINGS,
+  "/financial-metrics": PERMISSIONS.FINANCIAL_METRICS,
 };
 
 /**
@@ -150,13 +262,13 @@ export function getAccessLevelDisplayName(role: UserRole): string {
     case "SUPER_ADMIN":
       return "Super Admin";
     case "PRACTICE_OWNER":
-      return "Admin (Owner)";
+      return "Full Access (Admin/Owner)";
     case "ADMIN":
-      return "Full Access";
+      return "Intermediate Access (Manager)";
     case "STAFF":
-      return "Intermediate Access";
+      return "Minimum Access (Staff)";
     case "VIEWER":
-      return "Minimum Access";
+      return "Minimum Access (Staff)";
     case "LOCUM":
       return "Locum";
     default:
@@ -172,15 +284,15 @@ export function getAccessLevelDescription(role: UserRole): string {
     case "SUPER_ADMIN":
       return "Full system access across all practices";
     case "PRACTICE_OWNER":
-      return "Full access including team management and settings";
+      return "Full access including team management, settings, and financial metrics";
     case "ADMIN":
-      return "All features except team management and settings";
+      return "Full access to payroll and locums, can approve leave and view team. No access to settings, team invitations, or financial metrics.";
     case "STAFF":
-      return "View employees, manage tasks, documents, leave, and inventory";
+      return "Full access to compliance features. View own profile, request leave, view own payslips, clock in/out for locums, fill assigned forms.";
     case "VIEWER":
-      return "Personal tasks, leave requests, view documents, and inventory";
+      return "Full access to compliance features. View own profile, request leave, view own payslips, clock in/out for locums, fill assigned forms.";
     case "LOCUM":
-      return "Temporary staff with clock in/out only";
+      return "Clock in/out access only";
     default:
       return "";
   }
@@ -193,18 +305,13 @@ export function getInvitableRoles(): { value: UserRole; label: string; descripti
   return [
     {
       value: "ADMIN",
-      label: "Full Access",
-      description: "All features except team management and settings",
+      label: "Intermediate Access (Manager)",
+      description: "Full access to payroll/locums, approve team leave. No settings, team invitations, or financial metrics.",
     },
     {
       value: "STAFF",
-      label: "Intermediate Access",
-      description: "View employees, manage tasks, documents, leave, and inventory",
-    },
-    {
-      value: "VIEWER",
-      label: "Minimum Access",
-      description: "Personal tasks, leave requests, view documents, and inventory",
+      label: "Minimum Access (Staff)",
+      description: "Full compliance access. View own profile, request leave, view own payslips, fill assigned forms.",
     },
   ];
 }
@@ -246,16 +353,24 @@ export const NAVIGATION_ITEMS = {
     { href: "/documents", label: "OHSC Documents", permission: PERMISSIONS.DOCUMENTS },
     { href: "/tasks", label: "Tasks", permission: PERMISSIONS.TASKS },
     { href: "/calendar", label: "Calendar", permission: PERMISSIONS.CALENDAR },
-    { href: "/training", label: "Training", permission: PERMISSIONS.TRAINING },
-    { href: "/leave", label: "Leave", permission: PERMISSIONS.LEAVE },
+    { href: "/logbook", label: "Logbook", permission: PERMISSIONS.LOGBOOK },
+    { href: "/complaints", label: "Complaints", permission: PERMISSIONS.COMPLAINTS },
+    { href: "/adverse-events", label: "Adverse Events", permission: PERMISSIONS.ADVERSE_EVENTS },
+    { href: "/inspection-readiness", label: "Inspection Readiness", permission: PERMISSIONS.INSPECTION_READINESS },
+    { href: "/ai-assistant", label: "AI Assistant", permission: PERMISSIONS.AI_ASSISTANT },
   ],
   hr: [
+    { href: "/training", label: "Training", permission: PERMISSIONS.TRAINING },
+    { href: "/leave", label: "Leave", permission: PERMISSIONS.LEAVE },
     { href: "/employees", label: "Employees", permission: PERMISSIONS.EMPLOYEES },
     { href: "/payroll", label: "Payroll", permission: PERMISSIONS.PAYROLL },
+    { href: "/locums", label: "Locums", permission: PERMISSIONS.LOCUMS },
+    { href: "/forms", label: "Custom Forms", permission: PERMISSIONS.FORMS },
   ],
   admin: [
     { href: "/team", label: "Team", permission: PERMISSIONS.TEAM },
     { href: "/settings", label: "Settings", permission: PERMISSIONS.SETTINGS },
+    { href: "/financial-metrics", label: "Financial Metrics", permission: PERMISSIONS.FINANCIAL_METRICS },
   ],
 };
 

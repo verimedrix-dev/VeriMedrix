@@ -37,7 +37,7 @@ export default async function EmployeesPage() {
   await requirePermission(PERMISSIONS.EMPLOYEES);
 
   // Check if user can add/edit employees (for conditional UI)
-  const canEditEmployees = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  const canEditEmployees = await checkPermission(PERMISSIONS.EMPLOYEES_FULL);
 
   const { employees, stats } = await getEmployeesListData();
 

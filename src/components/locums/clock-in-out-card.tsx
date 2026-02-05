@@ -32,6 +32,8 @@ interface ClockInOutCardProps {
     id: string;
     clockIn: Date | null;
   } | null;
+  /** Only owner can see rates - hide for intermediate and minimum access */
+  showRate?: boolean;
 }
 
 function getInitials(name: string) {
@@ -43,7 +45,7 @@ function getInitials(name: string) {
     .slice(0, 2);
 }
 
-export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps) {
+export function ClockInOutCard({ locum, currentTimesheet, showRate = false }: ClockInOutCardProps) {
   const [loading, setLoading] = useState(false);
   const [isClockedIn, setIsClockedIn] = useState(!!currentTimesheet?.clockIn);
   const [clockInTime, setClockInTime] = useState<Date | null>(
@@ -101,7 +103,9 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
       setShowClockOutDialog(false);
       setBreakMinutes(0);
       toast.success(
-        `${locum.fullName} clocked out. Hours: ${result.hoursWorked?.toFixed(2)}h, Total: R${result.totalPayable?.toFixed(2)}`
+        showRate
+          ? `${locum.fullName} clocked out. Hours: ${result.hoursWorked?.toFixed(2)}h, Total: R${result.totalPayable?.toFixed(2)}`
+          : `${locum.fullName} clocked out. Hours: ${result.hoursWorked?.toFixed(2)}h`
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to clock out");
@@ -126,7 +130,9 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
       setManualClockOut("17:00");
       setManualBreak(0);
       toast.success(
-        `Manual entry added for ${locum.fullName}. Hours: ${result.hoursWorked?.toFixed(2)}h, Total: R${result.totalPayable?.toFixed(2)}`
+        showRate
+          ? `Manual entry added for ${locum.fullName}. Hours: ${result.hoursWorked?.toFixed(2)}h, Total: R${result.totalPayable?.toFixed(2)}`
+          : `Manual entry added for ${locum.fullName}. Hours: ${result.hoursWorked?.toFixed(2)}h`
       );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to add manual entry");
@@ -156,8 +162,12 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
                 ) : (
                   "Direct Hire"
                 )}
-                <span>•</span>
-                <span>R{locum.hourlyRate}/hr</span>
+                {showRate && (
+                  <>
+                    <span>•</span>
+                    <span>R{locum.hourlyRate}/hr</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -356,10 +366,12 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
             {/* Preview calculation */}
             {manualClockIn && manualClockOut && (
               <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Rate:</span>
-                  <span>R{locum.hourlyRate}/hr</span>
-                </div>
+                {showRate && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Rate:</span>
+                    <span>R{locum.hourlyRate}/hr</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Estimated hours:</span>
                   <span>
@@ -371,18 +383,20 @@ export function ClockInOutCard({ locum, currentTimesheet }: ClockInOutCardProps)
                     })()}h
                   </span>
                 </div>
-                <div className="flex justify-between font-medium border-t pt-1 dark:border-slate-700">
-                  <span>Estimated pay:</span>
-                  <span>
-                    R{(() => {
-                      const [inH, inM] = manualClockIn.split(":").map(Number);
-                      const [outH, outM] = manualClockOut.split(":").map(Number);
-                      const totalMins = (outH * 60 + outM) - (inH * 60 + inM) - manualBreak;
-                      const hours = totalMins > 0 ? totalMins / 60 : 0;
-                      return (hours * locum.hourlyRate).toFixed(2);
-                    })()}
-                  </span>
-                </div>
+                {showRate && (
+                  <div className="flex justify-between font-medium border-t pt-1 dark:border-slate-700">
+                    <span>Estimated pay:</span>
+                    <span>
+                      R{(() => {
+                        const [inH, inM] = manualClockIn.split(":").map(Number);
+                        const [outH, outM] = manualClockOut.split(":").map(Number);
+                        const totalMins = (outH * 60 + outM) - (inH * 60 + inM) - manualBreak;
+                        const hours = totalMins > 0 ? totalMins / 60 : 0;
+                        return (hours * locum.hourlyRate).toFixed(2);
+                      })()}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
 

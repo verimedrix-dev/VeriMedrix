@@ -43,12 +43,12 @@ interface NavItem {
 
 const mainNavigation: NavItem[] = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: PERMISSIONS.DASHBOARD },
-  { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.DASHBOARD, requiredFeature: "inspectionReadiness" },
+  { name: "Inspection Readiness", href: "/inspection-readiness", icon: Shield, permission: PERMISSIONS.INSPECTION_READINESS, requiredFeature: "inspectionReadiness" },
   { name: "OHSC Documents", href: "/documents", icon: FileText, permission: PERMISSIONS.DOCUMENTS, requiredFeature: "documents" },
   { name: "AI Compliance Assistant", href: "/ai-assistant", icon: Bot, permission: PERMISSIONS.AI_ASSISTANT, requiredFeature: "aiAssistant" },
   { name: "Tasks", href: "/tasks", icon: CheckSquare, permission: PERMISSIONS.TASKS, requiredFeature: "tasks" },
-  { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.TASKS, requiredFeature: "logbook" },
-  { name: "Custom Forms", href: "/forms", icon: ClipboardList, permission: PERMISSIONS.LOGBOOK, requiredFeature: "logbook" },
+  { name: "Logbook", href: "/logbook", icon: ClipboardCheck, permission: PERMISSIONS.LOGBOOK, requiredFeature: "logbook" },
+  { name: "Custom Forms", href: "/forms", icon: ClipboardList, permission: PERMISSIONS.FORMS, requiredFeature: "logbook" },
   { name: "Calendar", href: "/calendar", icon: Calendar, permission: PERMISSIONS.CALENDAR },
   { name: "Service Providers", href: "/service-providers", icon: Building2, permission: PERMISSIONS.DASHBOARD },
 ];
@@ -61,14 +61,14 @@ const registersNavigation: NavItem[] = [
 
 const hrNavigation: NavItem[] = [
   { name: "Employees", href: "/employees", icon: UserCircle, permission: PERMISSIONS.EMPLOYEES },
-  { name: "Locums", href: "/locums", icon: Stethoscope, permission: PERMISSIONS.EMPLOYEES, requiredFeature: "locums" },
+  { name: "Locums", href: "/locums", icon: Stethoscope, permission: PERMISSIONS.LOCUMS, requiredFeature: "locums" },
   { name: "Leave", href: "/leave", icon: CalendarOff, permission: PERMISSIONS.LEAVE, requiredFeature: "leaveManagement" },
   { name: "Training", href: "/training", icon: GraduationCap, permission: PERMISSIONS.TRAINING, requiredFeature: "training" },
 ];
 
 const financialNavigation: NavItem[] = [
   { name: "Payroll", href: "/payroll", icon: Wallet, permission: PERMISSIONS.PAYROLL, requiredFeature: "payroll" },
-  { name: "Financial Metrics", href: "/financial-metrics", icon: TrendingUp, permission: PERMISSIONS.PAYROLL, requiredFeature: "financialMetrics" },
+  { name: "Financial Metrics", href: "/financial-metrics", icon: TrendingUp, permission: PERMISSIONS.FINANCIAL_METRICS, requiredFeature: "financialMetrics" },
 ];
 
 const stockNavigation: NavItem[] = [

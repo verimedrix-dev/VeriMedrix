@@ -17,7 +17,7 @@ import { getPayrollAuditLogs } from "@/lib/actions/payroll-audit";
 import { AuditLogDetailsDialog } from "@/components/payroll/audit-log-details-dialog";
 
 export default async function PayrollAuditPage() {
-  await requirePermission(PERMISSIONS.PAYROLL);
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
 
   const auditLogs = await getPayrollAuditLogs();
 

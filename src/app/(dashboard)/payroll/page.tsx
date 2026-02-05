@@ -57,8 +57,9 @@ function formatCurrency(amount: number | null | undefined): string {
 }
 
 export default async function PayrollPage() {
-  // Only practice owners and admins can access the payroll page
-  await requirePermission(PERMISSIONS.PAYROLL);
+  // Only managers and above can access the full payroll management page
+  // Staff can only view their own payslips via a different view
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;

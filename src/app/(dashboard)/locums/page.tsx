@@ -37,9 +37,12 @@ function getInitials(name: string) {
 }
 
 export default async function LocumsPage() {
-  await requirePermission(PERMISSIONS.EMPLOYEES);
-  const canEdit = await checkPermission(PERMISSIONS.EMPLOYEES_CRUD);
+  await requirePermission(PERMISSIONS.LOCUMS);
+  const canEdit = await checkPermission(PERMISSIONS.LOCUMS_FULL);
   const ownerAccess = await checkIsOwner();
+  // Intermediate (ADMIN) and above can see timesheet history, stats, etc.
+  // Minimum (STAFF) can only see contact information
+  const canViewTimesheetData = await checkPermission(PERMISSIONS.LOCUMS_FULL);
 
   const [locums, stats] = await Promise.all([
     getLocums(),
@@ -61,76 +64,78 @@ export default async function LocumsPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              Active Locums
-            </CardDescription>
-            <CardTitle className="text-4xl font-bold">
-              {stats?.activeLocums || 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              of {stats?.totalLocums || 0} total registered
-            </p>
-          </CardContent>
-        </Card>
+      {/* Stats Cards - Only visible to intermediate (ADMIN) and above */}
+      {canViewTimesheetData && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                Active Locums
+              </CardDescription>
+              <CardTitle className="text-4xl font-bold">
+                {stats?.activeLocums || 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                of {stats?.totalLocums || 0} total registered
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
-              Currently Working
-            </CardDescription>
-            <CardTitle className="text-4xl font-bold text-green-600 dark:text-green-400">
-              {stats?.currentlyWorking || 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Clocked in right now
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+                Currently Working
+              </CardDescription>
+              <CardTitle className="text-4xl font-bold text-green-600 dark:text-green-400">
+                {stats?.currentlyWorking || 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Clocked in right now
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-              Pending Approval
-            </CardDescription>
-            <CardTitle className="text-4xl font-bold text-amber-600 dark:text-amber-400">
-              {stats?.pendingApproval || 0}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Link href="/locums/timesheets" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
-              Review timesheets →
-            </Link>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <ClipboardCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                Pending Approval
+              </CardDescription>
+              <CardTitle className="text-4xl font-bold text-amber-600 dark:text-amber-400">
+                {stats?.pendingApproval || 0}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Link href="/locums/timesheets" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                Review timesheets →
+              </Link>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              This Month
-            </CardDescription>
-            <CardTitle className="text-4xl font-bold text-purple-600 dark:text-purple-400">
-              {stats?.monthlyHours?.toFixed(0) || 0}h
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Total hours worked
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                This Month
+              </CardDescription>
+              <CardTitle className="text-4xl font-bold text-purple-600 dark:text-purple-400">
+                {stats?.monthlyHours?.toFixed(0) || 0}h
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Total hours worked
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="flex gap-4">
@@ -140,7 +145,8 @@ export default async function LocumsPage() {
             Clock In/Out
           </Button>
         </Link>
-        {ownerAccess && (
+        {/* Intermediate and above can approve timesheets */}
+        {canViewTimesheetData && (
           <Link href="/locums/timesheets">
             <Button variant="outline" className="gap-2">
               <ClipboardCheck className="h-4 w-4" />
@@ -151,6 +157,7 @@ export default async function LocumsPage() {
             </Button>
           </Link>
         )}
+        {/* Only owner can see payment reports (financial data) */}
         {ownerAccess && (
           <Link href="/locums/payments">
             <Button variant="outline" className="gap-2">
@@ -209,7 +216,8 @@ export default async function LocumsPage() {
                           <h3 className="font-medium text-slate-900 dark:text-white">
                             {locum.fullName}
                           </h3>
-                          {isClockedIn && (
+                          {/* Only show working status to intermediate and above */}
+                          {canViewTimesheetData && isClockedIn && (
                             <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100">
                               Working
                             </Badge>
@@ -239,13 +247,14 @@ export default async function LocumsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      {hasExpiringCredentials && (
+                      {/* Compliance document badges - only visible to intermediate and above */}
+                      {canViewTimesheetData && hasExpiringCredentials && (
                         <Badge variant="destructive" className="gap-1">
                           <AlertTriangle className="h-3 w-3" />
                           Credentials Expiring
                         </Badge>
                       )}
-                      {locum.hpcsaNumber && (
+                      {canViewTimesheetData && locum.hpcsaNumber && (
                         <Badge variant="secondary" className="gap-1">
                           <CheckCircle className="h-3 w-3" />
                           HPCSA

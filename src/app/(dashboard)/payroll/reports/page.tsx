@@ -19,7 +19,7 @@ import { getEmployeesWithCompensation } from "@/lib/actions/payroll";
 import { getCurrentTaxYear } from "@/lib/tax-calculator";
 
 export default async function SarsReportsPage() {
-  await requirePermission(PERMISSIONS.PAYROLL);
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
 
   const currentDate = new Date();
   const currentMonth = currentDate.getMonth() + 1;

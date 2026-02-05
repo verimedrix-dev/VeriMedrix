@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { getLeaveRequests, getEmployeesWithLeaveBalances } from "@/lib/actions/employees";
 import { getCurrentUserRole, getMyLeaveBalance, getMyLeaveRequests, getMyEmployeeId } from "@/lib/actions/personal";
+import { requirePermission, checkPermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { format } from "date-fns";
 import { LeaveActions } from "@/components/leave/leave-actions";
 
@@ -42,10 +44,15 @@ function getInitials(name: string) {
 }
 
 export default async function LeavePage() {
+  await requirePermission(PERMISSIONS.LEAVE);
+
   const userRole = await getCurrentUserRole();
 
-  // Check if user is a regular employee (STAFF or VIEWER)
-  const isEmployee = userRole === "STAFF" || userRole === "VIEWER";
+  // Check if user can approve team leave (ADMIN and above)
+  const canApproveLeave = await checkPermission(PERMISSIONS.LEAVE_APPROVE_TEAM);
+
+  // Staff/Viewer can only request their own leave
+  const isEmployee = !canApproveLeave;
 
   if (isEmployee) {
     // Get employee's personal leave data

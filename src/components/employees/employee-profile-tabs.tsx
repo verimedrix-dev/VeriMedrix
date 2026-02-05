@@ -132,9 +132,17 @@ interface EmployeeProfileTabsProps {
       totalCount: number;
     } | null;
   };
+  /** Only intermediate (manager) and above can issue warnings */
+  canIssueWarnings?: boolean;
+  /** Only intermediate (manager) and above can create KPIs */
+  canCreateKpis?: boolean;
 }
 
-export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
+export function EmployeeProfileTabs({
+  employee,
+  canIssueWarnings = true,
+  canCreateKpis = true,
+}: EmployeeProfileTabsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [updatingGoalId, setUpdatingGoalId] = useState<string | null>(null);
@@ -265,11 +273,13 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
                   Quarterly performance expectations and reviews
                 </CardDescription>
               </div>
-              <KpiReviewDialog
-                employeeId={employee.id}
-                employeeName={employee.fullName}
-                existingReviews={employee.kpiReviews.map(r => ({ quarter: r.quarter, year: r.year }))}
-              />
+              {canCreateKpis && (
+                <KpiReviewDialog
+                  employeeId={employee.id}
+                  employeeName={employee.fullName}
+                  existingReviews={employee.kpiReviews.map(r => ({ quarter: r.quarter, year: r.year }))}
+                />
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -333,7 +343,7 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
                               <span className="text-slate-500">{pendingCount} pending</span>
                             </div>
                           )}
-                          {review.status !== "COMPLETED" && (
+                          {review.status !== "COMPLETED" && canCreateKpis && (
                             <AddKpiGoalDialog
                               reviewId={review.id}
                               quarter={review.quarter}
@@ -679,10 +689,12 @@ export function EmployeeProfileTabs({ employee }: EmployeeProfileTabsProps) {
                   Warning history and documentation for CCMA compliance
                 </CardDescription>
               </div>
-              <WarningDialog
-                employeeId={employee.id}
-                employeeName={employee.fullName}
-              />
+              {canIssueWarnings && (
+                <WarningDialog
+                  employeeId={employee.id}
+                  employeeName={employee.fullName}
+                />
+              )}
             </div>
           </CardHeader>
           <CardContent>

@@ -10,8 +10,8 @@ import { format } from "date-fns";
 import { DeleteFormButton } from "@/components/forms/delete-form-button";
 
 export default async function FormsPage() {
-  await requirePermission(PERMISSIONS.LOGBOOK);
-  const canManage = await checkPermission(PERMISSIONS.LOGBOOK_CRUD);
+  await requirePermission(PERMISSIONS.FORMS);
+  const canManage = await checkPermission(PERMISSIONS.FORMS_CREATE);
 
   const forms = await getCustomForms();
 

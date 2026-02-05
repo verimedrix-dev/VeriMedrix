@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getLocums } from "@/lib/actions/locums";
-import { requirePermission } from "@/lib/auth";
+import { requirePermission, isOwner as checkIsOwner } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { ClockInOutCard } from "@/components/locums/clock-in-out-card";
 import { Clock } from "lucide-react";
@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 
 export default async function ClockPage() {
-  await requirePermission(PERMISSIONS.EMPLOYEES);
+  // All staff can access clock in/out page
+  await requirePermission(PERMISSIONS.LOCUMS_CLOCK);
+  // Only owner can see rates
+  const showRate = await checkIsOwner();
 
   const locums = await getLocums();
   const activeLocums = locums.filter(l => l.isActive);
@@ -61,6 +64,7 @@ export default async function ClockPage() {
                 agencyName: locum.agencyName,
               }}
               currentTimesheet={locum.LocumTimesheet?.[0] || null}
+              showRate={showRate}
             />
           ))}
         </div>

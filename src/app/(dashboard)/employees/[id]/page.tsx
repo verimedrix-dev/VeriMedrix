@@ -13,6 +13,8 @@ import {
 import Link from "next/link";
 import { getEmployee } from "@/lib/actions/employees";
 import { getEmployeeTrainings, getEmployeeTrainingCompliance, getEmployeeCpdSummary } from "@/lib/actions/training";
+import { checkPermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { format } from "date-fns";
 import { EmployeeProfileTabs } from "@/components/employees/employee-profile-tabs";
 import { DeleteEmployeeDialog } from "@/components/employees/delete-employee-dialog";
@@ -33,6 +35,12 @@ export default async function EmployeeProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  // Check permissions for different actions
+  // Owner only: delete employee, see employment details (hire date, termination date)
+  // Owner + Intermediate: issue warnings, create KPIs
+  const isOwner = await checkPermission(PERMISSIONS.EMPLOYEES_FULL);
+  const canManageTeam = await checkPermission(PERMISSIONS.EMPLOYEES_VIEW_TEAM);
 
   // Fetch employee and training data in parallel
   const [employee, trainings, compliance, cpdSummary] = await Promise.all([
@@ -95,11 +103,14 @@ export default async function EmployeeProfilePage({
               employmentType: employee.employmentType,
               isActive: employee.isActive,
             }}
+            showEmploymentSection={isOwner}
           />
-          <DeleteEmployeeDialog
-            employeeId={employee.id}
-            employeeName={employee.fullName}
-          />
+          {isOwner && (
+            <DeleteEmployeeDialog
+              employeeId={employee.id}
+              employeeName={employee.fullName}
+            />
+          )}
         </div>
       </div>
 
@@ -196,6 +207,8 @@ export default async function EmployeeProfilePage({
             totalCount: cpdSummary.totalCount,
           } : null,
         }}
+        canIssueWarnings={canManageTeam}
+        canCreateKpis={canManageTeam}
       />
     </div>
   );

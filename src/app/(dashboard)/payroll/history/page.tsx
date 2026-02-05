@@ -19,6 +19,8 @@ import {
 import { ArrowLeft, FileSpreadsheet, TrendingUp, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { getPayrollRuns, getPayrollHistory } from "@/lib/actions/payroll";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { format } from "date-fns";
 
 function formatCurrency(amount: number | null | undefined): string {
@@ -31,6 +33,8 @@ export default async function PayrollHistoryPage({
 }: {
   searchParams: Promise<{ year?: string; employeeId?: string }>;
 }) {
+  await requirePermission(PERMISSIONS.PAYROLL_FULL);
+
   const params = await searchParams;
   const currentYear = new Date().getFullYear();
   const selectedYear = params.year ? parseInt(params.year) : currentYear;

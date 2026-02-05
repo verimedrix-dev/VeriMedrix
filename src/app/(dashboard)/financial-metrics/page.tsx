@@ -21,7 +21,7 @@ function formatRand(value: number): string {
 }
 
 export default async function FinancialMetricsPage() {
-  await requirePermission(PERMISSIONS.PAYROLL);
+  await requirePermission(PERMISSIONS.FINANCIAL_METRICS);
 
   const data = await getFinancialMetricsData();
 

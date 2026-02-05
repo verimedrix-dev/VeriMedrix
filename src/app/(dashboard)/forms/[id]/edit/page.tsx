@@ -12,7 +12,7 @@ interface EditFormPageProps {
 }
 
 export default async function EditFormPage({ params }: EditFormPageProps) {
-  await requirePermission(PERMISSIONS.LOGBOOK_CRUD);
+  await requirePermission(PERMISSIONS.FORMS_CREATE);
   const { id } = await params;
 
   const form = await getCustomForm(id);

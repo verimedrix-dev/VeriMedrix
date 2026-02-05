@@ -1,15 +1,18 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPendingTimesheets } from "@/lib/actions/locums";
-import { requireOwner } from "@/lib/auth";
+import { requirePermission, isOwner as checkIsOwner } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { TimesheetApprovalTable } from "@/components/locums/timesheet-approval-table";
 import { ClipboardCheck, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export default async function TimesheetsPage() {
-  // Only practice owners can view/approve timesheets (contains financial data)
-  await requireOwner();
-  const canApprove = true; // Owner always has approval rights
+  // Intermediate (ADMIN) and above can view/approve timesheets
+  await requirePermission(PERMISSIONS.LOCUMS_FULL);
+  const canApprove = true; // Anyone with LOCUMS_FULL can approve
+  // Only owner can see rates and financial totals
+  const showFinancials = await checkIsOwner();
 
   const timesheets = await getPendingTimesheets();
 
@@ -54,7 +57,7 @@ export default async function TimesheetsPage() {
               </p>
             </div>
           ) : (
-            <TimesheetApprovalTable timesheets={timesheets} canApprove={canApprove} />
+            <TimesheetApprovalTable timesheets={timesheets} canApprove={canApprove} showFinancials={showFinancials} />
           )}
         </CardContent>
       </Card>
