@@ -342,15 +342,26 @@ export const getLocum = cache(async (id: string) => {
   });
 });
 
-// Delete a locum
+// Delete a locum (owner only)
 export async function deleteLocum(id: string) {
-  const { practice } = await ensureUserAndPractice();
+  const { user, practice } = await ensureUserAndPractice();
   if (!practice) throw new Error("Not authenticated");
+
+  // Only owners can delete locums
+  if (user.role !== "PRACTICE_OWNER" && user.role !== "SUPER_ADMIN") {
+    throw new Error("Only practice owners can delete locums");
+  }
 
   const existing = await prisma.locum.findFirst({
     where: { id, practiceId: practice.id },
+    include: { LocumTimesheet: true },
   });
   if (!existing) throw new Error("Locum not found");
+
+  // Delete related timesheets first
+  if (existing.LocumTimesheet.length > 0) {
+    await prisma.locumTimesheet.deleteMany({ where: { locumId: id } });
+  }
 
   await prisma.locum.delete({ where: { id } });
 

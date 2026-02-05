@@ -25,6 +25,7 @@ import Link from "next/link";
 import { format, differenceInDays, isPast } from "date-fns";
 import { LocumTimesheetHistory } from "@/components/locums/locum-timesheet-history";
 import { EditLocumDialog } from "@/components/locums/edit-locum-dialog";
+import { DeleteLocumDialog } from "@/components/locums/delete-locum-dialog";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -99,14 +100,19 @@ export default async function LocumProfilePage({ params }: Props) {
             </div>
           </div>
         </div>
-        {canManage && (
-          <EditLocumDialog locum={locum}>
-            <Button variant="outline" size="sm">
-              <Pencil className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-          </EditLocumDialog>
-        )}
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <EditLocumDialog locum={locum}>
+              <Button variant="outline" size="sm">
+                <Pencil className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            </EditLocumDialog>
+          )}
+          {ownerAccess && (
+            <DeleteLocumDialog locumId={locum.id} locumName={locum.fullName} />
+          )}
+        </div>
       </div>
 
       {/* Stats Cards - Only visible to intermediate (ADMIN) and above */}

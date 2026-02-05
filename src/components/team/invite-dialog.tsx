@@ -21,11 +21,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { UserPlus, Loader2, Mail, User, Shield, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { UserPlus, Loader2, Mail, User, AlertTriangle, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 import { UserRole, SubscriptionTier } from "@prisma/client";
 import { getEligibleEmployees, sendTeamInvitation, getTeamLimitStatus } from "@/lib/actions/team";
-import { getInvitableRoles, getAccessLevelDescription } from "@/lib/permissions";
+import { getInvitableRoles } from "@/lib/permissions";
 import Link from "next/link";
 
 interface EligibleEmployee {
@@ -221,29 +222,30 @@ export function InviteTeamMemberDialog() {
             )}
 
             {/* Role Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="role">Access Level</Label>
-              <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as UserRole)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select access level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {invitableRoles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{role.label}</span>
-                        <span className="text-xs text-slate-500">{role.description}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Access level description */}
-              <div className="flex items-start gap-2 mt-2 p-2 bg-slate-50 dark:bg-slate-800 rounded text-xs text-slate-600 dark:text-slate-400">
-                <Shield className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
-                <span>{getAccessLevelDescription(selectedRole)}</span>
-              </div>
+            <div className="space-y-3">
+              <Label>Access Level</Label>
+              <RadioGroup
+                value={selectedRole}
+                onValueChange={(value) => setSelectedRole(value as UserRole)}
+                className="space-y-3"
+              >
+                {invitableRoles.map((role) => (
+                  <label
+                    key={role.value}
+                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedRole === role.value
+                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600"
+                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <RadioGroupItem value={role.value} className="mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 dark:text-white">{role.label}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{role.description}</p>
+                    </div>
+                  </label>
+                ))}
+              </RadioGroup>
             </div>
           </div>
 
