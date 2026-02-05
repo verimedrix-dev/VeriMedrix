@@ -16,7 +16,10 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { getDashboardData } from "@/lib/actions/dashboard";
+import { getMyLocumDashboard } from "@/lib/actions/locums";
+import { getCurrentUserWithRole } from "@/lib/auth";
 import { format, differenceInDays } from "date-fns";
+import { LocumDashboard } from "@/components/locums/locum-dashboard";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +32,27 @@ const UploadDocumentDialog = nextDynamic(
 );
 
 export default async function DashboardPage() {
+  // Check if user is a locum - if so, show locum dashboard
+  const user = await getCurrentUserWithRole();
+  if (user?.role === "LOCUM") {
+    const locumData = await getMyLocumDashboard();
+    if (locumData) {
+      return <LocumDashboard data={locumData} />;
+    }
+    // Fallback: locum user but no linked locum profile
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <Clock className="h-12 w-12 text-slate-300" />
+        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
+          Account Setup Pending
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+          Your locum profile is being set up. Please contact your practice administrator if this persists.
+        </p>
+      </div>
+    );
+  }
+
   // Optimized: Single auth call + parallel DB queries instead of 4 separate calls
   const data = await getDashboardData();
   const docStats = data?.docStats;

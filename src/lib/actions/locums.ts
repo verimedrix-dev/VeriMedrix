@@ -984,3 +984,149 @@ export async function getLocumPaymentSummary(locumId: string) {
   };
 }
 
+// =============================================================================
+// LOCUM SELF-SERVICE (for locums viewing their own data)
+// =============================================================================
+
+/**
+ * Get the current user's locum profile (if they are a locum)
+ */
+export async function getMyLocumProfile() {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) return null;
+
+  // Find the locum linked to this user
+  const locum = await withDbConnection(() =>
+    prisma.locum.findFirst({
+      where: {
+        userId: user.id,
+        practiceId: practice.id,
+      },
+      include: {
+        LocumTimesheet: {
+          orderBy: { date: "desc" },
+          take: 50, // Last 50 timesheets
+        },
+      },
+    })
+  );
+
+  return locum;
+}
+
+/**
+ * Get dashboard data for a locum user (their own stats and timesheets)
+ */
+export async function getMyLocumDashboard() {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) return null;
+
+  // Find the locum linked to this user
+  const locum = await withDbConnection(() =>
+    prisma.locum.findFirst({
+      where: {
+        userId: user.id,
+        practiceId: practice.id,
+      },
+    })
+  );
+
+  if (!locum) return null;
+
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  // Get all timesheets for this locum
+  const timesheets = await withDbConnection(() =>
+    prisma.locumTimesheet.findMany({
+      where: {
+        locumId: locum.id,
+        practiceId: practice.id,
+      },
+      orderBy: { date: "desc" },
+    })
+  );
+
+  // Calculate stats
+  const pendingApproval = timesheets.filter(ts => ts.status === "CLOCKED_OUT").length;
+  const approved = timesheets.filter(ts => ts.status === "APPROVED" || ts.paymentStatus === "PAID").length;
+  const rejected = timesheets.filter(ts => ts.status === "REJECTED").length;
+
+  const totalHours = timesheets.reduce((sum, ts) => sum + (ts.hoursWorked || 0), 0);
+  const totalEarnings = timesheets
+    .filter(ts => ts.status === "APPROVED" || ts.paymentStatus === "PAID")
+    .reduce((sum, ts) => sum + (ts.totalPayable || 0), 0);
+
+  // This month's stats
+  const thisMonthTimesheets = timesheets.filter(ts => {
+    const date = new Date(ts.date);
+    return date >= startOfMonth && date <= endOfMonth;
+  });
+  const monthlyHours = thisMonthTimesheets.reduce((sum, ts) => sum + (ts.hoursWorked || 0), 0);
+  const monthlyEarnings = thisMonthTimesheets
+    .filter(ts => ts.status === "APPROVED" || ts.paymentStatus === "PAID")
+    .reduce((sum, ts) => sum + (ts.totalPayable || 0), 0);
+
+  // Recent timesheets (last 10)
+  const recentTimesheets = timesheets.slice(0, 10);
+
+  return {
+    locum: {
+      id: locum.id,
+      fullName: locum.fullName,
+      email: locum.email,
+      phone: locum.phone,
+      hourlyRate: locum.hourlyRate,
+      sourceType: locum.sourceType,
+      agencyName: locum.agencyName,
+      hpcsaNumber: locum.hpcsaNumber,
+      hpcsaExpiry: locum.hpcsaExpiry,
+      indemnityInsuranceNumber: locum.indemnityInsuranceNumber,
+      indemnityInsuranceExpiry: locum.indemnityInsuranceExpiry,
+    },
+    stats: {
+      pendingApproval,
+      approved,
+      rejected,
+      totalHours,
+      totalEarnings,
+      monthlyHours,
+      monthlyEarnings,
+      totalTimesheets: timesheets.length,
+    },
+    recentTimesheets,
+    allTimesheets: timesheets,
+  };
+}
+
+/**
+ * Get all timesheets for the current locum user
+ */
+export async function getMyTimesheets() {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) return [];
+
+  // Find the locum linked to this user
+  const locum = await withDbConnection(() =>
+    prisma.locum.findFirst({
+      where: {
+        userId: user.id,
+        practiceId: practice.id,
+      },
+    })
+  );
+
+  if (!locum) return [];
+
+  return withDbConnection(() =>
+    prisma.locumTimesheet.findMany({
+      where: {
+        locumId: locum.id,
+        practiceId: practice.id,
+      },
+      orderBy: { date: "desc" },
+    })
+  );
+}
+
