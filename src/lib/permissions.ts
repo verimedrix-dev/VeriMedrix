@@ -218,7 +218,9 @@ const ROUTE_PERMISSIONS: Record<string, Permission> = {
   "/employees": PERMISSIONS.EMPLOYEES,
   "/payroll": PERMISSIONS.PAYROLL,
   "/locums": PERMISSIONS.LOCUMS,
-  "/my-timesheets": PERMISSIONS.LOCUMS,
+  "/locum-profile": PERMISSIONS.LOCUMS,
+  "/timesheet-history": PERMISSIONS.LOCUMS,
+  "/clock": PERMISSIONS.LOCUMS,
   "/forms": PERMISSIONS.FORMS,
 
   // Admin only routes

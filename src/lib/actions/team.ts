@@ -554,7 +554,7 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
   const invitation = await withDbConnection(() =>
     prisma.teamInvitation.findUnique({
       where: { token },
-      include: { Employee: true },
+      include: { Employee: true, Locum: true },
     })
   );
 
@@ -615,6 +615,14 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
           });
         }
 
+        // Link locum to existing user (if locum record exists)
+        if (invitation.locumId) {
+          await tx.locum.update({
+            where: { id: invitation.locumId },
+            data: { userId: existingUser.id },
+          });
+        }
+
         // Mark invitation as accepted
         await tx.teamInvitation.update({
           where: { id: invitation.id },
@@ -645,7 +653,7 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
         data: {
           id: createId(),
           email: invitation.email,
-          name: invitation.Employee?.fullName || invitation.email,
+          name: invitation.Employee?.fullName || invitation.Locum?.fullName || invitation.email,
           practiceId: invitation.practiceId,
           currentPracticeId: invitation.practiceId,
           role: invitation.role,
@@ -669,6 +677,14 @@ export async function acceptInvitation(token: string, supabaseUserId: string) {
       if (invitation.employeeId) {
         await tx.employee.update({
           where: { id: invitation.employeeId },
+          data: { userId: newUser.id },
+        });
+      }
+
+      // Link locum to user (if locum record exists)
+      if (invitation.locumId) {
+        await tx.locum.update({
+          where: { id: invitation.locumId },
           data: { userId: newUser.id },
         });
       }

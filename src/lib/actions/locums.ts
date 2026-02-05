@@ -1130,3 +1130,106 @@ export async function getMyTimesheets() {
   );
 }
 
+/**
+ * Update the current locum user's own profile (basic info only)
+ */
+export async function updateMyLocumProfile(data: {
+  email?: string;
+  phone?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { user, practice } = await ensureUserAndPractice();
+    if (!user || !practice) return { success: false, error: "Not authenticated" };
+
+    // Find the locum linked to this user
+    const locum = await prisma.locum.findFirst({
+      where: {
+        userId: user.id,
+        practiceId: practice.id,
+      },
+    });
+
+    if (!locum) return { success: false, error: "Locum profile not found" };
+
+    await prisma.locum.update({
+      where: { id: locum.id },
+      data: {
+        email: data.email,
+        phone: data.phone,
+      },
+    });
+
+    // Invalidate caches
+    await invalidateCache(cacheKeys.practiceLocums(practice.id));
+
+    revalidatePath("/locum-profile");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating locum profile:", error);
+    return { success: false, error: "Failed to update profile" };
+  }
+}
+
+/**
+ * Clock in the current locum user
+ */
+export async function clockInSelf() {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) throw new Error("Not authenticated");
+
+  // Find the locum linked to this user
+  const locum = await prisma.locum.findFirst({
+    where: {
+      userId: user.id,
+      practiceId: practice.id,
+    },
+  });
+
+  if (!locum) throw new Error("Locum profile not found");
+
+  // Use the existing clockIn function
+  return clockIn(locum.id);
+}
+
+/**
+ * Clock out the current locum user
+ */
+export async function clockOutSelf(breakMinutes?: number) {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) throw new Error("Not authenticated");
+
+  // Find the locum linked to this user
+  const locum = await prisma.locum.findFirst({
+    where: {
+      userId: user.id,
+      practiceId: practice.id,
+    },
+  });
+
+  if (!locum) throw new Error("Locum profile not found");
+
+  // Use the existing clockOut function
+  return clockOut(locum.id, breakMinutes);
+}
+
+/**
+ * Get clock status for the current locum user
+ */
+export async function getMyClockStatus() {
+  const { user, practice } = await ensureUserAndPractice();
+  if (!user || !practice) return null;
+
+  // Find the locum linked to this user
+  const locum = await prisma.locum.findFirst({
+    where: {
+      userId: user.id,
+      practiceId: practice.id,
+    },
+  });
+
+  if (!locum) return null;
+
+  // Use the existing getClockStatus function
+  return getClockStatus(locum.id);
+}
+

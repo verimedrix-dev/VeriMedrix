@@ -78,8 +78,9 @@ const stockNavigation: NavItem[] = [
 
 // Locum-specific navigation - only shown to users with LOCUM role
 const locumNavigation: NavItem[] = [
-  { name: "My Dashboard", href: "/dashboard", icon: LayoutDashboard, permission: PERMISSIONS.LOCUMS },
-  { name: "My Timesheets", href: "/my-timesheets", icon: Clock, permission: PERMISSIONS.LOCUMS },
+  { name: "Profile", href: "/locum-profile", icon: UserCircle, permission: PERMISSIONS.LOCUMS },
+  { name: "Timesheet History", href: "/timesheet-history", icon: Clock, permission: PERMISSIONS.LOCUMS },
+  { name: "Clock In/Out", href: "/clock", icon: Calendar, permission: PERMISSIONS.LOCUMS },
 ];
 
 const adminNavigation: NavItem[] = [

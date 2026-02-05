@@ -20,10 +20,7 @@ import {
   XCircle,
   AlertCircle,
   Banknote,
-  ArrowLeft,
 } from "lucide-react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 
 export const dynamic = "force-dynamic";
@@ -72,16 +69,26 @@ function getStatusBadge(status: string, paymentStatus: string) {
   }
 }
 
-export default async function MyTimesheetsPage() {
+export default async function TimesheetHistoryPage() {
   await requirePermission(PERMISSIONS.LOCUMS);
 
   const data = await getMyLocumDashboard();
 
   if (!data) {
-    redirect("/dashboard");
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <Clock className="h-12 w-12 text-slate-300" />
+        <h2 className="text-xl font-semibold text-slate-700 dark:text-slate-300">
+          Account Setup Pending
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+          Your locum profile is being set up. Please contact your practice administrator.
+        </p>
+      </div>
+    );
   }
 
-  const { locum, stats, allTimesheets } = data;
+  const { stats, allTimesheets } = data;
 
   // Filter timesheets by status
   const pendingTimesheets = allTimesheets.filter((ts) => ts.status === "CLOCKED_OUT");
@@ -89,7 +96,6 @@ export default async function MyTimesheetsPage() {
     (ts) => ts.status === "APPROVED" || ts.paymentStatus === "PAID"
   );
   const rejectedTimesheets = allTimesheets.filter((ts) => ts.status === "REJECTED");
-  const currentlyWorking = allTimesheets.filter((ts) => ts.status === "CLOCKED_IN");
 
   const TimesheetTable = ({
     timesheets,
@@ -186,18 +192,11 @@ export default async function MyTimesheetsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">My Timesheets</h1>
-          <p className="text-slate-600 dark:text-slate-400">
-            View all your submitted timesheets and their approval status
-          </p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Timesheet History</h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          View all your submitted timesheets and their status
+        </p>
       </div>
 
       {/* Stats Summary */}
@@ -248,33 +247,12 @@ export default async function MyTimesheetsPage() {
         </Card>
       </div>
 
-      {/* Currently Working Alert */}
-      {currentlyWorking.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-800">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-3">
-              <div className="h-3 w-3 bg-blue-500 rounded-full animate-pulse" />
-              <div>
-                <p className="font-medium text-blue-900 dark:text-blue-100">Currently Working</p>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Clocked in at{" "}
-                  {currentlyWorking[0].clockIn
-                    ? format(new Date(currentlyWorking[0].clockIn), "HH:mm")
-                    : "-"}{" "}
-                  on {format(new Date(currentlyWorking[0].date), "dd MMM yyyy")}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Timesheets Tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            Timesheet History
+            All Timesheets
           </CardTitle>
           <CardDescription>
             {stats.totalTimesheets} total timesheet{stats.totalTimesheets !== 1 ? "s" : ""} recorded
