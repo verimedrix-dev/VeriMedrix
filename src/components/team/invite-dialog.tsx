@@ -20,12 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { UserPlus, Loader2, Mail, User, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { UserPlus, Loader2, Mail, User, AlertTriangle, ArrowUpRight, Briefcase, Building } from "lucide-react";
 import { toast } from "sonner";
-import { UserRole, SubscriptionTier } from "@prisma/client";
-import { getEligibleEmployees, sendTeamInvitation, getTeamLimitStatus } from "@/lib/actions/team";
+import { UserRole, SubscriptionTier, LocumSourceType } from "@prisma/client";
+import { getEligibleEmployees, getEligibleLocums, sendTeamInvitation, sendLocumInvitation, getTeamLimitStatus } from "@/lib/actions/team";
 import { getInvitableRoles } from "@/lib/permissions";
 import Link from "next/link";
 
@@ -34,6 +35,14 @@ interface EligibleEmployee {
   fullName: string;
   email: string | null;
   position: string;
+}
+
+interface EligibleLocum {
+  id: string;
+  fullName: string;
+  email: string | null;
+  sourceType: LocumSourceType;
+  agencyName: string | null;
 }
 
 interface LimitStatus {
@@ -51,32 +60,45 @@ export function InviteTeamMemberDialog() {
   const { refresh, isPending } = useRefresh();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const [inviteType, setInviteType] = useState<"employee" | "locum">("employee");
+
+  // Employee state
   const [employees, setEmployees] = useState<EligibleEmployee[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [selectedRole, setSelectedRole] = useState<UserRole>("STAFF");
+
+  // Locum state
+  const [locums, setLocums] = useState<EligibleLocum[]>([]);
+  const [selectedLocumId, setSelectedLocumId] = useState("");
+
   const [limitStatus, setLimitStatus] = useState<LimitStatus | null>(null);
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
+  const selectedLocum = locums.find((l) => l.id === selectedLocumId);
   const invitableRoles = getInvitableRoles();
 
   useEffect(() => {
     if (open) {
-      loadEligibleEmployees();
+      loadData();
       loadLimitStatus();
     }
   }, [open]);
 
-  const loadEligibleEmployees = async () => {
-    setLoadingEmployees(true);
+  const loadData = async () => {
+    setLoadingData(true);
     try {
-      const eligibleEmployees = await getEligibleEmployees();
+      const [eligibleEmployees, eligibleLocums] = await Promise.all([
+        getEligibleEmployees(),
+        getEligibleLocums(),
+      ]);
       setEmployees(eligibleEmployees);
+      setLocums(eligibleLocums);
     } catch (error) {
-      console.error("Failed to load eligible employees:", error);
-      toast.error("Failed to load employees");
+      console.error("Failed to load data:", error);
+      toast.error("Failed to load eligible members");
     } finally {
-      setLoadingEmployees(false);
+      setLoadingData(false);
     }
   };
 
@@ -92,42 +114,72 @@ export function InviteTeamMemberDialog() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedEmployeeId) {
-      toast.error("Please select an employee");
-      return;
+    if (inviteType === "employee") {
+      if (!selectedEmployeeId) {
+        toast.error("Please select an employee");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await sendTeamInvitation({
+          employeeId: selectedEmployeeId,
+          role: selectedRole,
+        });
+
+        setOpen(false);
+        resetState();
+        refresh();
+        toast.success(`Invitation sent to ${selectedEmployee?.fullName}`);
+      } catch (error) {
+        console.error("Failed to send invitation:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to send invitation");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      if (!selectedLocumId) {
+        toast.error("Please select a locum");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        await sendLocumInvitation({
+          locumId: selectedLocumId,
+        });
+
+        setOpen(false);
+        resetState();
+        refresh();
+        toast.success(`Invitation sent to ${selectedLocum?.fullName}`);
+      } catch (error) {
+        console.error("Failed to send invitation:", error);
+        toast.error(error instanceof Error ? error.message : "Failed to send invitation");
+      } finally {
+        setLoading(false);
+      }
     }
+  };
 
-    setLoading(true);
-
-    try {
-      await sendTeamInvitation({
-        employeeId: selectedEmployeeId,
-        role: selectedRole,
-      });
-
-      setOpen(false);
-      setSelectedEmployeeId("");
-      setSelectedRole("STAFF");
-      refresh();
-      toast.success(`Invitation sent to ${selectedEmployee?.fullName}`);
-    } catch (error) {
-      console.error("Failed to send invitation:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to send invitation");
-    } finally {
-      setLoading(false);
-    }
+  const resetState = () => {
+    setSelectedEmployeeId("");
+    setSelectedLocumId("");
+    setSelectedRole("STAFF");
+    setInviteType("employee");
   };
 
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen);
     if (!newOpen) {
-      setSelectedEmployeeId("");
-      setSelectedRole("STAFF");
+      resetState();
       setLimitStatus(null);
     }
   };
 
   const isLimitReached = limitStatus?.isLimitReached ?? false;
+  const canSubmitEmployee = !loading && !isPending && selectedEmployeeId && employees.length > 0 && !isLimitReached;
+  const canSubmitLocum = !loading && !isPending && selectedLocumId && locums.length > 0 && !isLimitReached;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -142,7 +194,7 @@ export function InviteTeamMemberDialog() {
           <DialogHeader>
             <DialogTitle>Invite Team Member</DialogTitle>
             <DialogDescription>
-              Select an employee to invite to your team. They will receive an email to create their account.
+              Invite an employee or locum to your team. They will receive an email to create their account.
             </DialogDescription>
           </DialogHeader>
 
@@ -176,77 +228,151 @@ export function InviteTeamMemberDialog() {
                 </Alert>
               ) : null
             )}
-            {/* Employee Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="employee">Select Employee</Label>
-              {loadingEmployees ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+
+            {/* Tabs for Employee vs Locum */}
+            <Tabs value={inviteType} onValueChange={(v) => setInviteType(v as "employee" | "locum")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="employee" className="gap-2">
+                  <Briefcase className="h-4 w-4" />
+                  Employee
+                </TabsTrigger>
+                <TabsTrigger value="locum" className="gap-2">
+                  <Building className="h-4 w-4" />
+                  Locum
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Employee Tab */}
+              <TabsContent value="employee" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="employee">Select Employee</Label>
+                  {loadingData ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                    </div>
+                  ) : employees.length === 0 ? (
+                    <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
+                      <User className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">No eligible employees found</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                        Employees must have an email address and not already have an account.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose an employee..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            <div className="flex flex-col">
+                              <span>{employee.fullName}</span>
+                              <span className="text-xs text-slate-500">{employee.position}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
-              ) : employees.length === 0 ? (
-                <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
-                  <User className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-                  <p className="text-sm text-slate-600 dark:text-slate-400">No eligible employees found</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                    Employees must have an email address and not already have an account.
+
+                {/* Show selected employee details */}
+                {selectedEmployee && (
+                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-slate-600 dark:text-slate-400">Invitation will be sent to:</span>
+                    </div>
+                    <p className="font-medium text-slate-900 dark:text-white mt-1">{selectedEmployee.email}</p>
+                  </div>
+                )}
+
+                {/* Role Selection for Employees */}
+                <div className="space-y-3">
+                  <Label>Access Level</Label>
+                  <RadioGroup
+                    value={selectedRole}
+                    onValueChange={(value) => setSelectedRole(value as UserRole)}
+                    className="space-y-3"
+                  >
+                    {invitableRoles.map((role) => (
+                      <label
+                        key={role.value}
+                        className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                          selectedRole === role.value
+                            ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600"
+                            : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                        }`}
+                      >
+                        <RadioGroupItem value={role.value} className="mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-900 dark:text-white">{role.label}</p>
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{role.description}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </RadioGroup>
+                </div>
+              </TabsContent>
+
+              {/* Locum Tab */}
+              <TabsContent value="locum" className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="locum">Select Locum</Label>
+                  {loadingData ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                    </div>
+                  ) : locums.length === 0 ? (
+                    <div className="text-center py-4 px-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
+                      <Building className="h-8 w-8 mx-auto text-slate-300 dark:text-slate-600 mb-2" />
+                      <p className="text-sm text-slate-600 dark:text-slate-400">No eligible locums found</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
+                        Locums must have an email address and not already have an account.
+                      </p>
+                    </div>
+                  ) : (
+                    <Select value={selectedLocumId} onValueChange={setSelectedLocumId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a locum..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {locums.map((locum) => (
+                          <SelectItem key={locum.id} value={locum.id}>
+                            <div className="flex flex-col">
+                              <span>{locum.fullName}</span>
+                              <span className="text-xs text-slate-500">
+                                {locum.sourceType === "AGENCY" ? locum.agencyName || "Agency" : "Direct"}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+
+                {/* Show selected locum details */}
+                {selectedLocum && (
+                  <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-sm">
+                      <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      <span className="text-slate-600 dark:text-slate-400">Invitation will be sent to:</span>
+                    </div>
+                    <p className="font-medium text-slate-900 dark:text-white mt-1">{selectedLocum.email}</p>
+                  </div>
+                )}
+
+                {/* Locum Access Info */}
+                <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg border dark:border-slate-700">
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">Locum Access</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Locums can view their timesheets, hours worked, and payment history.
                   </p>
                 </div>
-              ) : (
-                <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose an employee..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {employees.map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        <div className="flex flex-col">
-                          <span>{employee.fullName}</span>
-                          <span className="text-xs text-slate-500">{employee.position}</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
-
-            {/* Show selected employee details */}
-            {selectedEmployee && (
-              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg p-3">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <span className="text-slate-600 dark:text-slate-400">Invitation will be sent to:</span>
-                </div>
-                <p className="font-medium text-slate-900 dark:text-white mt-1">{selectedEmployee.email}</p>
-              </div>
-            )}
-
-            {/* Role Selection */}
-            <div className="space-y-3">
-              <Label>Access Level</Label>
-              <RadioGroup
-                value={selectedRole}
-                onValueChange={(value) => setSelectedRole(value as UserRole)}
-                className="space-y-3"
-              >
-                {invitableRoles.map((role) => (
-                  <label
-                    key={role.value}
-                    className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedRole === role.value
-                        ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-600"
-                        : "border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
-                    }`}
-                  >
-                    <RadioGroupItem value={role.value} className="mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 dark:text-white">{role.label}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">{role.description}</p>
-                    </div>
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <DialogFooter>
@@ -255,7 +381,7 @@ export function InviteTeamMemberDialog() {
             </Button>
             <Button
               type="submit"
-              disabled={loading || isPending || !selectedEmployeeId || employees.length === 0 || isLimitReached}
+              disabled={inviteType === "employee" ? !canSubmitEmployee : !canSubmitLocum}
             >
               {(loading || isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Send Invitation

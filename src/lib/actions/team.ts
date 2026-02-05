@@ -86,6 +86,36 @@ export async function getEligibleEmployees() {
 }
 
 /**
+ * Get locums who are eligible for invitation (have email, no user account, no pending invitation)
+ */
+export async function getEligibleLocums() {
+  await requirePermission(PERMISSIONS.TEAM);
+  const { practice } = await ensureUserAndPractice();
+
+  if (!practice) return [];
+
+  return await withDbConnection(() =>
+    prisma.locum.findMany({
+      where: {
+        practiceId: practice.id,
+        isActive: true,
+        email: { not: null },
+        userId: null, // No user account yet
+        TeamInvitation: null, // No pending invitation
+      },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        sourceType: true,
+        agencyName: true,
+      },
+      orderBy: { fullName: "asc" },
+    })
+  );
+}
+
+/**
  * Get pending invitations for the practice
  */
 export async function getPendingInvitations() {
@@ -107,6 +137,15 @@ export async function getPendingInvitations() {
             fullName: true,
             email: true,
             position: true,
+          },
+        },
+        Locum: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            sourceType: true,
+            agencyName: true,
           },
         },
         InvitedBy: {
@@ -215,6 +254,109 @@ export async function sendTeamInvitation({
   try {
     await sendEmail({
       to: employee.email,
+      subject: emailContent.subject,
+      html: emailContent.html,
+    });
+  } catch (error) {
+    console.error("Email sending error:", error);
+    // If email fails, delete the invitation
+    await withDbConnection(() =>
+      prisma.teamInvitation.delete({ where: { id: invitation.id } })
+    );
+    throw new Error(`Failed to send invitation email: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+
+  revalidatePath("/team");
+  return invitation;
+}
+
+/**
+ * Send a team invitation to a locum
+ */
+export async function sendLocumInvitation({
+  locumId,
+}: {
+  locumId: string;
+}) {
+  await requirePermission(PERMISSIONS.TEAM);
+  const { user, practice } = await ensureUserAndPractice();
+
+  if (!practice || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // Check subscription user limits before sending invitation
+  await enforceUserLimit(practice.id);
+
+  // Get the locum and validate
+  const locum = await withDbConnection(() =>
+    prisma.locum.findFirst({
+      where: {
+        id: locumId,
+        practiceId: practice.id,
+        isActive: true,
+        email: { not: null },
+        userId: null,
+      },
+      include: {
+        TeamInvitation: true,
+      },
+    })
+  );
+
+  if (!locum) {
+    throw new Error("Locum not found or not eligible for invitation");
+  }
+
+  if (!locum.email) {
+    throw new Error("Locum does not have an email address");
+  }
+
+  if (locum.TeamInvitation) {
+    throw new Error("This locum already has a pending invitation");
+  }
+
+  // Generate secure token
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+
+  // Create invitation with LOCUM role
+  const invitation = await withDbConnection(() =>
+    prisma.teamInvitation.create({
+      data: {
+        practiceId: practice.id,
+        locumId: locum.id,
+        email: locum.email!,
+        role: "LOCUM",
+        token,
+        expiresAt,
+        invitedById: user.id,
+      },
+      include: {
+        Locum: true,
+      },
+    })
+  );
+
+  // Send invitation email
+  const inviteUrl = `${APP_URL}/accept-invitation?token=${token}`;
+  const emailContent = getTeamInvitationEmail({
+    employeeName: locum.fullName,
+    practiceName: practice.name,
+    inviterName: user.name,
+    accessLevel: "Locum Access",
+    inviteUrl,
+    expiryDate: expiresAt.toLocaleDateString("en-ZA", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    }),
+  });
+
+  try {
+    await sendEmail({
+      to: locum.email,
       subject: emailContent.subject,
       html: emailContent.html,
     });

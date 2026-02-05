@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { cancelInvitation, resendInvitation } from "@/lib/actions/team";
 import { getAccessLevelDisplayName } from "@/lib/permissions";
 import { formatDistanceToNow } from "date-fns";
-import { UserRole } from "@prisma/client";
+import { UserRole, LocumSourceType } from "@prisma/client";
 
 interface Invitation {
   id: string;
@@ -24,6 +24,13 @@ interface Invitation {
     fullName: string;
     email: string | null;
     position: string;
+  } | null;
+  Locum?: {
+    id: string;
+    fullName: string;
+    email: string | null;
+    sourceType: LocumSourceType;
+    agencyName: string | null;
   } | null;
   InvitedBy: {
     id: string;
@@ -103,12 +110,12 @@ export function PendingInvitations({ invitations }: PendingInvitationsProps) {
                   </div>
                   <div>
                     <p className="font-medium text-slate-900 dark:text-white">
-                      {invitation.Employee?.fullName || invitation.email}
+                      {invitation.Employee?.fullName || invitation.Locum?.fullName || invitation.email}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400">{invitation.email}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className="text-xs">
-                        {getAccessLevelDisplayName(invitation.role)}
+                        {invitation.Locum ? "Locum" : getAccessLevelDisplayName(invitation.role)}
                       </Badge>
                       {expired ? (
                         <Badge variant="destructive" className="text-xs">
@@ -126,7 +133,7 @@ export function PendingInvitations({ invitations }: PendingInvitationsProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleResend(invitation.id, invitation.Employee?.fullName || invitation.email)}
+                    onClick={() => handleResend(invitation.id, invitation.Employee?.fullName || invitation.Locum?.fullName || invitation.email)}
                     disabled={isLoading}
                   >
                     {isLoading ? (
