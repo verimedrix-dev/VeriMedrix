@@ -3,26 +3,27 @@ import { SubscriptionTier } from "@prisma/client";
 /**
  * VeriMedrix Subscription Plans
  *
- * HR Management: R999/month
- * - 3 users
+ * Practice Essentials: R999/month
+ * - Unlimited users
  * - HR features: Team, Leave Management, Payroll, Locums, Training
+ * - SARS Reports, Financial Metrics, Inventory Management
  * - Tasks
- * - No: Compliance features (Documents, Complaints, Adverse Events, Logbook, Inspection Readiness)
+ * - No: Compliance features (Documents, Complaints, Adverse Events, Logbook, Inspection Readiness), AI Assistant, Templates
  *
  * OHSC Essential: R1,999/month
- * - 3 users
+ * - Unlimited users
  * - Unlimited documents
  * - Tasks, Complaints, Adverse Events, Logbook, Inspection Readiness, Training
- * - No: Leave Management, Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics
+ * - No: Leave Management, Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics, Inventory, Templates
  *
  * OHSC Professional: R4,999/month
  * - Unlimited users
  * - Everything included
- * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics, Inventory
+ * - Leave Management, Unlimited Payroll, Locums, Team Invites, SARS Reports, AI Assistant, Financial Metrics, Inventory, Templates
  */
 export const SUBSCRIPTION_LIMITS = {
   ESSENTIALS: {
-    maxUsers: 3,
+    maxUsers: null, // Unlimited
     displayName: "OHSC Essential",
     price: 1999,
     features: {
@@ -43,11 +44,12 @@ export const SUBSCRIPTION_LIMITS = {
       aiAssistant: false,
       financialMetrics: false,
       inventory: false,
+      templates: false,
     },
   },
   HR_MANAGEMENT: {
-    maxUsers: 3,
-    displayName: "HR Management",
+    maxUsers: null, // Unlimited
+    displayName: "Practice Essentials",
     price: 999,
     features: {
       // HR-focused features
@@ -57,16 +59,17 @@ export const SUBSCRIPTION_LIMITS = {
       payroll: true,
       locums: true,
       teamInvites: true,
+      sarsReports: true,
+      financialMetrics: true,
+      inventory: true,
       // Not included - Compliance features
       documents: false,
       complaints: false,
       adverseEvents: false,
       logbook: false,
       inspectionReadiness: false,
-      sarsReports: false,
       aiAssistant: false,
-      financialMetrics: false,
-      inventory: false,
+      templates: false,
     },
   },
   PROFESSIONAL: {
@@ -90,6 +93,7 @@ export const SUBSCRIPTION_LIMITS = {
       aiAssistant: true,
       financialMetrics: true,
       inventory: true,
+      templates: true,
     },
   },
   // Enterprise kept for schema compatibility but treated same as OHSC Professional
@@ -113,6 +117,7 @@ export const SUBSCRIPTION_LIMITS = {
       aiAssistant: true,
       financialMetrics: true,
       inventory: true,
+      templates: true,
     },
   },
 } as const;
@@ -169,4 +174,5 @@ export const FEATURE_DISPLAY_NAMES: Record<FeatureKey, string> = {
   aiAssistant: "AI Assistant",
   financialMetrics: "Financial Metrics Dashboard",
   inventory: "Inventory Management",
+  templates: "Templates",
 };

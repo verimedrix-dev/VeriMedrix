@@ -532,7 +532,26 @@ export async function createOrUpdatePayrollRun(month: number, year: number) {
       }
     }
 
-    const employeeTotalDeductions = payeAmount + uifAmount + pensionAmount + medicalAidAmount + otherDeductions;
+    // Check for approved pay advances and add to deductions
+    const approvedAdvances = await prisma.payAdvance.findMany({
+      where: {
+        employeeId: employee.id,
+        status: "APPROVED",
+      },
+    });
+
+    let advanceDeductions = 0;
+    for (const advance of approvedAdvances) {
+      const advanceAmount = advance.approvedAmount || advance.requestedAmount;
+      advanceDeductions += advanceAmount;
+      deductionDetails.push({
+        deductionType: "CUSTOM",
+        name: `Pay Advance (${new Date(advance.requestedAt).toLocaleDateString("en-ZA")})`,
+        amount: advanceAmount,
+      });
+    }
+
+    const employeeTotalDeductions = payeAmount + uifAmount + pensionAmount + medicalAidAmount + otherDeductions + advanceDeductions;
     const netSalary = grossSalary - employeeTotalDeductions;
 
     // Employer contributions
@@ -565,6 +584,18 @@ export async function createOrUpdatePayrollRun(month: number, year: number) {
           deductionType: detail.deductionType,
           name: detail.name,
           amount: detail.amount,
+        },
+      });
+    }
+
+    // Mark pay advances as deducted
+    for (const advance of approvedAdvances) {
+      await prisma.payAdvance.update({
+        where: { id: advance.id },
+        data: {
+          status: "DEDUCTED",
+          deductedFromPayrollId: payrollRun.id,
+          deductedAt: new Date(),
         },
       });
     }

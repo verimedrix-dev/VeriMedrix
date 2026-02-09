@@ -302,10 +302,15 @@ export function getAccessLevelDescription(role: UserRole): string {
 }
 
 /**
- * Get roles that can be invited by an admin (excludes SUPER_ADMIN and PRACTICE_OWNER)
+ * Get roles that can be invited by an admin (excludes SUPER_ADMIN only)
  */
 export function getInvitableRoles(): { value: UserRole; label: string; description: string }[] {
   return [
+    {
+      value: "PRACTICE_OWNER",
+      label: "Full Access (Admin/Owner)",
+      description: "Complete access to all features including team management, settings, and financial metrics. Can invite and manage all users.",
+    },
     {
       value: "ADMIN",
       label: "Intermediate Access (Manager)",

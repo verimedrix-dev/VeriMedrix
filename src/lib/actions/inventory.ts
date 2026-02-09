@@ -445,39 +445,40 @@ export async function checkInventoryAlerts() {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
-    // Get all active items
-    const items = await prisma.inventoryItem.findMany({
-      where: {
-        practiceId: practice.id,
-        isActive: true,
-      },
-      include: {
-        Category: { select: { name: true } },
-      },
-    });
+    // Fetch all data in a single parallel batch to minimize connection usage
+    const [items, existingAlerts, recipients] = await withDbConnection(() =>
+      Promise.all([
+        prisma.inventoryItem.findMany({
+          where: {
+            practiceId: practice.id,
+            isActive: true,
+          },
+          include: {
+            Category: { select: { name: true } },
+          },
+        }),
+        prisma.alert.findMany({
+          where: {
+            practiceId: practice.id,
+            status: "PENDING",
+            alertType: {
+              in: ["INVENTORY_LOW_STOCK", "INVENTORY_EXPIRING", "INVENTORY_EXPIRED"],
+            },
+          },
+          select: { message: true },
+        }),
+        prisma.user.findMany({
+          where: {
+            practiceId: practice.id,
+            isActive: true,
+            role: { in: ["PRACTICE_OWNER", "ADMIN"] },
+          },
+          select: { id: true },
+        }),
+      ])
+    );
 
-    // Get existing PENDING inventory alerts for this practice to avoid duplicates
-    const existingAlerts = await prisma.alert.findMany({
-      where: {
-        practiceId: practice.id,
-        status: "PENDING",
-        alertType: {
-          in: ["INVENTORY_LOW_STOCK", "INVENTORY_EXPIRING", "INVENTORY_EXPIRED"],
-        },
-      },
-      select: { message: true },
-    });
     const existingMessages = new Set(existingAlerts.map((a) => a.message));
-
-    // Find practice owners/admins to notify
-    const recipients = await prisma.user.findMany({
-      where: {
-        practiceId: practice.id,
-        isActive: true,
-        role: { in: ["PRACTICE_OWNER", "ADMIN"] },
-      },
-      select: { id: true },
-    });
 
     if (recipients.length === 0) return;
 
@@ -527,7 +528,7 @@ export async function checkInventoryAlerts() {
         }))
       );
 
-      await prisma.alert.createMany({ data });
+      await withDbConnection(() => prisma.alert.createMany({ data }));
       await invalidateCache(cacheKeys.practiceAlerts(practice.id));
       revalidatePath("/notifications");
     }

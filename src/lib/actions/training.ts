@@ -113,6 +113,20 @@ export async function createTrainingModule(data: {
   const { practice } = await ensureUserAndPractice();
   if (!practice) throw new Error("Not authenticated");
 
+  // Check for existing module with the same name to avoid unique constraint violation
+  const existing = await prisma.trainingModule.findUnique({
+    where: {
+      practiceId_name: {
+        practiceId: practice.id,
+        name: data.name,
+      },
+    },
+  });
+
+  if (existing) {
+    throw new Error(`A training module named "${data.name}" already exists. Please use a different name.`);
+  }
+
   const module = await prisma.trainingModule.create({
     data: {
       practiceId: practice.id,

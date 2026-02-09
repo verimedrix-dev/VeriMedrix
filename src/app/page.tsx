@@ -504,11 +504,11 @@ export default function HomePage() {
           </FeatureSection>
 
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {/* HR Management */}
+            {/* Practice Essentials */}
             <FeatureSection delay={100}>
               <Card className="relative border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">HR Management</h3>
+                  <h3 className="text-xl font-bold text-slate-900 mb-2">Practice Essentials</h3>
                   <p className="text-slate-500 mb-2">HR & Payroll focused</p>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium mb-4">
                     <Clock className="h-3 w-3" />
@@ -520,13 +520,16 @@ export default function HomePage() {
                   </div>
                   <ul className="space-y-3 mb-6">
                     {[
-                      "Up to 3 users",
+                      "Unlimited users",
                       "Task Management",
                       "Training Tracking",
                       "Leave Management",
                       "Payroll",
                       "Locum Management",
                       "Team Invitations",
+                      "SARS Reporting",
+                      "Financial Metrics Dashboard",
+                      "Inventory Management",
                       "Email Support",
                     ].map((feature) => (
                       <li key={feature} className="flex items-start gap-3 group">
@@ -560,7 +563,7 @@ export default function HomePage() {
                   </div>
                   <ul className="space-y-3 mb-6">
                     {[
-                      "Up to 3 users",
+                      "Unlimited users",
                       "Unlimited Documents",
                       "Task Management",
                       "Complaints Register",
@@ -615,6 +618,8 @@ export default function HomePage() {
                       "Financial Metrics Dashboard",
                       "SARS Reporting",
                       "Team Invitations",
+                      "Inventory Management",
+                      "Templates",
                       "AI Assistant",
                       "Priority Support",
                     ].map((feature) => (

@@ -219,7 +219,7 @@ export default function OnboardingPage() {
               {planFromSignup && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
                   <p className="text-sm text-blue-800 text-center">
-                    <strong>Selected Plan:</strong> {planFromSignup === "PROFESSIONAL" ? "OHSC Professional" : planFromSignup === "HR_MANAGEMENT" ? "HR Management" : "OHSC Essential"} - 14-day free trial
+                    <strong>Selected Plan:</strong> {planFromSignup === "PROFESSIONAL" ? "OHSC Professional" : planFromSignup === "HR_MANAGEMENT" ? "Practice Essentials" : "OHSC Essential"} - 14-day free trial
                   </p>
                 </div>
               )}
@@ -240,7 +240,7 @@ export default function OnboardingPage() {
               </div>
 
               <div className="space-y-4">
-                {/* HR Management Plan */}
+                {/* Practice Essentials Plan */}
                 <button
                   type="button"
                   onClick={() => setSelectedPlan("HR_MANAGEMENT")}
@@ -252,7 +252,7 @@ export default function OnboardingPage() {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div>
-                      <h4 className="font-semibold text-lg">HR Management</h4>
+                      <h4 className="font-semibold text-lg">Practice Essentials</h4>
                       <p className="text-sm text-slate-500">HR & Payroll focused</p>
                     </div>
                     <div className="text-right">
@@ -263,7 +263,7 @@ export default function OnboardingPage() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>Up to 3 users</span>
+                      <span>Unlimited users</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -283,7 +283,15 @@ export default function OnboardingPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>Training tracking</span>
+                      <span>SARS reporting</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Financial metrics</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                      <span>Inventory management</span>
                     </div>
                   </div>
                   {selectedPlan === "HR_MANAGEMENT" && (
@@ -316,7 +324,7 @@ export default function OnboardingPage() {
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm text-slate-600">
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>Up to 3 users</span>
+                      <span>Unlimited users</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -367,7 +375,7 @@ export default function OnboardingPage() {
                       <p className="text-sm text-slate-500">Complete solution</p>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R3,999</div>
+                      <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">R4,999</div>
                       <div className="text-sm text-slate-500">/month</div>
                     </div>
                   </div>
@@ -382,7 +390,7 @@ export default function OnboardingPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>SARS reporting</span>
+                      <span>Templates</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
@@ -391,10 +399,6 @@ export default function OnboardingPage() {
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
                       <span>Priority support</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
-                      <span>Team invitations</span>
                     </div>
                   </div>
                   {selectedPlan === "PROFESSIONAL" && (

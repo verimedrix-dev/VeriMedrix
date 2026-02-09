@@ -28,6 +28,8 @@ import { format } from "date-fns";
 import { SarsReminderCard } from "@/components/payroll/sars-reminder-card";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
+import { getPayAdvances } from "@/lib/actions/pay-advance";
+import { PayAdvanceManagement } from "@/components/payroll/pay-advance-management";
 
 // Dynamic import for dialogs - not needed on initial render
 const CompensationDialog = dynamic(
@@ -51,6 +53,13 @@ const GarnisheeDeductionDialog = dynamic(
   }
 );
 
+const RequestPayAdvanceDialog = dynamic(
+  () => import("@/components/payroll/request-pay-advance-dialog").then((mod) => mod.RequestPayAdvanceDialog),
+  {
+    loading: () => <Skeleton className="h-8 w-20" />,
+  }
+);
+
 function formatCurrency(amount: number | null | undefined): string {
   if (amount === null || amount === undefined) return "Not set";
   return `R ${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -65,10 +74,11 @@ export default async function PayrollPage() {
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
 
-  const [employees, payrollRuns, sarsSummary] = await Promise.all([
+  const [employees, payrollRuns, sarsSummary, payAdvances] = await Promise.all([
     getEmployeesWithCompensation(),
     getPayrollRuns(currentYear),
     getSarsSummary(currentMonth - 1 || 12, currentMonth === 1 ? currentYear - 1 : currentYear),
+    getPayAdvances(),
   ]);
 
   // Calculate totals
@@ -192,6 +202,10 @@ export default async function PayrollPage() {
             <Users className="h-4 w-4 mr-2" />
             Employee Compensation
           </TabsTrigger>
+          <TabsTrigger value="advances" className="cursor-pointer">
+            <DollarSign className="h-4 w-4 mr-2" />
+            Pay Advances
+          </TabsTrigger>
           <TabsTrigger value="history" className="cursor-pointer">
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Payroll History
@@ -293,6 +307,13 @@ export default async function PayrollPage() {
                               <CompensationDialog employee={employee} />
                               <FringeBenefitsDialog employeeId={employee.id} employeeName={employee.fullName} />
                               <GarnisheeDeductionDialog employeeId={employee.id} employeeName={employee.fullName} />
+                              {employee.grossSalary && (
+                                <RequestPayAdvanceDialog
+                                  employeeId={employee.id}
+                                  employeeName={employee.fullName}
+                                  monthlySalary={employee.grossSalary}
+                                />
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -303,6 +324,11 @@ export default async function PayrollPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Pay Advances Tab */}
+        <TabsContent value="advances">
+          <PayAdvanceManagement advances={payAdvances} />
         </TabsContent>
 
         {/* Payroll History Tab */}

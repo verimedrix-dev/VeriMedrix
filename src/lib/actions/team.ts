@@ -180,8 +180,8 @@ export async function sendTeamInvitation({
   // Check subscription user limits before sending invitation
   await enforceUserLimit(practice.id);
 
-  // Validate role - can only invite ADMIN, STAFF, or VIEWER
-  if (!["ADMIN", "STAFF", "VIEWER"].includes(role)) {
+  // Validate role - can only invite PRACTICE_OWNER, ADMIN, STAFF, or VIEWER
+  if (!["PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"].includes(role)) {
     throw new Error("Invalid role. Can only invite with Full Access, Intermediate Access, or Minimum Access.");
   }
 
@@ -721,8 +721,8 @@ export async function changeTeamMemberRole(userId: string, newRole: UserRole) {
     throw new Error("You cannot change your own role");
   }
 
-  // Validate role - can only assign ADMIN, STAFF, or VIEWER
-  if (!["ADMIN", "STAFF", "VIEWER"].includes(newRole)) {
+  // Validate role - can only assign PRACTICE_OWNER, ADMIN, STAFF, or VIEWER
+  if (!["PRACTICE_OWNER", "ADMIN", "STAFF", "VIEWER"].includes(newRole)) {
     throw new Error("Invalid role");
   }
 

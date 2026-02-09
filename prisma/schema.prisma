@@ -212,6 +212,7 @@ model Employee {
   PayrollAuditLog          PayrollAuditLog[]
   EmployeeYTD              EmployeeYTD[]
   EmployeeFringeBenefit    EmployeeFringeBenefit[]
+  PayAdvance               PayAdvance[]
 
   @@index([employeeNumber])
   @@index([isActive])
@@ -413,6 +414,7 @@ model Practice {
   InventoryCategories  InventoryCategory[]
   InventoryItems       InventoryItem[]
   StockMovements       StockMovement[]
+  PayAdvance           PayAdvance[]
   @@index([email])
   @@index([subscriptionStatus])
   @@index([scheduledDeletionAt])
@@ -693,6 +695,8 @@ model User {
   UserPractices                        UserPractice[] // All practices this user has access to
   CustomForm                           CustomForm[]
   CustomFormResponse                   CustomFormResponse[]
+  PayAdvanceRequests                   PayAdvance[]   @relation("PayAdvanceRequestedBy")
+  PayAdvanceReviews                    PayAdvance[]   @relation("PayAdvanceReviewedBy")
 
   @@index([email])
   @@index([practiceId])
@@ -917,6 +921,13 @@ enum PayrollStatus {
   PAID
 }
 
+enum PayAdvanceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DEDUCTED
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -964,6 +975,7 @@ model PayrollRun {
   Practice            Practice       @relation(fields: [practiceId], references: [id], onDelete: Cascade)
   PayrollEntry        PayrollEntry[]
   PayrollAuditLog     PayrollAuditLog[]
+  PayAdvance          PayAdvance[]
 
   @@unique([practiceId, month, year])
   @@index([practiceId])
@@ -1037,6 +1049,38 @@ model PayrollAddition {
   PayrollEntry   PayrollEntry @relation(fields: [payrollEntryId], references: [id], onDelete: Cascade)
 
   @@index([payrollEntryId])
+}
+
+// Pay advance requests - employees can request advance on future salary
+model PayAdvance {
+  id               String            @id @default(cuid())
+  employeeId       String
+  practiceId       String
+  requestedAmount  Float             // Amount requested by employee
+  approvedAmount   Float?            // Amount approved (may differ from requested)
+  reason           String?           // Employee's reason for request
+  status           PayAdvanceStatus  @default(PENDING)
+  requestedById    String            // Employee who made the request
+  requestedAt      DateTime          @default(now())
+  reviewedById     String?           // Admin/Owner who approved/rejected
+  reviewedAt       DateTime?
+  rejectionReason  String?           // Why it was rejected
+  deductedFromPayrollId String?      @unique // Which payroll run it was deducted from
+  deductedAt       DateTime?
+  notes            String?           // Admin notes
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  Employee         Employee          @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  Practice         Practice          @relation(fields: [practiceId], references: [id], onDelete: Cascade)
+  RequestedBy      User              @relation("PayAdvanceRequestedBy", fields: [requestedById], references: [id])
+  ReviewedBy       User?             @relation("PayAdvanceReviewedBy", fields: [reviewedById], references: [id])
+  DeductedFromPayroll PayrollRun?    @relation(fields: [deductedFromPayrollId], references: [id], onDelete: SetNull)
+
+  @@index([employeeId])
+  @@index([practiceId])
+  @@index([status])
+  @@index([requestedAt])
 }
 
 // Separate Locum model - independent from employees

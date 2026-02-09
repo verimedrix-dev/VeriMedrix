@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureUserAndPractice } from "@/lib/actions/practice";
 import { generateAuditFormDocx } from "@/lib/templates/audit-form-template";
 import type { TemplateDefinition } from "@/lib/templates/template-types";
+import { isFeatureAvailable } from "@/lib/subscription-config";
 
 export async function GET(
   request: NextRequest,
@@ -16,6 +17,14 @@ export async function GET(
     const { user, practice } = await ensureUserAndPractice();
     if (!user || !practice) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if templates feature is available for this subscription tier
+    if (!isFeatureAvailable(practice.subscriptionTier, "templates")) {
+      return NextResponse.json(
+        { error: "Templates are only available on the Professional plan. Please upgrade to access this feature." },
+        { status: 403 }
+      );
     }
 
     // Fetch document type with template

@@ -17,7 +17,8 @@ export default async function InventoryPage() {
   }
 
   // Check for inventory alerts (low stock, expiring, expired) and create notifications
-  checkInventoryAlerts().catch(() => {});
+  // Await to prevent leaked promises in serverless environment
+  await checkInventoryAlerts();
 
   // Pass data to client component for interactivity (cast after feature gate check)
   return <InventoryDashboardClient initialData={data as import("@/lib/inventory-utils").InventoryDashboardData | null} />;

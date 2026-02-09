@@ -37,6 +37,8 @@ export async function withDbConnection<T>(
           error.message.includes("prepared statement") ||
           error.message.includes("PrismaClientInitializationError") ||
           error.message.includes("Server has closed the connection") ||
+          error.message.includes("Connection reset by peer") ||
+          error.message.includes("Timed out fetching a new connection") ||
           error.message.includes("MaxClientsInSessionMode") ||
           error.message.includes("max clients reached") ||
           error.message.includes("too many connections") ||
